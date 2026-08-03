@@ -1,0 +1,95 @@
+{
+  "name": "bunny-stream-react-native",
+  "version": "0.1.0",
+  "description": "Bunny Stream React Native SDK - native bridge for Bunny Stream, wrapping the official iOS and Android SDKs.",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
+  "types": "lib/typescript/commonjs/index.d.ts",
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/typescript/module/index.d.ts",
+        "default": "./lib/module/index.js"
+      },
+      "require": {
+        "types": "./lib/typescript/commonjs/index.d.ts",
+        "default": "./lib/commonjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "lib",
+    "!**/__tests__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "build": "bob build",
+    "clean": "rm -rf lib",
+    "prepare": "bob build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\""
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "bunny",
+    "bunny-stream",
+    "video",
+    "streaming",
+    "cdn",
+    "sdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BunnyWay/bunny-stream-react-native.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BunnyWay/bunny-stream-react-native/issues"
+  },
+  "homepage": "https://github.com/BunnyWay/bunny-stream-react-native#readme",
+  "author": "Bunny (https://bunny.net)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/react": "^19.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-perfectionist": "^5.9.0",
+    "prettier": "^3.6.2",
+    "react-native-builder-bob": "^0.43.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.1"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.71.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
+}
