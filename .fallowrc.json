@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/index.ts"],
+  "ignoreDependencies": [
+    "eslint-import-resolver-typescript",
+    "react-native-builder-bob",
+    "prettier",
+    "typescript",
+    "@types/react"
+  ],
+  "ignorePatterns": [
+    "**/*.d.ts",
+    "./package.json",
+    "lib/**",
+    "node_modules/**"
+  ],
+  "duplicates": {
+    "minOccurrences": 3
+  },
+  "rules": {
+    "unused-dependencies": "warn",
+    "unused-files": "warn",
+    "unused-exports": "warn"
+  }
+}
