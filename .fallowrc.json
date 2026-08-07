@@ -2,18 +2,21 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": ["src/index.ts"],
   "ignoreDependencies": [
+    "@eslint/js",
+    "eslint",
+    "eslint-config-prettier",
     "eslint-import-resolver-typescript",
+    "eslint-plugin-import-x",
+    "eslint-plugin-perfectionist",
+    "fallow",
+    "globals",
     "react-native-builder-bob",
     "prettier",
     "typescript",
+    "typescript-eslint",
     "@types/react"
   ],
-  "ignorePatterns": [
-    "**/*.d.ts",
-    "./package.json",
-    "lib/**",
-    "node_modules/**"
-  ],
+  "ignorePatterns": ["**/*.d.ts", "./package.json", "example/**", "lib/**", "node_modules/**"],
   "duplicates": {
     "minOccurrences": 3
   },

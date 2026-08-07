@@ -26,17 +26,21 @@ Bunny Stream is a video platform that provides encoding, storage, delivery, and 
 | React | 18.0.0 |
 | React Native | 0.71.0 |
 
-These are the floors declared in `peerDependencies` / `engines` in `package.json` and may be raised as the native bridge is implemented (e.g. if a New Architecture-only API is required).
+These are the floors declared in `peerDependencies` / `engines` in `package.json` and may be raised as the native bridge is implemented. The planned native implementation will target the React Native **New Architecture** (TurboModules and Fabric components).
 
 ## Status
 
-This repository currently only contains the base setup for the future npm package (TypeScript configuration, linting, and build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob)). No native bridge exists yet.
+This repository currently contains the base setup for the future npm package (TypeScript configuration, linting, and build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob)) and an example app for development. No native bridge exists yet.
 
 Planned roadmap:
 
 1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)
 2. Wrap the [Bunny Stream Android SDK](https://github.com/BunnyWay/bunny-stream-android)
 3. Expose both through a single React Native bridge/plugin with a shared TypeScript API
+
+## Development
+
+For local development setup, running the example app, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Installation
 
