@@ -8,6 +8,7 @@
   "source": "src/index.ts",
   "exports": {
     ".": {
+      "react-native": "./src/index.ts",
       "import": {
         "types": "./lib/typescript/module/index.d.ts",
         "default": "./lib/module/index.js"
@@ -31,7 +32,11 @@
     "prepare": "bob build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\"",
-    "fallow": "fallow health --report-only"
+    "fallow": "fallow health --report-only",
+    "example:start": "npm --prefix example run start",
+    "example:ios": "npm --prefix example run ios",
+    "example:android": "npm --prefix example run android",
+    "example:typecheck": "npm --prefix example run typecheck"
   },
   "keywords": [
     "react-native",

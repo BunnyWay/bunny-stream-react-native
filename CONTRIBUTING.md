@@ -21,8 +21,10 @@ If you are unsure whether a change fits, open an issue first and describe the pr
 
 Requirements:
 
-- Node.js 18+
-- npm or yarn
+- Node.js 22+ (see `.nvmrc`)
+- npm
+- Xcode (latest) with iOS Simulator
+- Android Studio with Android SDK and emulator
 
 Useful commands:
 
@@ -32,6 +34,26 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+### Running the example app
+
+The repository includes an example React Native app in `example/` that links the library from source. This is the primary way to iterate on the native bridge.
+
+```bash
+# Install example dependencies (from repository root)
+npm --prefix example install
+
+# iOS (installs pods and launches simulator)
+npm run example:ios
+
+# Android (launches emulator)
+npm run example:android
+
+# Typecheck the example app
+npm run example:typecheck
+```
+
+The example app resolves the library from `src/` via Metro, so changes to TypeScript source are reflected through Fast Refresh without rebuilding the library.
 
 ## Project Areas
 
