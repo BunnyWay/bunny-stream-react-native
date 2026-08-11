@@ -29,7 +29,7 @@
   "scripts": {
     "build": "bob build",
     "clean": "rm -rf lib",
-    "codegen": "node node_modules/react-native/scripts/generate-codegen-artifacts.js -p example -t all -o example/build/generated/codegen",
+    "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",
     "prepare": "bob build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\"",
@@ -65,6 +65,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@react-native-community/cli": "20.1.0",
     "@types/react": "^19.2.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.1.8",
