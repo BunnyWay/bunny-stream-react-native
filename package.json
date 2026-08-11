@@ -29,6 +29,7 @@
   "scripts": {
     "build": "bob build",
     "clean": "rm -rf lib",
+    "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",
     "prepare": "bob build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\"",
@@ -64,6 +65,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@react-native-community/cli": "20.1.0",
     "@types/react": "^19.2.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.1.8",
@@ -80,6 +82,26 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.71.0"
+  },
+  "codegenConfig": {
+    "name": "BunnyStreamReactNativeSpec",
+    "type": "all",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "net.bunny.reactnative"
+    },
+    "ios": {
+      "modules": {
+        "BunnyStreamPlayer": {
+          "className": "BunnyStreamPlayerModule"
+        }
+      },
+      "components": {
+        "BunnyStreamPlayerView": {
+          "className": "BunnyStreamPlayerView"
+        }
+      }
+    }
   },
   "react-native-builder-bob": {
     "source": "src",
