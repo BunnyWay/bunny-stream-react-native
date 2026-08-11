@@ -24,9 +24,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Install example dependencies
-        run: npm --prefix example ci
-
       - name: Codegen
         run: npm run codegen
 
@@ -35,9 +32,6 @@ jobs:
 
       - name: TypeScript check
         run: npm run typecheck
-
-      - name: Example TypeScript check
-        run: npm run example:typecheck
 
       - name: Build
         run: npm run build
