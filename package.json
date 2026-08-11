@@ -29,6 +29,7 @@
   "scripts": {
     "build": "bob build",
     "clean": "rm -rf lib",
+    "codegen": "node node_modules/react-native/scripts/generate-codegen-artifacts.js -p example -t all -o example/build/generated/codegen",
     "prepare": "bob build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\"",
@@ -80,6 +81,26 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.71.0"
+  },
+  "codegenConfig": {
+    "name": "BunnyStreamReactNativeSpec",
+    "type": "all",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "net.bunny.reactnative"
+    },
+    "ios": {
+      "modules": {
+        "BunnyStreamPlayer": {
+          "className": "BunnyStreamPlayerModule"
+        }
+      },
+      "components": {
+        "BunnyStreamPlayerView": {
+          "className": "BunnyStreamPlayerView"
+        }
+      }
+    }
   },
   "react-native-builder-bob": {
     "source": "src",

@@ -27,6 +27,9 @@ jobs:
       - name: Install example dependencies
         run: npm --prefix example ci
 
+      - name: Codegen
+        run: npm run codegen
+
       - name: Lint
         run: npm run lint
 
