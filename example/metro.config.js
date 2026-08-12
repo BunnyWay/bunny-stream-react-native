@@ -11,11 +11,11 @@ const config = {
   watchFolders: [path.resolve(__dirname, '..')],
   resolver: {
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
-    // Force `react` and `react-native` to always resolve from the example
-    // app's node_modules, never from the library's own node_modules. Without
-    // this, two separate React instances coexist (library's 19.2.8 + app's
-    // 19.2.3), causing "Invalid hook call / Cannot read property 'useRef' of
-    // null" at runtime.
+    // Resolve `react` and `react-native` (and their deep imports) from the
+    // example app's node_modules. The library is a watchFolder, so Metro
+    // would otherwise find the peer-dep copies npm auto-installed under the
+    // library's own node_modules, creating two React instances at runtime.
+    // This is the standard pattern used by RN libraries with an example app.
     resolveRequest: (context, moduleName, platform) => {
       if (
         moduleName === 'react' ||
@@ -23,12 +23,11 @@ const config = {
         moduleName === 'react-native' ||
         moduleName.startsWith('react-native/')
       ) {
-        const resolved = context.resolveRequest(
+        return context.resolveRequest(
           { ...context, originModulePath: __filename },
           moduleName,
           platform,
         );
-        return resolved;
       }
       return context.resolveRequest(context, moduleName, platform);
     },
