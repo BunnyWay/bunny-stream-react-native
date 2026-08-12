@@ -3,6 +3,7 @@
   "exclude": ["**/__tests__", "**/*.test.ts", "**/*.test.tsx"],
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "./lib/typescript"
+    "outDir": "./lib/typescript",
+    "rootDir": "."
   }
 }
