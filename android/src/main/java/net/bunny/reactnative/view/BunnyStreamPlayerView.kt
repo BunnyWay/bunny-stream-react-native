@@ -146,6 +146,34 @@ class BunnyStreamPlayerView(
     val expires: Long?,
   )
 
+  // --- Commands (called by ViewManager, dispatched to player) ---
+  // Full validation and queueing is added in plan section 5.
+
+  fun play() {
+    player.play()
+  }
+
+  fun pause() {
+    player.pause()
+  }
+
+  fun seekTo(positionMs: Double) {
+    if (positionMs.isFinite() && positionMs >= 0) {
+      player.seekTo(positionMs.toLong())
+    }
+  }
+
+  fun setVolume(volume: Double) {
+    val clamped = volume.coerceIn(0.0, 1.0).toFloat()
+    net.bunny.bunnystreamplayer.DefaultBunnyPlayer.getInstance(context).setVolume(clamped)
+  }
+
+  fun setPlaybackRate(rate: Double) {
+    if (rate.isFinite() && rate > 0) {
+      net.bunny.bunnystreamplayer.DefaultBunnyPlayer.getInstance(context).setSpeed(rate.toFloat())
+    }
+  }
+
   // --- Cleanup (wired fully in plan section 8) ---
 
   /**

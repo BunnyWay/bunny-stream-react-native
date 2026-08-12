@@ -1,24 +1,45 @@
 package net.bunny.reactnative.view
 
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.uimanager.BaseViewManagerDelegate
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.viewmanagers.BunnyStreamPlayerViewManagerDelegate
+import com.facebook.react.viewmanagers.BunnyStreamPlayerViewManagerInterface
 
 /**
  * Fabric ViewManager for the Bunny Stream player component.
  *
- * Creates [BunnyStreamPlayerView] instances and wires props via the
- * Codegen-generated delegate. The manager name must match the Codegen
- * component name exactly: `BunnyStreamPlayerView`.
+ * Implements the Codegen-generated [BunnyStreamPlayerViewManagerInterface] and
+ * routes prop updates through [BunnyStreamPlayerViewManagerDelegate]. The
+ * manager name `BunnyStreamPlayerView` matches the Codegen component name exactly.
  *
- * Full prop setters, command dispatch, and event emission are added in
- * plan sections 4, 5, and 6.
+ * Prop setters delegate to [BunnyStreamPlayerView]'s accumulation fields; the
+ * actual video reload happens in [BunnyStreamPlayerView.commitProps], called
+ * from [onAfterUpdateTransaction] after all props in a batch have been set.
+ *
+ * Commands are dispatched on the UI thread. `setVolume` and `setPlaybackRate`
+ * target the `DefaultBunnyPlayer` singleton (not the view) because those
+ * methods are not exposed on [net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer].
+ * Full command validation and queueing is added in plan section 5.
  */
 class BunnyStreamPlayerViewManager(
-  @Suppress("unused") private val reactContext: ReactApplicationContext,
-) : SimpleViewManager<BunnyStreamPlayerView>() {
+  private val reactContext: ReactApplicationContext,
+) : SimpleViewManager<BunnyStreamPlayerView>(),
+  BunnyStreamPlayerViewManagerInterface<BunnyStreamPlayerView> {
+
+  private var delegate: BunnyStreamPlayerViewManagerDelegate<BunnyStreamPlayerView, BunnyStreamPlayerViewManager>? =
+    null
 
   override fun getName(): String = NAME
+
+  override fun getDelegate(): BaseViewManagerDelegate<BunnyStreamPlayerView, BunnyStreamPlayerViewManager> {
+    if (delegate == null) {
+      delegate = BunnyStreamPlayerViewManagerDelegate(this)
+    }
+    return delegate!!
+  }
 
   override fun createViewInstance(reactContext: ThemedReactContext): BunnyStreamPlayerView =
     BunnyStreamPlayerView(reactContext)
@@ -31,6 +52,55 @@ class BunnyStreamPlayerViewManager(
   override fun onDropViewInstance(view: BunnyStreamPlayerView) {
     view.cleanup()
     super.onDropViewInstance(view)
+  }
+
+  // --- Prop setters (delegate calls these during a prop batch) ---
+
+  override fun setVideoId(view: BunnyStreamPlayerView, value: String?) {
+    view.setVideoId(value)
+  }
+
+  override fun setLibraryId(view: BunnyStreamPlayerView, value: Double) {
+    view.setLibraryId(value)
+  }
+
+  override fun setToken(view: BunnyStreamPlayerView, value: String?) {
+    view.setToken(value)
+  }
+
+  override fun setExpires(view: BunnyStreamPlayerView, value: Double) {
+    view.setExpires(value)
+  }
+
+  override fun setAutoPlay(view: BunnyStreamPlayerView, value: Boolean) {
+    view.setAutoPlay(value)
+  }
+
+  // --- Commands (dispatched by delegate.receiveCommand) ---
+
+  @ReactMethod
+  override fun play(view: BunnyStreamPlayerView) {
+    view.play()
+  }
+
+  @ReactMethod
+  override fun pause(view: BunnyStreamPlayerView) {
+    view.pause()
+  }
+
+  @ReactMethod
+  override fun seekTo(view: BunnyStreamPlayerView, positionMs: Double) {
+    view.seekTo(positionMs)
+  }
+
+  @ReactMethod
+  override fun setVolume(view: BunnyStreamPlayerView, volume: Double) {
+    view.setVolume(volume)
+  }
+
+  @ReactMethod
+  override fun setPlaybackRate(view: BunnyStreamPlayerView, rate: Double) {
+    view.setPlaybackRate(rate)
   }
 
   companion object {
