@@ -11,6 +11,7 @@ import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
 import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.events.FabricEventEmitter
+import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
 
 /**
@@ -34,8 +35,9 @@ import net.bunny.reactnative.state.BunnyStreamPlayerProps
  *   `DefaultBunnyPlayer.currentPlayer` (not the SDK's `playerStateListener`
  *   slot, which is occupied by the native UI) and translates Media3 callbacks
  *   into RN direct events via the state machine.
- *
- * Full singleton ownership / lease is wired in plan section 8.
+ * - A [BunnyPlayerLease] enforces single-active-instance ownership of the
+ *   `DefaultBunnyPlayer` singleton. When a new view mounts, the previous
+ *   owner's lease is revoked, triggering its cleanup.
  */
 class BunnyStreamPlayerView(
   context: Context,
@@ -51,6 +53,17 @@ class BunnyStreamPlayerView(
 
   /** Monotonic token for cancelling stale async callbacks. */
   val generationToken = GenerationToken()
+
+  /**
+   * Ownership lease for the `DefaultBunnyPlayer` singleton.
+   * Acquired on mount; revoked (via callback) when a newer view takes over;
+   * released on cleanup. Centralises the single-active-instance constraint.
+   */
+  private val lease: BunnyPlayerLease = BunnyPlayerLease {
+    // Called when a newer view acquires the lease — perform cleanup
+    // but do NOT release the lease (the new owner already holds it).
+    performCleanup()
+  }
 
   /** Event emitter for Fabric direct events. Null if context is not a ReactContext. */
   private val emitter: FabricEventEmitter? = FabricEventEmitter.forView(this)
@@ -81,8 +94,12 @@ class BunnyStreamPlayerView(
     }
   }
 
+  /** Idempotent cleanup guard — prevents double-cleanup from lease revoke + onDropViewInstance. */
+  private var cleanedUp = false
+
   init {
     player.setProgressListener(progressListener)
+    lease.acquire()
   }
 
   // --- Prop accumulation fields (set by ViewManager delegate) ---
@@ -292,14 +309,33 @@ class BunnyStreamPlayerView(
     child.layout(0, 0, width, height)
   }
 
-  // --- Cleanup (wired fully in plan section 8) ---
+  // --- Cleanup (plan section 8) ---
 
   /**
-   * Idempotent cleanup. Called from `ViewManager.onDropViewInstance`.
-   * Detaches the event listener, removes the progress listener, drops
-   * pending commands, and invalidates all in-flight callbacks.
+   * Idempotent cleanup. Called from `ViewManager.onDropViewInstance` or from
+   * the lease's [onRevoke] callback when a newer view takes over.
+   *
+   * - Detaches the event listener from `DefaultBunnyPlayer.currentPlayer`.
+   * - Removes the progress listener from the SDK view.
+   * - Drops all pending commands from the [CommandQueue].
+   * - Invalidates all in-flight callbacks via [GenerationToken.bump].
+   * - Releases the [BunnyPlayerLease] (no-op if already revoked by a newer view).
+   *
+   * The `cleanedUp` guard ensures this runs exactly once even if both
+   * `onDropViewInstance` and a lease revoke fire.
    */
   fun cleanup() {
+    lease.release()
+    performCleanup()
+  }
+
+  /**
+   * Internal cleanup without releasing the lease. Called from [cleanup] and
+   * from the lease's [onRevoke] callback. Guarded by [cleanedUp].
+   */
+  private fun performCleanup() {
+    if (cleanedUp) return
+    cleanedUp = true
     generationToken.bump()
     commandQueue.reset()
     eventListener?.detach()
