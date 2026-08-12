@@ -254,6 +254,44 @@ class BunnyStreamPlayerView(
     commandQueue.setReady(true)
   }
 
+  // --- Sizing / layout (plan section 7) ---
+
+  /**
+   * Fabric calls `measure(EXACTLY, EXACTLY)` before `layout`, so the measured
+   * width/height are already the exact pixel dimensions assigned by Yoga.
+   * We forward them unchanged to `setMeasuredDimension`.
+   *
+   * Overriding `onMeasure` (rather than relying on the default `FrameLayout`
+   * implementation) guarantees that the wrapper never applies its own
+   * `WRAP_CONTENT` or `AT_MOST` logic to the child — the child always receives
+   * the exact React Native dimensions.
+   */
+  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+    val width = MeasureSpec.getSize(widthMeasureSpec)
+    val height = MeasureSpec.getSize(heightMeasureSpec)
+    setMeasuredDimension(width, height)
+    measureChildWithMargins(
+      player,
+      widthMeasureSpec,
+      0,
+      heightMeasureSpec,
+      0,
+    )
+  }
+
+  /**
+   * Lays out the single child ([player]) to fill the wrapper exactly.
+   * Fabric calls `layout()` after `measure()`, so the wrapper's position is
+   * already set by the framework; we only need to position the child.
+   */
+  override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+    if (childCount == 0) return
+    val child = getChildAt(0)
+    val width = right - left
+    val height = bottom - top
+    child.layout(0, 0, width, height)
+  }
+
   // --- Cleanup (wired fully in plan section 8) ---
 
   /**
