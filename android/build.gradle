@@ -26,4 +26,7 @@ dependencies {
   // api is a runtime-scoped transitive dep of player; declare explicitly
   // so BunnyStreamApi is on the compile classpath of the bridge.
   implementation "net.bunny:api:3.3.0"
+  // media3 is a runtime-scoped transitive dep of player; declare explicitly
+  // so Player.Listener and PlaybackException are on the compile classpath.
+  implementation "androidx.media3:media3-common:1.6.0"
 }

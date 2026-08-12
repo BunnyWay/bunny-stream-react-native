@@ -4,10 +4,13 @@ import android.content.Context
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
+import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
+import net.bunny.reactnative.adapter.PlayerEventListener
 import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
 import net.bunny.reactnative.commands.PlayerCommand
+import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
 
 /**
@@ -27,9 +30,12 @@ import net.bunny.reactnative.state.BunnyStreamPlayerProps
  *   ready-gate: before `STATE_READY` they are held and drained once the
  *   player becomes ready. `setVolume`/`setPlaybackRate` bypass the queue
  *   and target the [DefaultBunnyPlayer] singleton directly.
+ * - A [PlayerEventListener] registers `Player.Listener` on
+ *   `DefaultBunnyPlayer.currentPlayer` (not the SDK's `playerStateListener`
+ *   slot, which is occupied by the native UI) and translates Media3 callbacks
+ *   into RN direct events via the state machine.
  *
- * Event listener registration and full cleanup are wired in plan sections 6
- * and 8.
+ * Full singleton ownership / lease is wired in plan section 8.
  */
 class BunnyStreamPlayerView(
   context: Context,
@@ -46,6 +52,19 @@ class BunnyStreamPlayerView(
   /** Monotonic token for cancelling stale async callbacks. */
   val generationToken = GenerationToken()
 
+  /** Event emitter for Fabric direct events. Null if context is not a ReactContext. */
+  private val emitter: FabricEventEmitter? = FabricEventEmitter.forView(this)
+
+  /** Translates Media3 Player.Listener callbacks into RN events. */
+  private val eventListener: PlayerEventListener? = emitter?.let { em ->
+    PlayerEventListener(
+      emitter = em,
+      generationToken = generationToken,
+      videoIdProvider = { committedProps.videoId },
+      onReady = { onPlayerReady() },
+    ).also { it.currentPlayerContext = context }
+  }
+
   /** Queue for player commands that depend on `STATE_READY`. */
   private val commandQueue = CommandQueue { cmd ->
     when (cmd) {
@@ -53,6 +72,17 @@ class BunnyStreamPlayerView(
       is PlayerCommand.Pause -> player.pause()
       is PlayerCommand.SeekTo -> player.seekTo(cmd.positionMs)
     }
+  }
+
+  /** Progress listener registered on the SDK view (tick ~250 ms). */
+  private val progressListener = object : BunnyPlayer.ProgressListener {
+    override fun onProgressChanged(position: Long, duration: Long, progress: Float) {
+      eventListener?.onProgress(position, duration)
+    }
+  }
+
+  init {
+    player.setProgressListener(progressListener)
   }
 
   // --- Prop accumulation fields (set by ViewManager delegate) ---
@@ -135,8 +165,9 @@ class BunnyStreamPlayerView(
 
   /**
    * Starts loading a new video source. Bumps the generation token so that any
-   * in-flight callbacks from the previous source are invalidated, and resets
-   * the command queue so stale commands from the previous source are dropped.
+   * in-flight callbacks from the previous source are invalidated, resets
+   * the command queue so stale commands from the previous source are dropped,
+   * and re-attaches the [PlayerEventListener] to the new `currentPlayer`.
    */
   private fun reloadVideo(props: BunnyStreamPlayerProps) {
     generationToken.bump()
@@ -148,6 +179,8 @@ class BunnyStreamPlayerView(
       token = props.token,
       expires = props.expires,
     )
+    // currentPlayer is recreated by the SDK on playVideo — re-attach.
+    eventListener?.attach()
   }
 
   /**
@@ -225,11 +258,14 @@ class BunnyStreamPlayerView(
 
   /**
    * Idempotent cleanup. Called from `ViewManager.onDropViewInstance`.
-   * Removes listeners, stops progress reporting, and drops pending commands.
+   * Detaches the event listener, removes the progress listener, drops
+   * pending commands, and invalidates all in-flight callbacks.
    */
   fun cleanup() {
     generationToken.bump()
     commandQueue.reset()
+    eventListener?.detach()
+    player.setProgressListener(null)
   }
 
   companion object {
