@@ -15,12 +15,12 @@ import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
  * and the Fabric ViewManager ([BunnyStreamPlayerViewManager]) are declared here so
  * that React Native can discover them on app startup.
  */
+@Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
 class BunnyStreamPlayerPackage : ReactPackage {
-  @Suppress("DEPRECATION")
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
     listOf<NativeModule>(BunnyStreamPlayerModule(reactContext))
 
-  @Suppress("DEPRECATION", "UNCHECKED_CAST")
+  @Suppress("UNCHECKED_CAST")
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
     listOf(BunnyStreamPlayerViewManager(reactContext))
 }

@@ -1,28 +1,37 @@
 package net.bunny.reactnative.view
 
-import android.view.View
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 
 /**
- * Fabric ViewManager stub for the Bunny Stream player component.
+ * Fabric ViewManager for the Bunny Stream player component.
  *
- * This is a minimal placeholder so that [net.bunny.reactnative.module.BunnyStreamPlayerPackage]
- * compiles and autolinking recognises the view manager. The full implementation —
- * extending the Codegen-generated `BunnyStreamPlayerViewManagerInterface`,
- * wiring props setters via the generated delegate, and managing the native
- * [net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer] wrapper — is added in
- * plan section 4.
+ * Creates [BunnyStreamPlayerView] instances and wires props via the
+ * Codegen-generated delegate. The manager name must match the Codegen
+ * component name exactly: `BunnyStreamPlayerView`.
+ *
+ * Full prop setters, command dispatch, and event emission are added in
+ * plan sections 4, 5, and 6.
  */
 class BunnyStreamPlayerViewManager(
   @Suppress("unused") private val reactContext: ReactApplicationContext,
-) : SimpleViewManager<View>() {
+) : SimpleViewManager<BunnyStreamPlayerView>() {
 
   override fun getName(): String = NAME
 
-  override fun createViewInstance(reactContext: ThemedReactContext): View =
-    View(reactContext)
+  override fun createViewInstance(reactContext: ThemedReactContext): BunnyStreamPlayerView =
+    BunnyStreamPlayerView(reactContext)
+
+  override fun onAfterUpdateTransaction(view: BunnyStreamPlayerView) {
+    super.onAfterUpdateTransaction(view)
+    view.commitProps()
+  }
+
+  override fun onDropViewInstance(view: BunnyStreamPlayerView) {
+    view.cleanup()
+    super.onDropViewInstance(view)
+  }
 
   companion object {
     const val NAME = "BunnyStreamPlayerView"
