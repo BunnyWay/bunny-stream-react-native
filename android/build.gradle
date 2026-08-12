@@ -35,6 +35,12 @@ dependencies {
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
   implementation "androidx.media3:media3-common:1.6.0"
+  // media3-ui provides PlayerView (useController / showController) which the
+  // native SDK's BunnyPlayerView extends.
+  implementation "androidx.media3:media3-ui:1.6.0"
+  // lifecycle is needed for setViewTreeLifecycleOwner — the native SDK uses
+  // findViewTreeLifecycleOwner() to register its lifecycle observer.
+  implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
 
   testImplementation "org.jetbrains.kotlin:kotlin-test:2.0.21"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:2.0.21"

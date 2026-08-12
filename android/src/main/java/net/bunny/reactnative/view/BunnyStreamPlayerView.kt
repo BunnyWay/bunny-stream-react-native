@@ -1,8 +1,12 @@
 package net.bunny.reactnative.view
 
 import android.content.Context
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
@@ -98,8 +102,27 @@ class BunnyStreamPlayerView(
   private var cleanedUp = false
 
   init {
+    // Propagate LifecycleOwner from the Activity (context) to this wrapper
+    // and its children BEFORE any child's onViewAttachedToWindow fires.
+    // The native BunnyStreamPlayer calls findViewTreeLifecycleOwner() in its
+    // onViewAttachedToWindow to register its lifecycleObserver (which drives
+    // resume/pause/stop and controller visibility). Android calls children's
+    // onViewAttachedToWindow before the parent's onAttachedToWindow, so we must
+    // set this in init — ReactActivity implements LifecycleOwner.
+    (context as? LifecycleOwner)?.let { setViewTreeLifecycleOwner(it) }
     player.setProgressListener(progressListener)
     lease.acquire()
+  }
+
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    // Fallback: if context was not a LifecycleOwner (e.g. wrapper context),
+    // walk up the parent chain to find it.
+    if (findViewTreeLifecycleOwner() == null) {
+      parent?.let { (it as? View)?.findViewTreeLifecycleOwner() }?.let {
+        setViewTreeLifecycleOwner(it)
+      }
+    }
   }
 
   // --- Prop accumulation fields (set by ViewManager delegate) ---
@@ -196,8 +219,62 @@ class BunnyStreamPlayerView(
       token = props.token,
       expires = props.expires,
     )
-    // currentPlayer is recreated by the SDK on playVideo — re-attach.
-    eventListener?.attach()
+    attachWhenPlayerReady()
+  }
+
+  /**
+   * Polls [DefaultBunnyPlayer.currentPlayer] every 100ms until it becomes
+   * non-null (the SDK has created the ExoPlayer), then attaches the event
+   * listener and pins the controller visible.
+   */
+  private fun attachWhenPlayerReady() {
+    val gen = generationToken.current()
+    var attempts = 0
+    post {
+      val poll = object : Runnable {
+        override fun run() {
+          if (!generationToken.isActive(gen)) return
+          val cp = DefaultBunnyPlayer.getInstance(context).currentPlayer
+          if (cp != null) {
+            eventListener?.attach()
+            // Media3's PlayerView does not always trigger a layout pass on its
+            // internal controller view when showController() is called. Under
+            // Fabric, the controller (exo_controller) ends up with 0x0 dimensions
+            // even though its parent (BunnyPlayerView) has correct dimensions.
+            // We delay until the next layout cycle, then manually measure and
+            // layout the controller to match the PlayerView dimensions.
+            postDelayed({
+              findPlayerView()?.let { pv ->
+                pv.useController = true
+                pv.controllerShowTimeoutMs = 0
+                pv.showController()
+                val controller = pv.findViewById<android.view.View>(
+                  androidx.media3.ui.R.id.exo_controller,
+                )
+                if (controller != null && (controller.width == 0 || controller.height == 0)) {
+                  val widthSpec = View.MeasureSpec.makeMeasureSpec(pv.width, View.MeasureSpec.EXACTLY)
+                  val heightSpec = View.MeasureSpec.makeMeasureSpec(pv.height, View.MeasureSpec.EXACTLY)
+                  controller.measure(widthSpec, heightSpec)
+                  controller.layout(0, 0, pv.width, pv.height)
+                }
+              }
+            }, 500)
+          } else if (attempts++ < 50) {
+            postDelayed(this, 100)
+          }
+        }
+      }
+      post(poll)
+    }
+  }
+
+  /**
+   * Traverses the view hierarchy to find the [BunnyPlayerView] (Media3
+   * `PlayerView`) inside the native SDK's `BunnyStreamPlayer`.
+   */
+  private fun findPlayerView(): androidx.media3.ui.PlayerView? {
+    return player.findViewById(net.bunny.player.R.id.player_view)
+      as? androidx.media3.ui.PlayerView
   }
 
   /**
