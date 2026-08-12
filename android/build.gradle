@@ -1,0 +1,26 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+android {
+  namespace "net.bunny.reactnative"
+  compileSdk 36
+
+  defaultConfig {
+    minSdk 26
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
+}
+
+dependencies {
+  implementation "com.facebook.react:react-android"
+  implementation "net.bunny:player:3.3.0"
+}
