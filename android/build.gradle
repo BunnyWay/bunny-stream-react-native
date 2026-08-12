@@ -23,4 +23,7 @@ android {
 dependencies {
   implementation "com.facebook.react:react-android"
   implementation "net.bunny:player:3.3.0"
+  // api is a runtime-scoped transitive dep of player; declare explicitly
+  // so BunnyStreamApi is on the compile classpath of the bridge.
+  implementation "net.bunny:api:3.3.0"
 }

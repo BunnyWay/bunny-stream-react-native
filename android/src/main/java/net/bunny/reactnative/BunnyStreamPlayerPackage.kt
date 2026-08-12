@@ -16,8 +16,9 @@ import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
  * that React Native can discover them on app startup.
  */
 class BunnyStreamPlayerPackage : ReactPackage {
+  @Suppress("DEPRECATION")
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
-    listOf(BunnyStreamPlayerModule(reactContext))
+    listOf<NativeModule>(BunnyStreamPlayerModule(reactContext))
 
   @Suppress("DEPRECATION", "UNCHECKED_CAST")
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
