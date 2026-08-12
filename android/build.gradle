@@ -18,6 +18,12 @@ android {
   kotlinOptions {
     jvmTarget = "17"
   }
+
+  testOptions {
+    unitTests {
+      includeAndroidResources = false
+    }
+  }
 }
 
 dependencies {
@@ -29,4 +35,8 @@ dependencies {
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
   implementation "androidx.media3:media3-common:1.6.0"
+
+  testImplementation "org.jetbrains.kotlin:kotlin-test:2.0.21"
+  testImplementation "org.jetbrains.kotlin:kotlin-test-junit:2.0.21"
+  testImplementation "junit:junit:4.13.2"
 }
