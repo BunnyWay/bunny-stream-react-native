@@ -3,8 +3,11 @@ package net.bunny.reactnative.view
 import android.content.Context
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
+import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
+import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
 
 /**
@@ -20,9 +23,13 @@ import net.bunny.reactnative.state.BunnyStreamPlayerProps
  * - [GenerationToken] invalidates stale callbacks from previous loads.
  * - `autoPlay=false` pauses after `STATE_READY`; toggling `autoPlay` for an
  *   already-loaded video calls `play`/`pause` without reloading.
+ * - `play`/`pause`/`seekTo` are routed through a [CommandQueue] with a
+ *   ready-gate: before `STATE_READY` they are held and drained once the
+ *   player becomes ready. `setVolume`/`setPlaybackRate` bypass the queue
+ *   and target the [DefaultBunnyPlayer] singleton directly.
  *
- * Event listener registration, command dispatch, and cleanup are wired in
- * later plan sections (5, 6, 8).
+ * Event listener registration and full cleanup are wired in plan sections 6
+ * and 8.
  */
 class BunnyStreamPlayerView(
   context: Context,
@@ -38,6 +45,15 @@ class BunnyStreamPlayerView(
 
   /** Monotonic token for cancelling stale async callbacks. */
   val generationToken = GenerationToken()
+
+  /** Queue for player commands that depend on `STATE_READY`. */
+  private val commandQueue = CommandQueue { cmd ->
+    when (cmd) {
+      is PlayerCommand.Play -> player.play()
+      is PlayerCommand.Pause -> player.pause()
+      is PlayerCommand.SeekTo -> player.seekTo(cmd.positionMs)
+    }
+  }
 
   // --- Prop accumulation fields (set by ViewManager delegate) ---
 
@@ -119,10 +135,12 @@ class BunnyStreamPlayerView(
 
   /**
    * Starts loading a new video source. Bumps the generation token so that any
-   * in-flight callbacks from the previous source are invalidated.
+   * in-flight callbacks from the previous source are invalidated, and resets
+   * the command queue so stale commands from the previous source are dropped.
    */
   private fun reloadVideo(props: BunnyStreamPlayerProps) {
     generationToken.bump()
+    commandQueue.reset()
     player.playVideo(
       videoId = props.videoId,
       libraryId = props.libraryId,
@@ -147,41 +165,71 @@ class BunnyStreamPlayerView(
   )
 
   // --- Commands (called by ViewManager, dispatched to player) ---
-  // Full validation and queueing is added in plan section 5.
 
+  /**
+   * Enqueues `Play` on the command queue. If the player is ready, executes
+   * immediately; otherwise holds until [setReady]`true`.
+   */
   fun play() {
-    player.play()
+    commandQueue.enqueue(PlayerCommand.Play)
   }
 
+  /**
+   * Enqueues `Pause` on the command queue. If the player is ready, executes
+   * immediately; otherwise holds until [setReady]`true`.
+   */
   fun pause() {
-    player.pause()
+    commandQueue.enqueue(PlayerCommand.Pause)
   }
 
+  /**
+   * Enqueues `SeekTo` on the command queue after validating the position.
+   * If the player is ready, executes immediately; otherwise holds until
+   * [setReady]`true`.
+   */
   fun seekTo(positionMs: Double) {
     if (positionMs.isFinite() && positionMs >= 0) {
-      player.seekTo(positionMs.toLong())
+      commandQueue.enqueue(PlayerCommand.SeekTo(positionMs.toLong()))
     }
   }
 
+  /**
+   * Sets volume on the [DefaultBunnyPlayer] singleton directly — bypasses
+   * the command queue because the singleton is available after `initialize`
+   * and does not depend on `STATE_READY`.
+   */
   fun setVolume(volume: Double) {
     val clamped = volume.coerceIn(0.0, 1.0).toFloat()
-    net.bunny.bunnystreamplayer.DefaultBunnyPlayer.getInstance(context).setVolume(clamped)
+    DefaultBunnyPlayer.getInstance(context).setVolume(clamped)
   }
 
+  /**
+   * Sets playback speed on the [DefaultBunnyPlayer] singleton directly —
+   * bypasses the command queue for the same reason as [setVolume].
+   */
   fun setPlaybackRate(rate: Double) {
     if (rate.isFinite() && rate > 0) {
-      net.bunny.bunnystreamplayer.DefaultBunnyPlayer.getInstance(context).setSpeed(rate.toFloat())
+      DefaultBunnyPlayer.getInstance(context).setSpeed(rate.toFloat())
     }
+  }
+
+  /**
+   * Called from the event adapter (plan section 6) when the player reaches
+   * `STATE_READY`. Drains all pending commands in FIFO order.
+   */
+  fun onPlayerReady() {
+    commandQueue.setReady(true)
   }
 
   // --- Cleanup (wired fully in plan section 8) ---
 
   /**
    * Idempotent cleanup. Called from `ViewManager.onDropViewInstance`.
-   * Removes listeners and stops progress reporting.
+   * Removes listeners, stops progress reporting, and drops pending commands.
    */
   fun cleanup() {
     generationToken.bump()
+    commandQueue.reset()
   }
 
   companion object {
