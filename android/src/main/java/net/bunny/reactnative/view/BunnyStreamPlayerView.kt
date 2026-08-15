@@ -1,5 +1,6 @@
 package net.bunny.reactnative.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
@@ -219,6 +220,9 @@ class BunnyStreamPlayerView(
       token = props.token,
       expires = props.expires,
     )
+    if (!props.autoPlay) {
+      commandQueue.enqueue(PlayerCommand.Pause)
+    }
     attachWhenPlayerReady()
   }
 
@@ -227,6 +231,7 @@ class BunnyStreamPlayerView(
    * non-null (the SDK has created the ExoPlayer), then attaches the event
    * listener and pins the controller visible.
    */
+  @SuppressLint("UnsafeOptInUsageError")
   private fun attachWhenPlayerReady() {
     val gen = generationToken.current()
     var attempts = 0
@@ -417,6 +422,7 @@ class BunnyStreamPlayerView(
     commandQueue.reset()
     eventListener?.detach()
     player.setProgressListener(null)
+    player.pause()
   }
 
   companion object {

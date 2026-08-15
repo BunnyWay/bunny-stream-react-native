@@ -127,14 +127,22 @@ private fun handlePlaybackState(
     if (state is PlaybackState.Ready || state is PlaybackState.Playing || state is PlaybackState.Paused) {
       state to emptyList()
     } else {
-      PlaybackState.Ready to listOf(
-        RnEvent("onReady") {
-          mapOf("videoId" to event.videoId, "durationMs" to durationMs)
-        },
-        RnEvent("onPlaybackStateChange") {
-          mapOf("state" to "ready", "positionMs" to positionMs)
-        },
-      )
+      val events = buildList {
+        if (state is PlaybackState.Loading) {
+          add(RnEvent("onBuffering") { mapOf("isBuffering" to false) })
+        }
+        add(
+          RnEvent("onReady") {
+            mapOf("videoId" to event.videoId, "durationMs" to durationMs)
+          },
+        )
+        add(
+          RnEvent("onPlaybackStateChange") {
+            mapOf("state" to "ready", "positionMs" to positionMs)
+          },
+        )
+      }
+      PlaybackState.Ready to events
     }
   }
   Media3PlaybackState.ENDED -> {

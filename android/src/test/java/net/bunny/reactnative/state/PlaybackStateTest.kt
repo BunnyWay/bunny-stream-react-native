@@ -34,7 +34,7 @@ class PlaybackStateTest {
   }
 
   @Test
-  fun `Loading + READY emits onReady and onPlaybackStateChange ready`() {
+  fun `Loading + READY ends buffering and emits ready events`() {
     val (next, events) = transition(
       PlaybackState.Loading,
       Media3Event.PlaybackStateChanged(
@@ -46,11 +46,13 @@ class PlaybackStateTest {
     )
 
     assertIs<PlaybackState.Ready>(next)
-    assertEquals(2, events.size)
-    assertEquals("onReady", events[0].eventName)
-    assertEquals("v1", events[0].payloadBuilder()["videoId"])
-    assertEquals(10_000L, events[0].payloadBuilder()["durationMs"])
-    assertEquals("ready", events[1].payloadBuilder()["state"])
+    assertEquals(3, events.size)
+    assertEquals("onBuffering", events[0].eventName)
+    assertEquals(false, events[0].payloadBuilder()["isBuffering"])
+    assertEquals("onReady", events[1].eventName)
+    assertEquals("v1", events[1].payloadBuilder()["videoId"])
+    assertEquals(10_000L, events[1].payloadBuilder()["durationMs"])
+    assertEquals("ready", events[2].payloadBuilder()["state"])
   }
 
   @Test
@@ -354,7 +356,9 @@ class PlaybackStateTest {
     val r2 = transition(state, Media3Event.PlaybackStateChanged(Media3PlaybackState.READY, "v1", 0, 60_000))
     state = r2.first
     assertIs<PlaybackState.Ready>(state)
-    assertEquals("onReady", r2.second[0].eventName)
+    assertEquals("onBuffering", r2.second[0].eventName)
+    assertEquals(false, r2.second[0].payloadBuilder()["isBuffering"])
+    assertEquals("onReady", r2.second[1].eventName)
 
     // isPlaying=true
     val r3 = transition(state, Media3Event.IsPlayingChanged(true, 0, 60_000))

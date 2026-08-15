@@ -1,6 +1,5 @@
 package net.bunny.reactnative.view
 
-import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.uimanager.BaseViewManagerDelegate
 import com.facebook.react.uimanager.SimpleViewManager
@@ -24,9 +23,7 @@ import com.facebook.react.viewmanagers.BunnyStreamPlayerViewManagerInterface
  * methods are not exposed on [net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer].
  * Full command validation and queueing is added in plan section 5.
  */
-class BunnyStreamPlayerViewManager(
-  private val reactContext: ReactApplicationContext,
-) : SimpleViewManager<BunnyStreamPlayerView>(),
+class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
   BunnyStreamPlayerViewManagerInterface<BunnyStreamPlayerView> {
 
   private var delegate: BunnyStreamPlayerViewManagerDelegate<BunnyStreamPlayerView, BunnyStreamPlayerViewManager>? =

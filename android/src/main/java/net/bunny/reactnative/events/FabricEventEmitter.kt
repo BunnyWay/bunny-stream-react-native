@@ -16,13 +16,13 @@ import net.bunny.reactnative.state.RnEvent
  * All other events have coalescing disabled (`canCoalesce = false`) to
  * preserve ordering guarantees required by the state machine.
  *
- * The emitter captures the `surfaceId` and `viewTag` at construction time
- * (from the wrapper view) and reuses them for all events.
+ * The emitter captures the `surfaceId` at construction time and resolves the
+ * view tag at dispatch time, after React Native has assigned it to the view.
  */
 class FabricEventEmitter(
   private val eventDispatcher: EventDispatcher,
   private val surfaceId: Int,
-  private val viewTag: Int,
+  private val view: android.view.View,
 ) {
   /**
    * Dispatches [event] to JS. The payload is built lazily via
@@ -30,6 +30,8 @@ class FabricEventEmitter(
    */
   fun dispatch(event: RnEvent) {
     val coalesce = event.eventName == "onProgress"
+    val viewTag = view.id
+    if (viewTag == android.view.View.NO_ID) return
     eventDispatcher.dispatchEvent(
       object : Event<Nothing>() {
         init {
@@ -69,7 +71,7 @@ class FabricEventEmitter(
       val context = view.context as? com.facebook.react.bridge.ReactContext ?: return null
       val dispatcher = UIManagerHelper.getEventDispatcher(context) ?: return null
       val surfaceId = UIManagerHelper.getSurfaceId(context)
-      return FabricEventEmitter(dispatcher, surfaceId, view.id)
+      return FabricEventEmitter(dispatcher, surfaceId, view)
     }
   }
 }

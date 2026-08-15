@@ -13,13 +13,13 @@
 import type { HostComponent, ViewProps } from 'react-native';
 
 import * as React from 'react';
-import { NativeModules } from 'react-native';
 
 import BunnyStreamPlayerNativeComponent, {
   Commands as NativeCommands,
 } from './specs/BunnyStreamPlayerNativeComponent';
+import NativeBunnyStreamPlayer from './specs/NativeBunnyStreamPlayer';
 
-export { default as NativeBunnyStreamPlayer } from './specs/NativeBunnyStreamPlayer';
+export { NativeBunnyStreamPlayer };
 
 // --- Re-exported types from the Codegen contract ---
 
@@ -118,7 +118,7 @@ export type BunnyStreamPlayerRef = {
  * @param libraryId  The library ID to use for playback and API calls.
  */
 export function initialize(accessKey: string | null, libraryId: number): void {
-  NativeModules.BunnyStreamPlayer?.initialize(accessKey, libraryId);
+  NativeBunnyStreamPlayer.initialize(accessKey, libraryId);
 }
 
 // --- Component ---
