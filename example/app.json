@@ -1,4 +1,23 @@
 {
   "name": "BunnyStreamExample",
-  "displayName": "BunnyStreamExample"
+  "displayName": "BunnyStreamExample",
+  "components": [
+    {
+      "appKey": "BunnyStreamExample",
+      "displayName": "BunnyStreamExample"
+    }
+  ],
+  "resources": {
+    "android": ["dist/res", "dist/main.android.jsbundle"],
+    "ios": ["dist/assets", "dist/main.ios.jsbundle"],
+    "macos": ["dist/assets", "dist/main.macos.jsbundle"],
+    "visionos": ["dist/assets", "dist/main.visionos.jsbundle"],
+    "windows": ["dist/assets", "dist/main.windows.bundle"]
+  },
+  "android": {
+    "package": "com.bunnystreamexample"
+  },
+  "ios": {
+    "bundleIdentifier": "com.bunnystreamexample"
+  }
 }

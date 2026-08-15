@@ -1,13 +1,41 @@
+buildscript {
+  ext.BunnyStreamReactNative = [
+    kotlinVersion: "2.1.20",
+    minSdkVersion: 26,
+    compileSdkVersion: 36
+  ]
+
+  ext.getExtOrDefault = { prop ->
+    if (rootProject.ext.has(prop)) {
+      return rootProject.ext.get(prop)
+    }
+
+    return BunnyStreamReactNative[prop]
+  }
+
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.7.2"
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
+  }
+}
+
 apply plugin: "com.android.library"
-apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "kotlin-android"
 apply plugin: "com.facebook.react"
 
 android {
   namespace "net.bunny.reactnative"
-  compileSdk 36
+
+  compileSdkVersion getExtOrDefault("compileSdkVersion")
 
   defaultConfig {
-    minSdk 26
+    minSdkVersion getExtOrDefault("minSdkVersion")
   }
 
   compileOptions {
@@ -42,7 +70,7 @@ dependencies {
   // findViewTreeLifecycleOwner() to register its lifecycle observer.
   implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
 
-  testImplementation "org.jetbrains.kotlin:kotlin-test:2.0.21"
-  testImplementation "org.jetbrains.kotlin:kotlin-test-junit:2.0.21"
+  testImplementation "org.jetbrains.kotlin:kotlin-test:${getExtOrDefault('kotlinVersion')}"
+  testImplementation "org.jetbrains.kotlin:kotlin-test-junit:${getExtOrDefault('kotlinVersion')}"
   testImplementation "junit:junit:4.13.2"
 }
