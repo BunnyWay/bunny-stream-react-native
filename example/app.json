@@ -1,6 +1,7 @@
 {
   "name": "BunnyStreamExample",
   "displayName": "BunnyStreamExample",
+  "singleApp": "BunnyStreamExample",
   "components": [
     {
       "appKey": "BunnyStreamExample",
