@@ -14,9 +14,6 @@
     "visionos": ["dist/assets", "dist/main.visionos.jsbundle"],
     "windows": ["dist/assets", "dist/main.windows.bundle"]
   },
-  "android": {
-    "package": "com.bunnystreamexample"
-  },
   "ios": {
     "bundleIdentifier": "com.bunnystreamexample"
   }

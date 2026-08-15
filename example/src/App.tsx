@@ -3,8 +3,6 @@ import {
   Alert,
   Button,
   Modal,
-  Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   BunnyStreamPlayer,
@@ -118,7 +117,7 @@ function HomeScreen({ onNavigate, onPlayVideo, hasConfig }: HomeScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#f5f5f7" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>BunnyStream Demo</Text>
@@ -216,7 +215,7 @@ function SettingsScreen({
   onBack,
 }: SettingsScreenProps) {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#f5f5f7" />
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -265,7 +264,7 @@ function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) {
   const [status, setStatus] = React.useState('idle');
 
   return (
-    <SafeAreaView style={styles.playerContainer}>
+    <SafeAreaView style={styles.playerContainer} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -307,7 +306,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#6c2bd9',
     minHeight: 44,
-    paddingTop: Platform.OS === 'ios' ? 4 : 12,
   },
   headerTitle: {
     fontSize: 18,
