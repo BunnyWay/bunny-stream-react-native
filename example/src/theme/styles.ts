@@ -126,6 +126,15 @@ export const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     backgroundColor: Black20Color(),
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   errorOverlay: {
     position: 'absolute',
     top: 0,

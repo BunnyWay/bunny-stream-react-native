@@ -2,6 +2,7 @@ package net.bunny.reactnative.view
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -49,11 +50,19 @@ class BunnyStreamPlayerView(
   context: Context,
 ) : FrameLayout(context) {
 
+  /**
+   * Dark-theme wrapper so controller TextViews inflate with white text.
+   * RN's DayNight theme would otherwise override `android:textColor` to dark.
+   */
+  private val playerContext: Context = ContextThemeWrapper(
+    context,
+    android.R.style.Theme_Black_NoTitleBar,
+  )
+
   /** The native SDK player, sized to fill this wrapper. */
-  val player: BunnyStreamPlayer = BunnyStreamPlayer(context).also { child ->
-    // Match the native demo: the SDK adapts the current-time/duration text
-    // colour to the video frame so the readout remains legible.
-    child.autoProgressTextColor = true
+  val player: BunnyStreamPlayer = BunnyStreamPlayer(playerContext).also { child ->
+    // Disabled: PixelCopy reads wrong pixels in RN Fabric, causing text to flip dark.
+    // child.autoProgressTextColor = true
     addView(
       child,
       LayoutParams(MATCH_PARENT, MATCH_PARENT),
