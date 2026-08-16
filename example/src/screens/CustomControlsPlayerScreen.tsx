@@ -2,7 +2,7 @@ import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 import { BunnyStreamPlayer, type BunnyStreamPlayerRef } from 'bunny-stream-react-native';
 
@@ -29,6 +29,7 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
   const [durationMs, setDurationMs] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState('idle');
+  const [loading, setLoading] = React.useState(true);
 
   const handlePlay = () => {
     playerRef.current?.play();
@@ -58,6 +59,7 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
           controls={false}
           onReady={(e) => {
             setError(null);
+            setLoading(false);
             setDurationMs(e.nativeEvent.durationMs);
             setStatus('ready');
           }}
@@ -75,6 +77,7 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
           }}
           onError={(e) => {
             setError(e.nativeEvent.message || 'Unknown error');
+            setLoading(false);
             setStatus('error');
           }}
           onProgress={(e) => {
@@ -82,6 +85,11 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
             setDurationMs(e.nativeEvent.durationMs);
           }}
         />
+        {loading ? (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        ) : null}
         {error ? (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorIcon}>⚠</Text>
