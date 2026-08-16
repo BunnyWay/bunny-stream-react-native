@@ -47,17 +47,18 @@ export function DirectVideoPlayModal({
           <Text style={styles.modalSubtitle}>
             Please enter the ID of the video you want to play.
           </Text>
+          <Text style={styles.modalFieldLabelFirst}>Video ID</Text>
           <TextInput
-            style={styles.input}
+            style={styles.modalInput}
             placeholder="Video ID"
             value={videoId}
             onChangeText={setVideoId}
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <Text style={styles.modalSubtitle}>Video Library ID (optional)</Text>
+          <Text style={styles.modalFieldLabel}>Video Library ID (optional)</Text>
           <TextInput
-            style={styles.input}
+            style={styles.modalInput}
             placeholder="Use default"
             value={libraryIdOverride}
             onChangeText={setLibraryIdOverride}

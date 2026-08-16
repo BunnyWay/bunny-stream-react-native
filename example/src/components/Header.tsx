@@ -9,10 +9,9 @@ type HeaderProps = {
   title: string;
   subtitle?: string;
   onBack?: () => void;
-  showLogo?: boolean;
 };
 
-export function Header({ title, subtitle, onBack, showLogo = true }: HeaderProps) {
+export function Header({ title, subtitle, onBack }: HeaderProps) {
   return (
     <View style={styles.header}>
       {onBack ? (
@@ -24,7 +23,7 @@ export function Header({ title, subtitle, onBack, showLogo = true }: HeaderProps
       )}
       <View style={headerStyles.titleContainer}>
         <View style={headerStyles.titleRow}>
-          {showLogo ? <Image source={bunnyIconWhite} style={headerStyles.logo} /> : null}
+          <Image source={bunnyIconWhite} style={headerStyles.logo} />
           <View>
             <Text style={styles.headerTitle}>{title}</Text>
             {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}

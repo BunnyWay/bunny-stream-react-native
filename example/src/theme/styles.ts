@@ -188,6 +188,35 @@ export const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     marginBottom: 16,
   },
+  // Label above an input inside a modal — more space above (separates from
+  // previous field), less space below (visually attaches to its input).
+  modalFieldLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.onSurfaceVariant,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  // First field label in a modal — no extra top margin (title/subtitle already
+  // provides separation).
+  modalFieldLabelFirst: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.onSurfaceVariant,
+    marginTop: 0,
+    marginBottom: 4,
+  },
+  modalInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 0,
+    color: colors.onSurface,
+    borderWidth: 1,
+    borderColor: 'rgba(24, 61, 109, 0.15)',
+  },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',

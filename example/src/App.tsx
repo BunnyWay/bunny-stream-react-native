@@ -1,6 +1,6 @@
 import type { PlayerParams, Screen } from './navigation/types';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID } from '@env';
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
 import { ActivityIndicator, Alert, StatusBar, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +16,10 @@ import {
   addVideoId,
   loadSettings,
   loadVideoIds,
+  parseVideoIdsFromEnv,
   removeVideoId,
   saveSettings,
+  saveVideoIds,
 } from './storage/storage';
 import { styles } from './theme/styles';
 
@@ -44,11 +46,20 @@ export default function App() {
         initialize(resolvedAccessKey || null, libIdNum);
       }
 
-      // Load saved video IDs; seed from .env if empty.
+      // Load saved video IDs; seed from .env if storage is empty.
       const ids = await loadVideoIds();
-      if (ids.length === 0 && BUNNY_VIDEO_ID) {
-        const seeded = [BUNNY_VIDEO_ID];
-        setVideoIds(seeded);
+      if (ids.length === 0) {
+        const envIds = parseVideoIdsFromEnv({
+          BUNNY_VIDEO_IDS,
+          BUNNY_VIDEO_ID,
+        });
+        if (envIds.length > 0) {
+          // Persist the seed so addVideoId/removeVideoId see the full list.
+          await saveVideoIds(envIds);
+          setVideoIds(envIds);
+        } else {
+          setVideoIds([]);
+        }
       } else {
         setVideoIds(ids);
       }
@@ -167,7 +178,7 @@ export default function App() {
       />
       <DirectVideoPlayModal
         visible={showDirectPlayModal}
-        defaultVideoId={BUNNY_VIDEO_ID ?? ''}
+        defaultVideoId={parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID })[0] ?? ''}
         onPlay={handleDirectPlay}
         onCancel={() => setShowDirectPlayModal(false)}
       />

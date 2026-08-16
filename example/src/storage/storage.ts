@@ -9,6 +9,43 @@ export type Settings = {
   libraryId: string;
 };
 
+// --- Env helpers ---
+
+/**
+ * Parse video IDs from env variables into a string array.
+ *
+ * Priority:
+ *  1. `BUNNY_VIDEO_IDS` — comma-separated list (e.g. "id1,id2,id3")
+ *  2. `BUNNY_VIDEO_ID` — legacy single string, wrapped into a one-element array
+ *
+ * Empty/undefined values produce an empty array. Whitespace is trimmed and
+ * duplicates are removed while preserving order.
+ *
+ * @example
+ * parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS: 'a,b,c' }) // => ['a','b','c']
+ * parseVideoIdsFromEnv({ BUNNY_VIDEO_ID: 'a' })      // => ['a']
+ * parseVideoIdsFromEnv({})                            // => []
+ */
+export function parseVideoIdsFromEnv(env: {
+  BUNNY_VIDEO_IDS?: string;
+  BUNNY_VIDEO_ID?: string;
+}): string[] {
+  const raw = env.BUNNY_VIDEO_IDS ?? env.BUNNY_VIDEO_ID ?? '';
+  if (!raw) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of raw.split(',')) {
+    const trimmed = part.trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      result.push(trimmed);
+    }
+  }
+  return result;
+}
+
 // --- Settings ---
 
 export async function loadSettings(): Promise<Settings | null> {
@@ -39,10 +76,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
 
 export async function clearSettings(): Promise<void> {
   try {
-    await Promise.all([
-      AsyncStorage.removeItem(ACCESS_KEY),
-      AsyncStorage.removeItem(LIBRARY_KEY),
-    ]);
+    await Promise.all([AsyncStorage.removeItem(ACCESS_KEY), AsyncStorage.removeItem(LIBRARY_KEY)]);
   } catch {
     // ignore
   }
