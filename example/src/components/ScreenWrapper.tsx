@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { StatusBar, type StatusBarStyle, type ViewStyle } from 'react-native';
+import { StatusBar, StyleSheet, View, type StatusBarStyle, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+
+import { colors } from '../theme/colors';
 
 type ScreenWrapperProps = {
   children: React.ReactNode;
@@ -16,9 +18,16 @@ export function ScreenWrapper({
   edges = ['top'],
 }: ScreenWrapperProps) {
   return (
-    <SafeAreaView style={style} edges={edges}>
+    <SafeAreaView style={wrapperStyles.safeArea} edges={edges}>
       <StatusBar barStyle={barStyle} />
-      {children}
+      <View style={style}>{children}</View>
     </SafeAreaView>
   );
 }
+
+const wrapperStyles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.primary,
+  },
+});
