@@ -73,6 +73,10 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.setAutoPlay(value)
   }
 
+  override fun setControls(view: BunnyStreamPlayerView, value: Boolean) {
+    view.setControls(value)
+  }
+
   // --- Commands (dispatched by delegate.receiveCommand) ---
 
   @ReactMethod

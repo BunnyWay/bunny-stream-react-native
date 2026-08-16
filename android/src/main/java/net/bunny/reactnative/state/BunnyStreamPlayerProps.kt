@@ -18,6 +18,7 @@ data class BunnyStreamPlayerProps(
   val token: String?,
   val expires: Long?,
   val autoPlay: Boolean,
+  val controls: Boolean,
 ) {
   companion object {
     /**
@@ -30,6 +31,7 @@ data class BunnyStreamPlayerProps(
       token = null,
       expires = null,
       autoPlay = true,
+      controls = true,
     )
   }
 }

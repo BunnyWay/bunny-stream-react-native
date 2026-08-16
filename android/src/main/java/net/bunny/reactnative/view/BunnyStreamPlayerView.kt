@@ -133,6 +133,7 @@ class BunnyStreamPlayerView(
   private var pendingToken: String? = null
   private var pendingExpires: Long? = null
   private var pendingAutoPlay: Boolean = true
+  private var pendingControls: Boolean = true
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
@@ -167,6 +168,10 @@ class BunnyStreamPlayerView(
     pendingAutoPlay = value
   }
 
+  fun setControls(value: Boolean) {
+    pendingControls = value
+  }
+
   // --- Prop application (called from ViewManager.onAfterUpdateTransaction) ---
 
   /**
@@ -185,6 +190,7 @@ class BunnyStreamPlayerView(
       token = pendingToken,
       expires = pendingExpires,
       autoPlay = pendingAutoPlay,
+      controls = pendingControls,
     )
 
     val oldProps = committedProps
@@ -202,6 +208,10 @@ class BunnyStreamPlayerView(
       // autoPlay toggled for the same loaded video — no reload
       if (newProps.autoPlay) player.play() else player.pause()
     }
+
+    if (!sourceChanged && oldProps.controls != newProps.controls) {
+      applyControls(newProps.controls)
+    }
   }
 
   /**
@@ -213,6 +223,7 @@ class BunnyStreamPlayerView(
   private fun reloadVideo(props: BunnyStreamPlayerProps) {
     generationToken.bump()
     commandQueue.reset()
+    applyControls(props.controls)
     player.playVideo(
       videoId = props.videoId,
       libraryId = props.libraryId,
@@ -249,20 +260,7 @@ class BunnyStreamPlayerView(
             // We delay until the next layout cycle, then manually measure and
             // layout the controller to match the PlayerView dimensions.
             postDelayed({
-              findPlayerView()?.let { pv ->
-                pv.useController = true
-                pv.controllerShowTimeoutMs = 0
-                pv.showController()
-                val controller = pv.findViewById<android.view.View>(
-                  androidx.media3.ui.R.id.exo_controller,
-                )
-                if (controller != null && (controller.width == 0 || controller.height == 0)) {
-                  val widthSpec = View.MeasureSpec.makeMeasureSpec(pv.width, View.MeasureSpec.EXACTLY)
-                  val heightSpec = View.MeasureSpec.makeMeasureSpec(pv.height, View.MeasureSpec.EXACTLY)
-                  controller.measure(widthSpec, heightSpec)
-                  controller.layout(0, 0, pv.width, pv.height)
-                }
-              }
+              applyControls(committedProps.controls)
             }, 500)
           } else if (attempts++ < 50) {
             postDelayed(this, 100)
@@ -280,6 +278,29 @@ class BunnyStreamPlayerView(
   private fun findPlayerView(): androidx.media3.ui.PlayerView? {
     return player.findViewById(net.bunny.player.R.id.player_view)
       as? androidx.media3.ui.PlayerView
+  }
+
+  /** Applies controller visibility without reloading the current video. */
+  private fun applyControls(showControls: Boolean) {
+    findPlayerView()?.let { playerView ->
+      playerView.useController = showControls
+      if (!showControls) {
+        playerView.hideController()
+        return
+      }
+
+      playerView.controllerShowTimeoutMs = 0
+      playerView.showController()
+      val controller = playerView.findViewById<android.view.View>(
+        androidx.media3.ui.R.id.exo_controller,
+      )
+      if (controller != null && (controller.width == 0 || controller.height == 0)) {
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(playerView.width, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(playerView.height, View.MeasureSpec.EXACTLY)
+        controller.measure(widthSpec, heightSpec)
+        controller.layout(0, 0, playerView.width, playerView.height)
+      }
+    }
   }
 
   /**
