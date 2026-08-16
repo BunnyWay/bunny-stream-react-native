@@ -14,7 +14,7 @@ type ScreenWrapperProps = {
 export function ScreenWrapper({
   children,
   style,
-  barStyle = 'dark-content',
+  barStyle = 'light-content',
   edges = ['top'],
 }: ScreenWrapperProps) {
   return (

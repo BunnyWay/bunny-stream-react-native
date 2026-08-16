@@ -114,7 +114,7 @@ export const styles = StyleSheet.create({
   // Player screen
   playerContainer: {
     flex: 1,
-    backgroundColor: colors.onSurface,
+    backgroundColor: colors.background,
   },
   player: {
     width: '100%',
@@ -132,7 +132,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(24, 61, 109, 0.92)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -173,10 +173,10 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   status: {
-    color: colors.onPrimary,
+    color: colors.onSurface,
     textAlign: 'center',
     padding: 8,
-    backgroundColor: 'rgba(24, 61, 109, 0.9)',
+    backgroundColor: colors.surface,
   },
   // Speed control
   speedSection: {
@@ -231,7 +231,7 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(24, 61, 109, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -244,7 +244,7 @@ export const styles = StyleSheet.create({
   controlButtonText: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.onPrimary,
+    color: colors.onSurface,
   },
   controlButtonTextPrimary: {
     fontSize: 28,
@@ -252,7 +252,7 @@ export const styles = StyleSheet.create({
   positionBar: {
     width: '100%',
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(24, 61, 109, 0.15)',
     borderRadius: 2,
     marginVertical: 8,
   },
@@ -263,7 +263,7 @@ export const styles = StyleSheet.create({
   },
   positionText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: colors.onSurfaceVariant,
     fontFamily: 'monospace',
   },
   // Modal
