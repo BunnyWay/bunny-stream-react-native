@@ -11,10 +11,16 @@ import { styles } from '../theme/styles';
 type HomeScreenProps = {
   onNavigate: (screen: Screen) => void;
   onDirectPlay: () => void;
+  onDirectPlayCustom: () => void;
   hasConfig: boolean;
 };
 
-export function HomeScreen({ onNavigate, onDirectPlay, hasConfig }: HomeScreenProps) {
+export function HomeScreen({
+  onNavigate,
+  onDirectPlay,
+  onDirectPlayCustom,
+  hasConfig,
+}: HomeScreenProps) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#FD8D32" />
@@ -32,7 +38,13 @@ export function HomeScreen({ onNavigate, onDirectPlay, hasConfig }: HomeScreenPr
           <View style={styles.divider} />
           <HomeOption title="Camera upload" badge="Coming soon" disabled onPress={() => {}} />
           <View style={styles.divider} />
-          <HomeOption title="Direct video play" onPress={onDirectPlay} />
+          <HomeOption title="Direct video play" subtitle="Native controls" onPress={onDirectPlay} />
+          <View style={styles.divider} />
+          <HomeOption
+            title="Direct video play (custom)"
+            subtitle="JS controls only"
+            onPress={onDirectPlayCustom}
+          />
         </View>
 
         <Text style={styles.sectionTitle}>Resume Positions</Text>

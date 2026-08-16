@@ -55,6 +55,11 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   expires?: number;
   /** Whether to start playback automatically when the video is ready. Default: `true`. */
   autoPlay?: boolean;
+  /**
+   * Whether to show the native player controls (play/pause/seek bar).
+   * Set to `false` when building fully custom controls in JS. Default: `true`.
+   */
+  controls?: boolean;
   /** Fired once when the player reaches `STATE_READY` (first frame rendered). */
   onReady?: (event: { nativeEvent: { videoId: string; durationMs: number } }) => void;
   /** Fired on every playback state transition (`loading`, `ready`, `playing`, `paused`, `ended`, `error`). */

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { initialize } from 'bunny-stream-react-native';
 
+import { CustomControlsPlayerScreen } from './screens/CustomControlsPlayerScreen';
 import { DirectVideoPlayModal } from './screens/DirectVideoPlayModal';
 import { HomeScreen } from './screens/HomeScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
@@ -31,6 +32,7 @@ export default function App() {
   const [playerParams, setPlayerParams] = React.useState<PlayerParams | null>(null);
   const [videoIds, setVideoIds] = React.useState<string[]>([]);
   const [showDirectPlayModal, setShowDirectPlayModal] = React.useState(false);
+  const [showDirectPlayCustomModal, setShowDirectPlayCustomModal] = React.useState(false);
 
   // Initialize SDK on mount: load from storage, fallback to .env.
   React.useEffect(() => {
@@ -98,6 +100,17 @@ export default function App() {
     setShowDirectPlayModal(false);
     setPlayerParams({ videoId, libraryId: libId });
     setScreen('player');
+  };
+
+  const handleDirectPlayCustom = (videoId: string, libraryIdOverride: string | null) => {
+    const libId = resolveLibId(libraryIdOverride);
+    if (isNaN(libId)) {
+      Alert.alert('Configuration required', 'Please set your Library ID in Settings first.');
+      return;
+    }
+    setShowDirectPlayCustomModal(false);
+    setPlayerParams({ videoId, libraryId: libId });
+    setScreen('playerCustom');
   };
 
   const handlePlayVideo = (videoId: string) => {
@@ -169,11 +182,25 @@ export default function App() {
     );
   }
 
+  if (screen === 'playerCustom' && playerParams) {
+    return (
+      <CustomControlsPlayerScreen
+        videoId={playerParams.videoId}
+        libraryId={playerParams.libraryId}
+        onBack={() => {
+          setPlayerParams(null);
+          setScreen('home');
+        }}
+      />
+    );
+  }
+
   return (
     <>
       <HomeScreen
         onNavigate={setScreen}
         onDirectPlay={() => setShowDirectPlayModal(true)}
+        onDirectPlayCustom={() => setShowDirectPlayCustomModal(true)}
         hasConfig={!!libraryId && !isNaN(parseInt(libraryId, 10))}
       />
       <DirectVideoPlayModal
@@ -181,6 +208,12 @@ export default function App() {
         defaultVideoId={parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID })[0] ?? ''}
         onPlay={handleDirectPlay}
         onCancel={() => setShowDirectPlayModal(false)}
+      />
+      <DirectVideoPlayModal
+        visible={showDirectPlayCustomModal}
+        defaultVideoId={parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID })[0] ?? ''}
+        onPlay={handleDirectPlayCustom}
+        onCancel={() => setShowDirectPlayCustomModal(false)}
       />
     </>
   );

@@ -214,6 +214,58 @@ export const styles = StyleSheet.create({
   speedButtonTextActive: {
     color: colors.onPrimary,
   },
+  // Custom player controls
+  controlsSection: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  controlButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlButtonPrimary: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.primary,
+  },
+  controlButtonText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.onPrimary,
+  },
+  controlButtonTextPrimary: {
+    fontSize: 28,
+  },
+  positionBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 2,
+    marginVertical: 8,
+  },
+  positionBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  positionText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: 'monospace',
+  },
   // Modal
   modalOverlay: {
     flex: 1,

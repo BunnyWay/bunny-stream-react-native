@@ -56,6 +56,7 @@ export interface NativeProps extends ViewProps {
   token?: string;
   expires?: Double;
   autoPlay?: WithDefault<boolean, true>;
+  controls?: WithDefault<boolean, true>;
   onReady?: DirectEventHandler<PlayerReadyEvent> | null;
   onPlaybackStateChange?: DirectEventHandler<PlayerStateChangeEvent> | null;
   onProgress?: DirectEventHandler<PlayerProgressEvent> | null;

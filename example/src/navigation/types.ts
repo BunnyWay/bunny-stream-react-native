@@ -1,4 +1,4 @@
-export type Screen = 'home' | 'settings' | 'player' | 'videoList';
+export type Screen = 'home' | 'settings' | 'player' | 'playerCustom' | 'videoList';
 
 export type PlayerParams = {
   videoId: string;
