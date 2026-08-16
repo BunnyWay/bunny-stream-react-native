@@ -2745,6 +2745,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-async-storage/async-storage@npm:^3.1.1":
+  version: 3.1.1
+  resolution: "@react-native-async-storage/async-storage@npm:3.1.1"
+  dependencies:
+    idb: "npm:8.0.3"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/20d34973b0a4d1acc133556c52daa59b9826f676abdc351f12c70feb4d557b66e279d1c880662bbfe037b7d79bf64fdee759a5217781c47cd20fd8ba0e0e1b24
+  languageName: node
+  linkType: hard
+
 "@react-native-community/cli-clean@npm:20.1.0":
   version: 20.1.0
   resolution: "@react-native-community/cli-clean@npm:20.1.0"
@@ -4506,6 +4518,7 @@ __metadata:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
     "@babel/runtime": "npm:^7.25.0"
+    "@react-native-async-storage/async-storage": "npm:^3.1.1"
     "@react-native-community/cli": "npm:20.1.0"
     "@react-native-community/cli-platform-android": "npm:20.1.0"
     "@react-native-community/cli-platform-ios": "npm:20.1.0"
@@ -4518,6 +4531,7 @@ __metadata:
     react: "npm:19.2.3"
     react-native: "npm:0.86.2"
     react-native-builder-bob: "npm:^0.43.0"
+    react-native-dotenv: "npm:^4.1.1"
     react-native-monorepo-config: "npm:^0.4.0"
     react-native-safe-area-context: "npm:^5.5.2"
     react-native-test-app: "npm:^5.4.9"
@@ -5436,7 +5450,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^17.2.3":
+"dotenv@npm:^17.2.3, dotenv@npm:^17.4.2":
   version: 17.4.2
   resolution: "dotenv@npm:17.4.2"
   checksum: 10c0/164f8e77a646c8446867d5b588d26ea6005c8ea7c5eb41cf926f6113d23f2191355f6e0cfd95ea9bab98394a5b0a3f1e51a8399711b666fe55cc7b0bd745f942
@@ -6657,6 +6671,13 @@ __metadata:
   dependencies:
     safer-buffer: "npm:>= 2.1.2 < 3"
   checksum: 10c0/c6886a24cc00f2a059767440ec1bc00d334a89f250db8e0f7feb4961c8727118457e27c495ba94d082e51d3baca378726cd110aaf7ded8b9bbfd6a44760cf1d4
+  languageName: node
+  linkType: hard
+
+"idb@npm:8.0.3":
+  version: 8.0.3
+  resolution: "idb@npm:8.0.3"
+  checksum: 10c0/421cd9a3281b7564528857031cc33fd9e95753f8191e483054cb25d1ceea7303a0d1462f4f69f5b41606f0f066156999e067478abf2460dfcf9cab80dae2a2b2
   languageName: node
   linkType: hard
 
@@ -9251,6 +9272,15 @@ __metadata:
   bin:
     bob: bin/bob
   checksum: 10c0/b084598636b26bb6f1942c01b77d65d9bea09e148627c61bd9f79145ddb9ec947d7b004a718d14f3db2d4960d67c1e8c70fb0377864d6c3a572f611d489cb970
+  languageName: node
+  linkType: hard
+
+"react-native-dotenv@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "react-native-dotenv@npm:4.1.1"
+  dependencies:
+    dotenv: "npm:^17.4.2"
+  checksum: 10c0/cbda47aa5b2fd256100c36887ec90d1c818711c7ba37dc693d81cdb0f338a9ee8eba509a42009b1bdd9bec7a9d5ec4b42ab6ebbc853e7f336f9e3237ba96c596
   languageName: node
   linkType: hard
 

@@ -7,6 +7,17 @@ const root = path.resolve(__dirname, '..');
 module.exports = getConfig(
   {
     presets: ['module:@react-native/babel-preset'],
+    plugins: [
+      [
+        'module:react-native-dotenv',
+        {
+          moduleName: '@env',
+          path: '.env',
+          safe: false,
+          allowUndefined: true,
+        },
+      ],
+    ],
   },
-  { root, pkg }
+  { root, pkg },
 );
