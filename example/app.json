@@ -18,5 +18,8 @@
   },
   "ios": {
     "bundleIdentifier": "com.bunnystreamexample"
+  },
+  "android": {
+    "icons": "android/app/src/main/res"
   }
 }
