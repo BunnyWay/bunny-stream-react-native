@@ -1,6 +1,7 @@
-export type Screen = 'home' | 'settings' | 'player' | 'playerCustom' | 'videoList';
-
-export type PlayerParams = {
-  videoId: string;
-  libraryId: number;
+export type RootStackParamList = {
+  Home: undefined;
+  VideoList: undefined;
+  Settings: undefined;
+  Player: { videoId: string; libraryId: number };
+  PlayerCustom: { videoId: string; libraryId: number };
 };

@@ -1,3 +1,6 @@
+import type { RootStackParamList } from '../navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import * as React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
@@ -8,13 +11,10 @@ import { styles } from '../theme/styles';
 
 const SPEED_OPTIONS = [0.5, 1.0, 1.5, 2.0];
 
-type PlayerScreenProps = {
-  videoId: string;
-  libraryId: number;
-  onBack: () => void;
-};
+type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
-export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) {
+export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
+  const { videoId, libraryId } = route.params;
   const playerRef = React.useRef<BunnyStreamPlayerRef>(null);
   const [status, setStatus] = React.useState('idle');
   const [progress, setProgress] = React.useState<string | null>(null);
@@ -28,7 +28,7 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
 
   return (
     <View style={styles.playerContainer}>
-      <Header title="Player" onBack={onBack} />
+      <Header title="Player" onBack={() => navigation.goBack()} />
       <View style={styles.playerWrapper}>
         <BunnyStreamPlayer
           ref={playerRef}
@@ -57,7 +57,7 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
             <Text style={styles.errorVideoId} numberOfLines={1}>
               Video ID: {videoId}
             </Text>
-            <TouchableOpacity style={styles.errorButton} onPress={onBack}>
+            <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
               <Text style={styles.errorButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>

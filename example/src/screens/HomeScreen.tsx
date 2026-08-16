@@ -1,25 +1,64 @@
-import type { Screen } from '../navigation/types';
+import type { RootStackParamList } from '../navigation/types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { Header } from '../components/Header';
 import { HomeOption } from '../components/HomeOption';
+import { loadSettings, parseVideoIdsFromEnv } from '../storage/storage';
 import { styles } from '../theme/styles';
+import { DirectVideoPlayModal } from './DirectVideoPlayModal';
 
-type HomeScreenProps = {
-  onNavigate: (screen: Screen) => void;
-  onDirectPlay: () => void;
-  onDirectPlayCustom: () => void;
-  hasConfig: boolean;
-};
+type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-export function HomeScreen({
-  onNavigate,
-  onDirectPlay,
-  onDirectPlayCustom,
-  hasConfig,
-}: HomeScreenProps) {
+export function HomeScreen({ navigation }: HomeScreenProps) {
+  const [hasConfig, setHasConfig] = React.useState(false);
+  const [showDirectPlayModal, setShowDirectPlayModal] = React.useState(false);
+  const [showDirectPlayCustomModal, setShowDirectPlayCustomModal] = React.useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      const stored = await loadSettings();
+      const libId = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
+      setHasConfig(!!libId && !isNaN(parseInt(libId, 10)));
+    })();
+  }, []);
+
+  const resolveLibId = async (override: string | null): Promise<number> => {
+    if (override) {
+      const parsed = parseInt(override, 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+    const stored = await loadSettings();
+    return parseInt(stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '', 10);
+  };
+
+  const handleDirectPlay = async (videoId: string, libraryIdOverride: string | null) => {
+    const libId = await resolveLibId(libraryIdOverride);
+    if (isNaN(libId)) {
+      Alert.alert('Configuration required', 'Please set your Library ID in Settings first.');
+      return;
+    }
+    setShowDirectPlayModal(false);
+    navigation.navigate('Player', { videoId, libraryId: libId });
+  };
+
+  const handleDirectPlayCustom = async (videoId: string, libraryIdOverride: string | null) => {
+    const libId = await resolveLibId(libraryIdOverride);
+    if (isNaN(libId)) {
+      Alert.alert('Configuration required', 'Please set your Library ID in Settings first.');
+      return;
+    }
+    setShowDirectPlayCustomModal(false);
+    navigation.navigate('PlayerCustom', { videoId, libraryId: libId });
+  };
+
+  const defaultVideoId = parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID })[0] ?? '';
+
   return (
     <>
       <Header title="BunnyStream Demo" subtitle="React Native" />
@@ -29,19 +68,23 @@ export function HomeScreen({
           <HomeOption
             title="Video player"
             subtitle="Saved video IDs"
-            onPress={() => onNavigate('videoList')}
+            onPress={() => navigation.navigate('VideoList')}
           />
           <View style={styles.divider} />
           <HomeOption title="Video Upload" badge="Coming soon" disabled onPress={() => {}} />
           <View style={styles.divider} />
           <HomeOption title="Camera upload" badge="Coming soon" disabled onPress={() => {}} />
           <View style={styles.divider} />
-          <HomeOption title="Direct video play" subtitle="Native controls" onPress={onDirectPlay} />
+          <HomeOption
+            title="Direct video play"
+            subtitle="Native controls"
+            onPress={() => setShowDirectPlayModal(true)}
+          />
           <View style={styles.divider} />
           <HomeOption
             title="Direct video play (custom)"
             subtitle="JS controls only"
-            onPress={onDirectPlayCustom}
+            onPress={() => setShowDirectPlayCustomModal(true)}
           />
         </View>
 
@@ -67,10 +110,23 @@ export function HomeScreen({
           <HomeOption
             title="BunnyStream Configuration"
             subtitle={hasConfig ? 'Configured' : 'Not configured'}
-            onPress={() => onNavigate('settings')}
+            onPress={() => navigation.navigate('Settings')}
           />
         </View>
       </ScrollView>
+
+      <DirectVideoPlayModal
+        visible={showDirectPlayModal}
+        defaultVideoId={defaultVideoId}
+        onPlay={handleDirectPlay}
+        onCancel={() => setShowDirectPlayModal(false)}
+      />
+      <DirectVideoPlayModal
+        visible={showDirectPlayCustomModal}
+        defaultVideoId={defaultVideoId}
+        onPlay={handleDirectPlayCustom}
+        onCancel={() => setShowDirectPlayCustomModal(false)}
+      />
     </>
   );
 }
