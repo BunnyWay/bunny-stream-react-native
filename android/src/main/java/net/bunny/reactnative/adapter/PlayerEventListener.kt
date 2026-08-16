@@ -121,6 +121,11 @@ class PlayerEventListener(
       currentPlayer = player
       generation = generationToken.current()
       player.addListener(listener)
+      // Media3 does not replay its current state to listeners added after the
+      // transition. Synchronise it explicitly so the command queue is opened
+      // even when the player reached STATE_READY before this listener attached.
+      listener.onPlaybackStateChanged(player.playbackState)
+      listener.onIsPlayingChanged(player.isPlaying)
     }
   }
 

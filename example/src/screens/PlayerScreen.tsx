@@ -18,6 +18,7 @@ type PlayerScreenProps = {
 export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) {
   const playerRef = React.useRef<BunnyStreamPlayerRef>(null);
   const [status, setStatus] = React.useState('idle');
+  const [progress, setProgress] = React.useState<string | null>(null);
   const [currentSpeed, setCurrentSpeed] = React.useState(1.0);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -48,7 +49,7 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
             setError(e.nativeEvent.message || 'Unknown error');
             setStatus('error');
           }}
-          onProgress={(e) => setStatus(`progress ${(e.nativeEvent.progress * 100).toFixed(0)}%`)}
+          onProgress={(e) => setProgress(`progress ${(e.nativeEvent.progress * 100).toFixed(0)}%`)}
         />
         {error ? (
           <View style={styles.errorOverlay}>
@@ -64,7 +65,10 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
           </View>
         ) : null}
       </View>
-      <Text style={styles.status}>{status}</Text>
+      <Text style={styles.status}>
+        {status}
+        {progress ? ` • ${progress}` : ''}
+      </Text>
 
       <View style={styles.speedSection}>
         <Text style={styles.speedTitle}>Playback Speed</Text>

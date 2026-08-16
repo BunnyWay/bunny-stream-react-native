@@ -5,6 +5,7 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import kotlin.math.ceil
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -50,6 +51,9 @@ class BunnyStreamPlayerView(
 
   /** The native SDK player, sized to fill this wrapper. */
   val player: BunnyStreamPlayer = BunnyStreamPlayer(context).also { child ->
+    // Match the native demo: the SDK adapts the current-time/duration text
+    // colour to the video frame so the readout remains legible.
+    child.autoProgressTextColor = true
     addView(
       child,
       LayoutParams(MATCH_PARENT, MATCH_PARENT),
@@ -111,7 +115,13 @@ class BunnyStreamPlayerView(
     // onViewAttachedToWindow before the parent's onAttachedToWindow, so we must
     // set this in init — ReactActivity implements LifecycleOwner.
     (context as? LifecycleOwner)?.let { setViewTreeLifecycleOwner(it) }
-    player.setProgressListener(progressListener)
+    player.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+      override fun onViewAttachedToWindow(view: View) {
+        player.setProgressListener(progressListener)
+      }
+
+      override fun onViewDetachedFromWindow(view: View) = Unit
+    })
     lease.acquire()
   }
 
@@ -224,6 +234,7 @@ class BunnyStreamPlayerView(
     generationToken.bump()
     commandQueue.reset()
     applyControls(props.controls)
+    val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
     player.playVideo(
       videoId = props.videoId,
       libraryId = props.libraryId,
@@ -234,16 +245,16 @@ class BunnyStreamPlayerView(
     if (!props.autoPlay) {
       commandQueue.enqueue(PlayerCommand.Pause)
     }
-    attachWhenPlayerReady()
+    attachWhenPlayerReady(previousPlayer)
   }
 
   /**
    * Polls [DefaultBunnyPlayer.currentPlayer] every 100ms until it becomes
    * non-null (the SDK has created the ExoPlayer), then attaches the event
-   * listener and pins the controller visible.
+   * listener.
    */
   @SuppressLint("UnsafeOptInUsageError")
-  private fun attachWhenPlayerReady() {
+  private fun attachWhenPlayerReady(previousPlayer: androidx.media3.common.Player?) {
     val gen = generationToken.current()
     var attempts = 0
     post {
@@ -251,16 +262,18 @@ class BunnyStreamPlayerView(
         override fun run() {
           if (!generationToken.isActive(gen)) return
           val cp = DefaultBunnyPlayer.getInstance(context).currentPlayer
-          if (cp != null) {
+          if (cp != null && cp !== previousPlayer) {
             eventListener?.attach()
-            // Media3's PlayerView does not always trigger a layout pass on its
-            // internal controller view when showController() is called. Under
-            // Fabric, the controller (exo_controller) ends up with 0x0 dimensions
-            // even though its parent (BunnyPlayerView) has correct dimensions.
-            // We delay until the next layout cycle, then manually measure and
-            // layout the controller to match the PlayerView dimensions.
+            startProgressPolling(cp, gen)
+            // Keep the original controls lifecycle: it lets the SDK finish
+            // replacing Media3's initial layout with Bunny's own layout.
             postDelayed({
               applyControls(committedProps.controls)
+              repairInlinePositionWidth()
+              // Re-check a few times: the parent ConstraintLayout can override
+              // the width on the next pass, so re-apply until it sticks.
+              postDelayed({ repairInlinePositionWidth() }, 300)
+              postDelayed({ repairInlinePositionWidth() }, 700)
             }, 500)
           } else if (attempts++ < 50) {
             postDelayed(this, 100)
@@ -280,6 +293,21 @@ class BunnyStreamPlayerView(
       as? androidx.media3.ui.PlayerView
   }
 
+  /** Emits position updates directly from Media3; this does not depend on the SDK UI lifecycle. */
+  private fun startProgressPolling(mediaPlayer: androidx.media3.common.Player, gen: Long) {
+    val poll = object : Runnable {
+      override fun run() {
+        if (!generationToken.isActive(gen)) return
+        val duration = mediaPlayer.duration
+        if (duration > 0) {
+          eventListener?.onProgress(mediaPlayer.currentPosition, duration)
+        }
+        postDelayed(this, 250)
+      }
+    }
+    post(poll)
+  }
+
   /** Applies controller visibility without reloading the current video. */
   private fun applyControls(showControls: Boolean) {
     findPlayerView()?.let { playerView ->
@@ -289,18 +317,71 @@ class BunnyStreamPlayerView(
         return
       }
 
-      playerView.controllerShowTimeoutMs = 0
+      playerView.controllerShowTimeoutMs = androidx.media3.ui.PlayerControlView.DEFAULT_SHOW_TIMEOUT_MS
       playerView.showController()
-      val controller = playerView.findViewById<android.view.View>(
-        androidx.media3.ui.R.id.exo_controller,
-      )
-      if (controller != null && (controller.width == 0 || controller.height == 0)) {
+      val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
+      if (
+        controller != null &&
+        playerView.width > 0 &&
+        playerView.height > 0 &&
+        (controller.width == 0 || controller.height == 0)
+      ) {
         val widthSpec = View.MeasureSpec.makeMeasureSpec(playerView.width, View.MeasureSpec.EXACTLY)
         val heightSpec = View.MeasureSpec.makeMeasureSpec(playerView.height, View.MeasureSpec.EXACTLY)
         controller.measure(widthSpec, heightSpec)
         controller.layout(0, 0, playerView.width, playerView.height)
+        // The direct layout gives Media3 a non-zero controller immediately,
+        // then let Android perform a normal hierarchy pass for the custom
+        // Bunny ConstraintLayout children (notably exo_position).
+        playerView.post {
+          controller.requestLayout()
+          playerView.requestLayout()
+        }
       }
     }
+  }
+
+  /**
+   * Bunny's custom controller can leave the visible `exo_position` TextView
+   * with a zero width when it is first attached under a Fabric-hosted view.
+   * The fullscreen Activity gets a fresh normal layout and is unaffected.
+   *
+   * We set layout params to the text's measured width, force a layout pass on
+   * the controller and player view, and also directly lay out the TextView so
+   * it is visible immediately even if the parent ConstraintLayout pass happens
+   * asynchronously or repeatedly restores 0dp width.
+   */
+  private fun repairInlinePositionWidth() {
+    val playerView = findPlayerView() ?: return
+    val position = playerView.findViewById<android.widget.TextView>(androidx.media3.ui.R.id.exo_position)
+      ?: return
+    if (position.visibility != View.VISIBLE || position.width > 0) return
+
+    val text = position.text?.toString() ?: ""
+    if (text.isEmpty()) return
+
+    val textWidth = ceil(position.paint.measureText(text)).toInt() +
+      position.compoundPaddingLeft + position.compoundPaddingRight
+    if (textWidth <= 0) return
+
+    // Lock the view to its text width so ConstraintLayout can no longer keep
+    // it at 0dp.
+    val layoutParams = position.layoutParams
+    layoutParams.width = textWidth
+    position.layoutParams = layoutParams
+
+    // Force the player view / controller to perform a new layout pass.
+    val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
+    controller?.requestLayout()
+    controller?.invalidate()
+    playerView.requestLayout()
+    playerView.invalidate()
+
+    // Direct layout as a safety net: the parent may not have laid this child
+    // yet, so place it at the current left/top with the correct right edge.
+    val top = position.top
+    val bottom = position.bottom
+    position.layout(position.left, top, position.left + textWidth, bottom)
   }
 
   /**

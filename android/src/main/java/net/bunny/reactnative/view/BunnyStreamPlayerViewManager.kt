@@ -51,6 +51,11 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     super.onDropViewInstance(view)
   }
 
+  override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> =
+    (super.getExportedCustomDirectEventTypeConstants() ?: emptyMap()).toMutableMap().apply {
+      putAll(DIRECT_EVENTS)
+    }
+
   // --- Prop setters (delegate calls these during a prop batch) ---
 
   override fun setVideoId(view: BunnyStreamPlayerView, value: String?) {
@@ -106,5 +111,28 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
 
   companion object {
     const val NAME = "BunnyStreamPlayerView"
+
+    private val DIRECT_EVENTS = mapOf(
+      "ready" to mapOf("registrationName" to "onReady"),
+      "topReady" to mapOf("registrationName" to "onReady"),
+      "playbackStateChange" to mapOf("registrationName" to "onPlaybackStateChange"),
+      "topPlaybackStateChange" to mapOf("registrationName" to "onPlaybackStateChange"),
+      "progress" to mapOf("registrationName" to "onProgress"),
+      "topProgress" to mapOf("registrationName" to "onProgress"),
+      "error" to mapOf("registrationName" to "onError"),
+      "topError" to mapOf("registrationName" to "onError"),
+      "buffering" to mapOf("registrationName" to "onBuffering"),
+      "topBuffering" to mapOf("registrationName" to "onBuffering"),
+      "play" to mapOf("registrationName" to "onPlay"),
+      "topPlay" to mapOf("registrationName" to "onPlay"),
+      "pause" to mapOf("registrationName" to "onPause"),
+      "topPause" to mapOf("registrationName" to "onPause"),
+      "end" to mapOf("registrationName" to "onEnd"),
+      "topEnd" to mapOf("registrationName" to "onEnd"),
+      "volumeChange" to mapOf("registrationName" to "onVolumeChange"),
+      "topVolumeChange" to mapOf("registrationName" to "onVolumeChange"),
+      "playbackRateChange" to mapOf("registrationName" to "onPlaybackRateChange"),
+      "topPlaybackRateChange" to mapOf("registrationName" to "onPlaybackRateChange"),
+    )
   }
 }

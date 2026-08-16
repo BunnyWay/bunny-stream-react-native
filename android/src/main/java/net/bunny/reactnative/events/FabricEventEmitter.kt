@@ -1,7 +1,7 @@
 package net.bunny.reactnative.events
 
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
 import com.facebook.react.uimanager.events.EventDispatcher
@@ -16,12 +16,11 @@ import net.bunny.reactnative.state.RnEvent
  * All other events have coalescing disabled (`canCoalesce = false`) to
  * preserve ordering guarantees required by the state machine.
  *
- * The emitter captures the `surfaceId` at construction time and resolves the
- * view tag at dispatch time, after React Native has assigned it to the view.
+ * The emitter resolves the view tag at dispatch time, after React Native
+ * has assigned it to the view.
  */
 class FabricEventEmitter(
   private val eventDispatcher: EventDispatcher,
-  private val surfaceId: Int,
   private val view: android.view.View,
 ) {
   /**
@@ -32,34 +31,29 @@ class FabricEventEmitter(
     val coalesce = event.eventName == "onProgress"
     val viewTag = view.id
     if (viewTag == android.view.View.NO_ID) return
-    eventDispatcher.dispatchEvent(
-      object : Event<Nothing>() {
-        init {
-          init(surfaceId, viewTag)
-        }
-
-        override fun getEventName(): String = event.eventName
-
-        override fun canCoalesce(): Boolean = coalesce
-
-        override fun getEventData(): WritableMap? {
-          val map = Arguments.createMap()
-          event.payloadBuilder().forEach { (key, value) ->
-            when (value) {
-              null -> map.putNull(key)
-              is Boolean -> map.putBoolean(key, value)
-              is Int -> map.putInt(key, value)
-              is Long -> map.putDouble(key, value.toDouble())
-              is Float -> map.putDouble(key, value.toDouble())
-              is Double -> map.putDouble(key, value)
-              is String -> map.putString(key, value)
-              else -> map.putString(key, value.toString())
-            }
+    val nativeEventName = event.eventName.removePrefix("on").let { "top$it" }
+    eventDispatcher.dispatchEvent(object : Event<Nothing>() {
+      // The Java ViewManager uses RN's Fabric interop path. Omitting a
+      // surface ID makes EventDispatcher route this through the compatible
+      // emitter, which resolves the ViewManager's direct-event registration.
+      init { init(-1, viewTag) }
+      override fun getEventName(): String = nativeEventName
+      override fun canCoalesce(): Boolean = coalesce
+      override fun getEventData() = Arguments.createMap().apply {
+        event.payloadBuilder().forEach { (key, value) ->
+          when (value) {
+            null -> putNull(key)
+            is Boolean -> putBoolean(key, value)
+            is Int -> putInt(key, value)
+            is Long -> putDouble(key, value.toDouble())
+            is Float -> putDouble(key, value.toDouble())
+            is Double -> putDouble(key, value)
+            is String -> putString(key, value)
+            else -> putString(key, value.toString())
           }
-          return map
         }
-      },
-    )
+      }
+    })
   }
 
   companion object {
@@ -68,10 +62,9 @@ class FabricEventEmitter(
      * is unavailable (e.g. during teardown).
      */
     fun forView(view: android.view.View): FabricEventEmitter? {
-      val context = view.context as? com.facebook.react.bridge.ReactContext ?: return null
+      val context = view.context as? ReactContext ?: return null
       val dispatcher = UIManagerHelper.getEventDispatcher(context) ?: return null
-      val surfaceId = UIManagerHelper.getSurfaceId(context)
-      return FabricEventEmitter(dispatcher, surfaceId, view)
+      return FabricEventEmitter(dispatcher, view)
     }
   }
 }
