@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { FlatList, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 
 import { AddVideoIdModal } from '../components/AddVideoIdModal';
 import { Header } from '../components/Header';
@@ -29,10 +28,7 @@ export function VideoListScreen({
         <Text style={styles.videoIdText} numberOfLines={1} ellipsizeMode="middle">
           {item}
         </Text>
-        <TouchableOpacity
-          style={styles.removeButton}
-          onPress={() => onRemoveVideoId(item)}
-        >
+        <TouchableOpacity style={styles.removeButton} onPress={() => onRemoveVideoId(item)}>
           <Text style={styles.removeButtonText}>×</Text>
         </TouchableOpacity>
       </View>
@@ -40,21 +36,15 @@ export function VideoListScreen({
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#FD8D32" />
+    <>
       <Header title="Video List" onBack={onBack} />
       <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowAddModal(true)}
-        >
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
           <Text style={styles.addButtonText}>+ Add Video ID</Text>
         </TouchableOpacity>
 
         {videoIds.length === 0 ? (
-          <Text style={styles.videoListEmpty}>
-            No videos yet. Tap + to add one.
-          </Text>
+          <Text style={styles.videoListEmpty}>No videos yet. Tap + to add one.</Text>
         ) : (
           <FlatList
             data={videoIds}
@@ -78,6 +68,6 @@ export function VideoListScreen({
         }}
         onCancel={() => setShowAddModal(false)}
       />
-    </SafeAreaView>
+    </>
   );
 }

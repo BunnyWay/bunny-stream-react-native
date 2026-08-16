@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Button, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Header } from '../components/Header';
 import { styles } from '../theme/styles';
@@ -23,8 +22,7 @@ export function SettingsScreen({
   onBack,
 }: SettingsScreenProps) {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#FD8D32" />
+    <>
       <Header title="Settings" onBack={onBack} />
       <ScrollView style={styles.content}>
         <Text style={styles.sectionTitle}>Video Library ID</Text>
@@ -49,6 +47,6 @@ export function SettingsScreen({
           <Button title="Save" onPress={onSave} color="#FD8D32" />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }

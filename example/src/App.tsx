@@ -2,11 +2,11 @@ import type { PlayerParams, Screen } from './navigation/types';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
-import { ActivityIndicator, Alert, StatusBar, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, View } from 'react-native';
 
 import { initialize } from 'bunny-stream-react-native';
 
+import { ScreenWrapper } from './components/ScreenWrapper';
 import { CustomControlsPlayerScreen } from './screens/CustomControlsPlayerScreen';
 import { DirectVideoPlayModal } from './screens/DirectVideoPlayModal';
 import { HomeScreen } from './screens/HomeScreen';
@@ -24,7 +24,7 @@ import {
 } from './storage/storage';
 import { styles } from './theme/styles';
 
-export default function App() {
+function AppContent() {
   const [screen, setScreen] = React.useState<Screen>('home');
   const [loading, setLoading] = React.useState(true);
   const [accessKey, setAccessKey] = React.useState<string>('');
@@ -135,12 +135,9 @@ export default function App() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="#FD8D32" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FD8D32" />
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FD8D32" />
+      </View>
     );
   }
 
@@ -216,5 +213,13 @@ export default function App() {
         onCancel={() => setShowDirectPlayCustomModal(false)}
       />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <ScreenWrapper style={styles.container}>
+      <AppContent />
+    </ScreenWrapper>
   );
 }

@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { BunnyStreamPlayer, type BunnyStreamPlayerRef } from 'bunny-stream-react-native';
 
@@ -28,8 +27,7 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
   };
 
   return (
-    <SafeAreaView style={styles.playerContainer} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#183D6D" />
+    <View style={styles.playerContainer}>
       <Header title="Player" onBack={onBack} />
       <View style={styles.playerWrapper}>
         <BunnyStreamPlayer
@@ -89,6 +87,6 @@ export function PlayerScreen({ videoId, libraryId, onBack }: PlayerScreenProps) 
           })}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

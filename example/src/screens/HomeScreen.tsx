@@ -1,8 +1,7 @@
 import type { Screen } from '../navigation/types';
 
 import * as React from 'react';
-import { ScrollView, StatusBar, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, Text, View } from 'react-native';
 
 import { Header } from '../components/Header';
 import { HomeOption } from '../components/HomeOption';
@@ -22,8 +21,7 @@ export function HomeScreen({
   hasConfig,
 }: HomeScreenProps) {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#FD8D32" />
+    <>
       <Header title="BunnyStream Demo" subtitle="React Native" />
       <ScrollView style={styles.content}>
         <Text style={styles.sectionTitle}>Actions</Text>
@@ -73,6 +71,6 @@ export function HomeScreen({
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }
