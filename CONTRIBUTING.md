@@ -22,17 +22,29 @@ If you are unsure whether a change fits, open an issue first and describe the pr
 Requirements:
 
 - Node.js 22+ (see `.nvmrc`)
-- npm
+- Yarn 4 (managed via Corepack — see below)
 - Xcode (latest) with iOS Simulator
 - Android Studio with Android SDK and emulator
+
+### Enabling Yarn 4 via Corepack
+
+This project uses Yarn 4 (Berry), pinned via the `packageManager` field in `package.json`. Enable it with Corepack (built into Node.js 16.9+):
+
+```bash
+corepack enable
+```
+
+Corepack will automatically download and use the exact Yarn version specified in `package.json` (`yarn@4.11.0`). You do **not** need to install Yarn globally.
+
+If you have an older Yarn 1.x installed globally, Corepack takes precedence once enabled.
 
 Useful commands:
 
 ```bash
-npm install
-npm run typecheck
-npm run lint
-npm run build
+yarn install
+yarn typecheck
+yarn lint
+yarn build
 ```
 
 ### Running the example app
@@ -40,17 +52,14 @@ npm run build
 The repository includes an example React Native app in `example/` that links the library from source. This is the primary way to iterate on the native bridge.
 
 ```bash
-# Install example dependencies (from repository root)
-npm --prefix example install
-
 # iOS (installs pods and launches simulator)
-npm run example:ios
+yarn example:ios
 
 # Android (launches emulator)
-npm run example:android
+yarn example:android
 
 # Typecheck the example app
-npm run example:typecheck
+yarn example:typecheck
 ```
 
 The example app resolves the library from `src/` via Metro, so changes to TypeScript source are reflected through Fast Refresh without rebuilding the library.

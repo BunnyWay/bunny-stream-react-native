@@ -1,8 +1,17 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["src/index.ts"],
+  "entry": ["src/index.tsx"],
   "ignoreDependencies": [
+    "@commitlint/config-conventional",
     "@eslint/js",
+    "@jest/globals",
+    "@react-native-community/cli",
+    "@react-native/babel-preset",
+    "@react-native/jest-preset",
+    "@release-it/conventional-changelog",
+    "@types/react",
+    "commitlint",
+    "del-cli",
     "eslint",
     "eslint-config-prettier",
     "eslint-import-resolver-typescript",
@@ -10,11 +19,14 @@
     "eslint-plugin-perfectionist",
     "fallow",
     "globals",
-    "react-native-builder-bob",
+    "jest",
+    "lefthook",
     "prettier",
+    "react-native-builder-bob",
+    "release-it",
+    "turbo",
     "typescript",
-    "typescript-eslint",
-    "@types/react"
+    "typescript-eslint"
   ],
   "ignorePatterns": ["**/*.d.ts", "./package.json", "example/**", "lib/**", "node_modules/**"],
   "duplicates": {
