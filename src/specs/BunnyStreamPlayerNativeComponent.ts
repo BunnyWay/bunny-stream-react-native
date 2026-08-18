@@ -5,8 +5,7 @@ import type {
   WithDefault,
 } from 'react-native/Libraries/Types/CodegenTypes';
 
-import codegenNativeCommands from 'react-native/Libraries/Utilities/codegenNativeCommands';
-import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
+import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 
 export type PlayerPlaybackState =
   'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
@@ -57,6 +56,7 @@ export interface NativeProps extends ViewProps {
   token?: string;
   expires?: Double;
   autoPlay?: WithDefault<boolean, true>;
+  controls?: WithDefault<boolean, true>;
   onReady?: DirectEventHandler<PlayerReadyEvent> | null;
   onPlaybackStateChange?: DirectEventHandler<PlayerStateChangeEvent> | null;
   onProgress?: DirectEventHandler<PlayerProgressEvent> | null;
