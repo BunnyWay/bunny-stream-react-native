@@ -20,7 +20,13 @@ const reactNativeGlobals = {
 
 export default defineConfig([
   {
-    ignores: ['lib/**', 'node_modules/**'],
+    ignores: [
+      'lib/**',
+      'node_modules/**',
+      'example/android/**',
+      'example/ios/**',
+      'example/dist/**',
+    ],
   },
   {
     languageOptions: {
@@ -91,6 +97,19 @@ export default defineConfig([
           ignoreExternal: true,
         },
       ],
+    },
+  },
+  {
+    // CommonJS config files use require() — disable TS rules that flag it
+    files: [
+      '**/babel.config.js',
+      '**/metro.config.js',
+      '**/react-native.config.js',
+      'example/index.js',
+    ],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'perfectionist/sort-imports': 'off',
     },
   },
 ]);

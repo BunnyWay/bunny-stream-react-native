@@ -2,42 +2,57 @@
   "name": "bunny-stream-react-native",
   "version": "0.1.0",
   "description": "Bunny Stream React Native SDK - native bridge for Bunny Stream, wrapping the official iOS and Android SDKs.",
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "types": "lib/typescript/commonjs/index.d.ts",
-  "source": "src/index.ts",
+  "main": "./lib/commonjs/index.js",
+  "module": "./lib/module/index.js",
+  "types": "./lib/typescript/commonjs/src/index.d.ts",
   "exports": {
     ".": {
-      "react-native": "./src/index.ts",
+      "bunny-stream-react-native-source": "./src/index.tsx",
       "import": {
-        "types": "./lib/typescript/module/index.d.ts",
+        "types": "./lib/typescript/module/src/index.d.ts",
         "default": "./lib/module/index.js"
       },
       "require": {
-        "types": "./lib/typescript/commonjs/index.d.ts",
+        "types": "./lib/typescript/commonjs/src/index.d.ts",
         "default": "./lib/commonjs/index.js"
-      }
+      },
+      "default": "./lib/module/index.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "lib",
+    "android",
+    "ios",
+    "cpp",
+    "*.podspec",
+    "react-native.config.js",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
     "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
     "!**/.*"
   ],
   "scripts": {
-    "build": "bob build",
-    "clean": "rm -rf lib",
-    "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",
+    "example": "yarn workspace bunny-stream-react-native-example",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.{ts,tsx}\" \"*.{js,mjs,cjs,ts}\"",
+    "typecheck": "tsc",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "test": "jest",
+    "release": "release-it --only-version",
     "fallow": "fallow health --report-only",
-    "example:start": "npm --prefix example run start",
-    "example:ios": "npm --prefix example run ios",
-    "example:android": "npm --prefix example run android",
-    "example:typecheck": "npm --prefix example run typecheck"
+    "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",
+    "example:start": "yarn example start",
+    "example:ios": "yarn example ios",
+    "example:android": "yarn example android",
+    "example:typecheck": "yarn example typecheck"
   },
   "keywords": [
     "react-native",
@@ -58,30 +73,70 @@
     "url": "https://github.com/BunnyWay/bunny-stream-react-native/issues"
   },
   "homepage": "https://github.com/BunnyWay/bunny-stream-react-native#readme",
-  "author": "Bunny (https://bunny.net)",
+  "author": "Bunny <support@bunny.net> (https://bunny.net)",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "yarn": ">=4.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "^21.0.2",
     "@eslint/js": "^9.39.0",
+    "@jest/globals": "^29.7.0",
     "@react-native-community/cli": "20.1.0",
+    "@react-native/babel-preset": "0.86.2",
+    "@react-native/jest-preset": "0.86.2",
+    "@release-it/conventional-changelog": "^11.0.1",
     "@types/react": "^19.2.0",
-    "eslint": "^9.39.0",
+    "commitlint": "^21.0.2",
+    "del-cli": "^7.0.0",
+    "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
     "eslint-plugin-perfectionist": "^5.9.0",
     "fallow": "^2.87.0",
     "globals": "^17.6.0",
-    "prettier": "^3.6.2",
+    "jest": "^29.7.0",
+    "lefthook": "^2.1.9",
+    "prettier": "^3.8.3",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
     "react-native-builder-bob": "^0.43.0",
+    "release-it": "^20.2.0",
+    "turbo": "^2.9.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.1"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-native": ">=0.71.0"
+  },
+  "workspaces": [
+    "example"
+  ],
+  "packageManager": "yarn@4.11.0",
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
   },
   "codegenConfig": {
     "name": "BunnyStreamReactNativeSpec",
@@ -103,23 +158,57 @@
       }
     }
   },
-  "react-native-builder-bob": {
-    "source": "src",
-    "output": "lib",
-    "targets": [
-      "commonjs",
-      [
-        "module",
-        {
-          "esm": true
-        }
-      ],
-      [
-        "typescript",
-        {
-          "project": "tsconfig.build.json"
-        }
+  "jest": {
+    "preset": "@react-native/jest-preset",
+    "testEnvironmentOptions": {
+      "customExportConditions": [
+        "require",
+        "react-native",
+        "bunny-stream-react-native-source"
       ]
+    },
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/lib/"
     ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release ${version}",
+      "tagName": "v${version}"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": {
+          "name": "angular"
+        }
+      }
+    }
+  },
+  "create-react-native-library": {
+    "type": "turbo-module",
+    "languages": "kotlin-objc",
+    "tools": [
+      "eslint",
+      "jest",
+      "lefthook",
+      "release-it"
+    ],
+    "version": "0.63.0"
   }
 }
