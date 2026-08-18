@@ -73,15 +73,15 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-#       - name: Fallow health check
-#         uses: fallow-rs/fallow@v3.14.0
-#         with:
-#           command: health
-#           format: sarif
-#           auto-changed-since: true
-#           comment: true
-#           github-token: ${{ github.token }}
-#           args: --report-only
+      - name: Fallow health check
+        uses: fallow-rs/fallow@v3.14.0
+        with:
+          command: health
+          format: sarif
+          auto-changed-since: true
+          comment: true
+          github-token: ${{ github.token }}
+          args: --report-only
 
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
