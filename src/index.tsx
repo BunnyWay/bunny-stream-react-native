@@ -10,6 +10,7 @@
  *  - iOS: (planned)
  */
 
+import type { BunnyStreamPlayerRef } from './types';
 import type { HostComponent, ViewProps } from 'react-native';
 
 import * as React from 'react';
@@ -88,25 +89,7 @@ export interface BunnyStreamPlayerProps extends ViewProps {
 
 // --- Ref / commands ---
 
-/**
- * Imperative commands available via a ref to {@link BunnyStreamPlayer}.
- *
- * These map 1:1 to the Codegen `NativeCommands`. Commands issued before
- * `STATE_READY` are queued on the native side and drained when the player
- * becomes ready.
- */
-export type BunnyStreamPlayerRef = {
-  /** Resume playback. */
-  play: () => void;
-  /** Pause playback. */
-  pause: () => void;
-  /** Seek to [positionMs] (milliseconds, non-negative). */
-  seekTo: (positionMs: number) => void;
-  /** Set volume (0.0–1.0). */
-  setVolume: (volume: number) => void;
-  /** Set playback rate (must be > 0). */
-  setPlaybackRate: (rate: number) => void;
-};
+export type { BunnyStreamPlayerRef } from './types';
 
 // --- initialize ---
 
@@ -184,5 +167,13 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
 
 BunnyStreamPlayer.displayName = 'BunnyStreamPlayer';
 
-// Keep the version export for backwards compatibility.
-export const BUNNY_STREAM_REACT_NATIVE_VERSION = '0.1.0';
+// --- useBunnyStreamPlayer hook ---
+
+export { useBunnyStreamPlayer } from './useBunnyStreamPlayer';
+export type {
+  PlayerEventHandlers,
+  PlayerProgress,
+  PlayerState,
+  UseBunnyStreamPlayerOptions,
+  UseBunnyStreamPlayerResult,
+} from './useBunnyStreamPlayer';
