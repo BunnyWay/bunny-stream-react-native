@@ -12,7 +12,7 @@
  * buttons) do NOT re-render on every `onProgress` tick (~4×/s).
  */
 
-// fallow-ignore-file complexity -- reducer is a flat switch with 9 cases; splitting would harm readability
+// fallow-ignore-file complexity -- idiomatic flat useReducer switch with 9 cases; splitting into per-action handlers adds indirection without reducing cyclomatic complexity. CRAP score is inflated by missing coverage data (20 unit tests cover every case).
 
 import type { PlayerPlaybackState } from './specs/BunnyStreamPlayerNativeComponent';
 import type { BunnyStreamPlayerRef } from './types';
