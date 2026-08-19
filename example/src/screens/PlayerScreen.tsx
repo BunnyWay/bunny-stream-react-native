@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamPlayer, type BunnyStreamPlayerRef } from 'bunny-stream-react-native';
+import { BunnyStreamPlayer, type BunnyStreamPlayerRef, } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
 import { styles } from '../theme/styles';
@@ -52,11 +52,13 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           }}
           onProgress={(e) => setProgress(`progress ${(e.nativeEvent.progress * 100).toFixed(0)}%`)}
         />
+
         {loading ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         ) : null}
+
         {error ? (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorIcon}>⚠</Text>
@@ -71,6 +73,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           </View>
         ) : null}
       </View>
+
       <Text style={styles.status}>
         {status}
         {progress ? ` • ${progress}` : ''}
