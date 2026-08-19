@@ -12,6 +12,8 @@
  * buttons) do NOT re-render on every `onProgress` tick (~4×/s).
  */
 
+// fallow-ignore-file complexity -- reducer is a flat switch with 9 cases; splitting would harm readability
+
 import type { PlayerPlaybackState } from './specs/BunnyStreamPlayerNativeComponent';
 import type { BunnyStreamPlayerRef } from './types';
 
