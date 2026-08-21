@@ -21,12 +21,32 @@ export type LiveVideoSizeChangeEvent = Readonly<{
   height: Int32;
 }>;
 
+/**
+ * Live player state, mirroring the SDK's `LiveStreamPlayerState` sealed
+ * interface. `state` is a lowercase string; `isLive` is true only for
+ * `live` (stream is RUNNING and playable).
+ */
+export type LiveStateChangeEvent = Readonly<{
+  state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+  isLive: boolean;
+  reason?: string;
+  targetEpochMs?: Double;
+  title?: string;
+  dvrEnabled?: boolean;
+}>;
+
+export type LiveErrorEvent = Readonly<{
+  message: string;
+}>;
+
 export interface NativeProps extends ViewProps {
   libraryId: Double;
   streamId: string;
   token?: string;
   expires?: Double;
   onVideoSizeChange?: DirectEventHandler<LiveVideoSizeChangeEvent> | null;
+  onLiveStateChange?: DirectEventHandler<LiveStateChangeEvent> | null;
+  onLiveError?: DirectEventHandler<LiveErrorEvent> | null;
 }
 
 // The live host has no commands today — the SDK does not yet expose a public
