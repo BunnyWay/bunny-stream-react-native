@@ -17,6 +17,7 @@ import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
 import net.bunny.bunnystreamplayer.ui.widget.BunnyPlayerView
+import net.bunny.reactnative.R
 import net.bunny.reactnative.adapter.PlayerEventListener
 import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
@@ -88,10 +89,11 @@ class BunnyStreamPlayerView(
 
   /** The native SDK player, sized to fill this wrapper. */
   val player: BunnyStreamPlayer = BunnyStreamPlayer(playerContext).also { child ->
-    // White text with a dark drop shadow — readable on any video background
-    // without relying on the auto-contrast sampler. The SDK now draws a black
-    // shadow behind the progress/duration readout, giving the "double text"
-    // effect (white text with a dark halo) like YouTube's player controls.
+    // White progress/duration text with a dark drop shadow — the SDK draws a
+    // black shadow behind the readout, giving the "double text" effect (white
+    // text with a dark halo) like YouTube's player controls. The popup menu
+    // still follows the system DayNight theme; this color choice is for the
+    // progress bar readout only.
     child.autoProgressTextColor = false
     child.progressTextColor = Color.WHITE
     addView(

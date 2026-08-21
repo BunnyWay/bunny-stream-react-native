@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <!--
-    Dark AppCompat theme for the native VOD player. The bridge wraps the host
-    Activity context with this theme so that the SDK's BunnyPlayerView and
+    AppCompat DayNight theme for the native VOD player. The bridge wraps the
+    host Activity context with this theme, so the SDK's BunnyPlayerView and
     its controls (including the androidx.appcompat.widget.PopupMenu opened by
-    the settings gear) use light text on dark backgrounds. AppCompat is the
-    correct parent because the SDK uses androidx.appcompat.widget.PopupMenu,
-    which ignores the platform Theme_Material popup styling in some cases.
+    the settings gear) follow the phone's light/dark setting:
+
+      * dark mode: dark controls + white text
+      * light mode: light controls + black text
+
+    No explicit text/background colors are hardcoded here — AppCompat resolves
+    them from the system DayNight state automatically.
   -->
-  <style name="BunnyReactNativePlayerTheme" parent="Theme.AppCompat.NoActionBar">
-    <item name="android:textColor">@android:color/white</item>
-    <item name="android:colorBackground">@android:color/black</item>
-    <item name="android:windowBackground">@android:color/black</item>
-  </style>
+  <style name="BunnyReactNativePlayerTheme" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>
