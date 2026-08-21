@@ -4,7 +4,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamPlayer, useBunnyStreamPlayer } from 'bunny-stream-react-native';
+import {
+  BunnyStreamPlayer,
+  sourceIdentityKey,
+  useBunnyStreamPlayer,
+} from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
 import { styles } from '../theme/styles';
@@ -23,7 +27,8 @@ type CustomControlsPlayerScreenProps = NativeStackScreenProps<RootStackParamList
 
 export function CustomControlsPlayerScreen({ navigation, route }: CustomControlsPlayerScreenProps) {
   const { videoId, libraryId } = route.params;
-  const player = useBunnyStreamPlayer();
+  const sourceKey = sourceIdentityKey({ type: 'vod', videoId, libraryId });
+  const player = useBunnyStreamPlayer(undefined, sourceKey);
 
   const { state, progress, controls } = player;
   const loading = state.playbackState === 'idle' || state.playbackState === 'loading';
@@ -43,8 +48,7 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
         <BunnyStreamPlayer
           ref={player.ref}
           style={styles.player}
-          videoId={videoId}
-          libraryId={libraryId}
+          source={{ type: 'vod', videoId, libraryId }}
           autoPlay
           controls={false}
           {...player.eventHandlers}
