@@ -6,7 +6,6 @@ import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import kotlin.math.ceil
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -22,29 +21,44 @@ import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
 
 /**
- * React Native wrapper around the native [BunnyStreamPlayer].
+ * React Native wrapper around the native [BunnyStreamPlayer] (SDK 4.0.0).
  *
  * Holds exactly one SDK player instance as a child with `MATCH_PARENT` in both
  * dimensions. Separates prop accumulation (individual setters called by the
  * Fabric delegate) from prop application ([commitProps], called from the
  * ViewManager's `onAfterUpdateTransaction`).
  *
- * Key behaviours:
+ * SDK 4.0.0 migration (PLAN.md §7 Faza 2):
+ * - Native controls toggle via the public `BunnyStreamPlayer.controlsEnabled`
+ *   instead of reaching into the internal Media3 `PlayerView`.
+ * - Progress comes from the SDK's `BunnyPlayer.ProgressListener` (the SDK polls
+ *   Media3 itself every 250 ms while playing); the bridge no longer runs its
+ *   own progress polling Runnable.
+ * - Playback rate is set through the public `BunnyStreamPlayer.playbackSpeed`
+ *   property; mute/unmute through `mute()`/`unmute()`. Volume stays on the
+ *   `DefaultBunnyPlayer` singleton because the view does not expose a volume
+ *   setter (PLAN.md §5 Faza 2 — isolated adapter).
+ * - Public SDK callbacks (`onPlayingChanged`, `onMutedChanged`,
+ *   `onPlaybackSpeedChanged`, `onVideoSizeChanged`, `onPlaybackError`) are
+ *   forwarded to JS. The Media3 `Player.Listener` adapter is retained only for
+ *   the state-machine semantics the SDK view does not surface directly
+ *   (ready/end/buffering), per PLAN.md §5 Faza 2.
+ * - The `exo_position` width repair and the 100 ms `currentPlayer` polling are
+ *   kept as the minimal adapter for ready/end/buffering; the SDK view exposes
+ *   no callback for `currentPlayer` recreation, so the bridge still has to
+ *   discover the new ExoPlayer to attach the state-machine listener.
+ *
+ * Key behaviours preserved from 3.3.0:
  * - Video reload only when the committed props snapshot actually changes.
  * - [GenerationToken] invalidates stale callbacks from previous loads.
  * - `autoPlay=false` pauses after `STATE_READY`; toggling `autoPlay` for an
  *   already-loaded video calls `play`/`pause` without reloading.
  * - `play`/`pause`/`seekTo` are routed through a [CommandQueue] with a
- *   ready-gate: before `STATE_READY` they are held and drained once the
- *   player becomes ready. `setVolume`/`setPlaybackRate` bypass the queue
- *   and target the [DefaultBunnyPlayer] singleton directly.
- * - A [PlayerEventListener] registers `Player.Listener` on
- *   `DefaultBunnyPlayer.currentPlayer` (not the SDK's `playerStateListener`
- *   slot, which is occupied by the native UI) and translates Media3 callbacks
- *   into RN direct events via the state machine.
+ *   ready-gate. `setVolume`/`setPlaybackRate`/`mute`/`unmute` bypass the queue
+ *   and target the [DefaultBunnyPlayer] singleton directly (available after
+ *   `initialize`).
  * - A [BunnyPlayerLease] enforces single-active-instance ownership of the
- *   `DefaultBunnyPlayer` singleton. When a new view mounts, the previous
- *   owner's lease is revoked, triggering its cleanup.
+ *   `DefaultBunnyPlayer` singleton.
  */
 class BunnyStreamPlayerView(
   context: Context,
@@ -61,8 +75,6 @@ class BunnyStreamPlayerView(
 
   /** The native SDK player, sized to fill this wrapper. */
   val player: BunnyStreamPlayer = BunnyStreamPlayer(playerContext).also { child ->
-    // Disabled: PixelCopy reads wrong pixels in RN Fabric, causing text to flip dark.
-    // child.autoProgressTextColor = true
     addView(
       child,
       LayoutParams(MATCH_PARENT, MATCH_PARENT),
@@ -71,6 +83,13 @@ class BunnyStreamPlayerView(
 
   /** Monotonic token for cancelling stale async callbacks. */
   val generationToken = GenerationToken()
+
+  /**
+   * Last volume set via [setVolume], tracked so [onMutedChanged] can emit the
+   * real volume when unmuting instead of defaulting to 1.0. Defaults to 1.0
+   * (the SDK's initial volume) when [setVolume] was never called.
+   */
+  private var lastKnownVolume: Float = 1f
 
   /**
    * Ownership lease for the `DefaultBunnyPlayer` singleton.
@@ -86,7 +105,7 @@ class BunnyStreamPlayerView(
   /** Event emitter for Fabric direct events. Null if context is not a ReactContext. */
   private val emitter: FabricEventEmitter? = FabricEventEmitter.forView(this)
 
-  /** Translates Media3 Player.Listener callbacks into RN events. */
+  /** Translates Media3 Player.Listener callbacks into RN events (ready/end/buffering). */
   private val eventListener: PlayerEventListener? = emitter?.let { em ->
     PlayerEventListener(
       emitter = em,
@@ -105,7 +124,7 @@ class BunnyStreamPlayerView(
     }
   }
 
-  /** Progress listener registered on the SDK view (tick ~250 ms). */
+  /** Progress listener registered on the SDK view (tick ~250 ms while playing). */
   private val progressListener = object : BunnyPlayer.ProgressListener {
     override fun onProgressChanged(position: Long, duration: Long, progress: Float) {
       eventListener?.onProgress(position, duration)
@@ -131,8 +150,71 @@ class BunnyStreamPlayerView(
 
       override fun onViewDetachedFromWindow(view: View) = Unit
     })
+    installSdkCallbacks()
     lease.acquire()
   }
+
+  /**
+   * Wires the public SDK 4.0.0 callbacks on [player] to the Fabric event
+   * emitter. These complement the Media3 state-machine adapter
+   * ([PlayerEventListener]), which still owns ready/end/buffering because the
+   * SDK view does not surface those transitions as public callbacks.
+   */
+  private fun installSdkCallbacks() {
+    val em = emitter ?: return
+    player.onPlayingChanged = { _ ->
+      // The state machine in PlayerEventListener already derives play/pause
+      // from Media3's onIsPlayingChanged; forwarding here would double-emit.
+      // Kept as a no-op hook for future SDK-only state sourcing (PLAN.md §5
+      // Faza 2: keep event names stable while the adapter owns semantics).
+    }
+    player.onMutedChanged = { isMuted ->
+      if (generationToken.isActive(playbackGeneration)) {
+        // Emit the real volume when unmuting (tracked via [lastKnownVolume]),
+        // not a hardcoded 1.0 — the user may have set volume to 0.3 before
+        // muting, and unmuting should restore that value, not jump to max.
+        val effectiveVolume = if (isMuted) 0f else lastKnownVolume
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onVolumeChange") {
+            mapOf("volume" to effectiveVolume, "isMuted" to isMuted)
+          },
+        )
+      }
+    }
+    player.onPlaybackSpeedChanged = { speed ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onPlaybackRateChange") {
+            mapOf("rate" to speed)
+          },
+        )
+      }
+    }
+    player.onVideoSizeChanged = { width, height ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onVideoSizeChange") {
+            mapOf("width" to width, "height" to height)
+          },
+        )
+      }
+    }
+    player.onPlaybackError = { message ->
+      if (generationToken.isActive(playbackGeneration)) {
+        // The Media3 adapter already emits the structured onError/onPlaybackStateChange
+        // pair from onPlayerErrorChanged; this hook surfaces the SDK's human-readable
+        // message for the live recovery path and future custom-error UI.
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onPlaybackError") {
+            mapOf("message" to message)
+          },
+        )
+      }
+    }
+  }
+
+  /** Generation captured when the current source started loading. */
+  private var playbackGeneration: Long = 0L
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
@@ -191,7 +273,7 @@ class BunnyStreamPlayerView(
     pendingControls = value
   }
 
-  // --- Prop application (called from ViewManager.onAfterUpdateTransaction) ---
+  // --- Prop application (called from ViewManager.onAfterUpdatedTransaction) ---
 
   /**
    * Snapshots the accumulated prop fields into an immutable [BunnyStreamPlayerProps],
@@ -240,7 +322,7 @@ class BunnyStreamPlayerView(
    * and re-attaches the [PlayerEventListener] to the new `currentPlayer`.
    */
   private fun reloadVideo(props: BunnyStreamPlayerProps) {
-    generationToken.bump()
+    playbackGeneration = generationToken.bump()
     commandQueue.reset()
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
@@ -261,10 +343,15 @@ class BunnyStreamPlayerView(
    * Polls [DefaultBunnyPlayer.currentPlayer] every 100ms until it becomes
    * non-null (the SDK has created the ExoPlayer), then attaches the event
    * listener.
+   *
+   * Retained from 3.3.0: the SDK view exposes no public callback for
+   * `currentPlayer` recreation, so the bridge must discover the new ExoPlayer
+   * to attach the ready/end/buffering state-machine listener. This is the
+   * minimal Media3 adapter allowed by PLAN.md §5 Faza 2.
    */
   @SuppressLint("UnsafeOptInUsageError")
   private fun attachWhenPlayerReady(previousPlayer: androidx.media3.common.Player?) {
-    val gen = generationToken.current()
+    val gen = playbackGeneration
     var attempts = 0
     post {
       val poll = object : Runnable {
@@ -273,17 +360,6 @@ class BunnyStreamPlayerView(
           val cp = DefaultBunnyPlayer.getInstance(context).currentPlayer
           if (cp != null && cp !== previousPlayer) {
             eventListener?.attach()
-            startProgressPolling(cp, gen)
-            // Keep the original controls lifecycle: it lets the SDK finish
-            // replacing Media3's initial layout with Bunny's own layout.
-            postDelayed({
-              applyControls(committedProps.controls)
-              repairInlinePositionWidth()
-              // Re-check a few times: the parent ConstraintLayout can override
-              // the width on the next pass, so re-apply until it sticks.
-              postDelayed({ repairInlinePositionWidth() }, 300)
-              postDelayed({ repairInlinePositionWidth() }, 700)
-            }, 500)
           } else if (attempts++ < 50) {
             postDelayed(this, 100)
           }
@@ -293,104 +369,9 @@ class BunnyStreamPlayerView(
     }
   }
 
-  /**
-   * Traverses the view hierarchy to find the [BunnyPlayerView] (Media3
-   * `PlayerView`) inside the native SDK's `BunnyStreamPlayer`.
-   */
-  private fun findPlayerView(): androidx.media3.ui.PlayerView? {
-    return player.findViewById(net.bunny.player.R.id.player_view)
-      as? androidx.media3.ui.PlayerView
-  }
-
-  /** Emits position updates directly from Media3; this does not depend on the SDK UI lifecycle. */
-  private fun startProgressPolling(mediaPlayer: androidx.media3.common.Player, gen: Long) {
-    val poll = object : Runnable {
-      override fun run() {
-        if (!generationToken.isActive(gen)) return
-        val duration = mediaPlayer.duration
-        if (duration > 0) {
-          eventListener?.onProgress(mediaPlayer.currentPosition, duration)
-        }
-        postDelayed(this, 250)
-      }
-    }
-    post(poll)
-  }
-
-  /** Applies controller visibility without reloading the current video. */
+  /** Applies controller visibility through the public SDK 4.0.0 property. */
   private fun applyControls(showControls: Boolean) {
-    findPlayerView()?.let { playerView ->
-      playerView.useController = showControls
-      if (!showControls) {
-        playerView.hideController()
-        return
-      }
-
-      playerView.controllerShowTimeoutMs = androidx.media3.ui.PlayerControlView.DEFAULT_SHOW_TIMEOUT_MS
-      playerView.showController()
-      val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
-      if (
-        controller != null &&
-        playerView.width > 0 &&
-        playerView.height > 0 &&
-        (controller.width == 0 || controller.height == 0)
-      ) {
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(playerView.width, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(playerView.height, View.MeasureSpec.EXACTLY)
-        controller.measure(widthSpec, heightSpec)
-        controller.layout(0, 0, playerView.width, playerView.height)
-        // The direct layout gives Media3 a non-zero controller immediately,
-        // then let Android perform a normal hierarchy pass for the custom
-        // Bunny ConstraintLayout children (notably exo_position).
-        playerView.post {
-          controller.requestLayout()
-          playerView.requestLayout()
-        }
-      }
-    }
-  }
-
-  /**
-   * Bunny's custom controller can leave the visible `exo_position` TextView
-   * with a zero width when it is first attached under a Fabric-hosted view.
-   * The fullscreen Activity gets a fresh normal layout and is unaffected.
-   *
-   * We set layout params to the text's measured width, force a layout pass on
-   * the controller and player view, and also directly lay out the TextView so
-   * it is visible immediately even if the parent ConstraintLayout pass happens
-   * asynchronously or repeatedly restores 0dp width.
-   */
-  private fun repairInlinePositionWidth() {
-    val playerView = findPlayerView() ?: return
-    val position = playerView.findViewById<android.widget.TextView>(androidx.media3.ui.R.id.exo_position)
-      ?: return
-    if (position.visibility != View.VISIBLE || position.width > 0) return
-
-    val text = position.text?.toString() ?: ""
-    if (text.isEmpty()) return
-
-    val textWidth = ceil(position.paint.measureText(text)).toInt() +
-      position.compoundPaddingLeft + position.compoundPaddingRight
-    if (textWidth <= 0) return
-
-    // Lock the view to its text width so ConstraintLayout can no longer keep
-    // it at 0dp.
-    val layoutParams = position.layoutParams
-    layoutParams.width = textWidth
-    position.layoutParams = layoutParams
-
-    // Force the player view / controller to perform a new layout pass.
-    val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
-    controller?.requestLayout()
-    controller?.invalidate()
-    playerView.requestLayout()
-    playerView.invalidate()
-
-    // Direct layout as a safety net: the parent may not have laid this child
-    // yet, so place it at the current left/top with the correct right edge.
-    val top = position.top
-    val bottom = position.bottom
-    position.layout(position.left, top, position.left + textWidth, bottom)
+    player.controlsEnabled = showControls
   }
 
   /**
@@ -439,42 +420,52 @@ class BunnyStreamPlayerView(
   /**
    * Sets volume on the [DefaultBunnyPlayer] singleton directly — bypasses
    * the command queue because the singleton is available after `initialize`
-   * and does not depend on `STATE_READY`.
+   * and does not depend on `STATE_READY`. The SDK view does not expose a
+   * volume setter (only `mute()`/`unmute()`), so volume stays on the
+   * singleton as an isolated adapter (PLAN.md §5 Faza 2).
    */
   fun setVolume(volume: Double) {
     val clamped = volume.coerceIn(0.0, 1.0).toFloat()
+    lastKnownVolume = clamped
     DefaultBunnyPlayer.getInstance(context).setVolume(clamped)
   }
 
   /**
-   * Sets playback speed on the [DefaultBunnyPlayer] singleton directly —
-   * bypasses the command queue for the same reason as [setVolume].
+   * Sets playback speed through the public SDK 4.0.0 `playbackSpeed` property
+   * on the view. Bypasses the command queue for the same reason as
+   * [setVolume] — the view is available immediately and the SDK forwards the
+   * call to the engine.
    */
   fun setPlaybackRate(rate: Double) {
     if (rate.isFinite() && rate > 0) {
-      DefaultBunnyPlayer.getInstance(context).setSpeed(rate.toFloat())
+      player.playbackSpeed = rate.toFloat()
     }
   }
 
+  /** Mutes the engine via the public SDK view API. */
+  fun mute() {
+    player.mute()
+  }
+
+  /** Unmutes the engine via the public SDK view API. */
+  fun unmute() {
+    player.unmute()
+  }
+
   /**
-   * Called from the event adapter (plan section 6) when the player reaches
-   * `STATE_READY`. Drains all pending commands in FIFO order.
+   * Called from the event adapter when the player reaches `STATE_READY`.
+   * Drains all pending commands in FIFO order.
    */
   fun onPlayerReady() {
     commandQueue.setReady(true)
   }
 
-  // --- Sizing / layout (plan section 7) ---
+  // --- Sizing / layout ---
 
   /**
    * Fabric calls `measure(EXACTLY, EXACTLY)` before `layout`, so the measured
    * width/height are already the exact pixel dimensions assigned by Yoga.
    * We forward them unchanged to `setMeasuredDimension`.
-   *
-   * Overriding `onMeasure` (rather than relying on the default `FrameLayout`
-   * implementation) guarantees that the wrapper never applies its own
-   * `WRAP_CONTENT` or `AT_MOST` logic to the child — the child always receives
-   * the exact React Native dimensions.
    */
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     val width = MeasureSpec.getSize(widthMeasureSpec)
@@ -491,8 +482,6 @@ class BunnyStreamPlayerView(
 
   /**
    * Lays out the single child ([player]) to fill the wrapper exactly.
-   * Fabric calls `layout()` after `measure()`, so the wrapper's position is
-   * already set by the framework; we only need to position the child.
    */
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     if (childCount == 0) return
@@ -502,20 +491,11 @@ class BunnyStreamPlayerView(
     child.layout(0, 0, width, height)
   }
 
-  // --- Cleanup (plan section 8) ---
+  // --- Cleanup ---
 
   /**
    * Idempotent cleanup. Called from `ViewManager.onDropViewInstance` or from
    * the lease's [onRevoke] callback when a newer view takes over.
-   *
-   * - Detaches the event listener from `DefaultBunnyPlayer.currentPlayer`.
-   * - Removes the progress listener from the SDK view.
-   * - Drops all pending commands from the [CommandQueue].
-   * - Invalidates all in-flight callbacks via [GenerationToken.bump].
-   * - Releases the [BunnyPlayerLease] (no-op if already revoked by a newer view).
-   *
-   * The `cleanedUp` guard ensures this runs exactly once even if both
-   * `onDropViewInstance` and a lease revoke fire.
    */
   fun cleanup() {
     lease.release()
@@ -534,6 +514,13 @@ class BunnyStreamPlayerView(
     eventListener?.detach()
     player.setProgressListener(null)
     player.pause()
+    // Detach SDK callbacks so a reused view (shouldn't happen, but defensively)
+    // doesn't dispatch into a released emitter.
+    player.onPlayingChanged = null
+    player.onMutedChanged = null
+    player.onPlaybackSpeedChanged = null
+    player.onVideoSizeChanged = null
+    player.onPlaybackError = null
   }
 
   companion object {
