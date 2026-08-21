@@ -2,6 +2,7 @@ package net.bunny.reactnative.view
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
@@ -72,15 +73,27 @@ class BunnyStreamPlayerView(
   /**
    * Dark-theme wrapper so controller TextViews inflate with white text.
    * RN's DayNight theme would otherwise override `android:textColor` to dark.
+   *
+   * We use a custom [BunnyReactNativePlayerTheme] that extends
+   * [Theme_AppCompat_NoActionBar] because the SDK's
+   * `androidx.appcompat.widget.PopupMenu` (opened by the settings gear) only
+   * reliably renders a dark popup from an AppCompat parent theme. Platform
+   * `Theme.Material` was leaving the popup background white while the text
+   * stayed white, producing white-on-white menu items.
    */
   private val playerContext: Context = ContextThemeWrapper(
     context,
-    android.R.style.Theme_Black_NoTitleBar,
+    R.style.BunnyReactNativePlayerTheme,
   )
 
   /** The native SDK player, sized to fill this wrapper. */
   val player: BunnyStreamPlayer = BunnyStreamPlayer(playerContext).also { child ->
-    child.autoProgressTextColor = true
+    // White text with a dark drop shadow — readable on any video background
+    // without relying on the auto-contrast sampler. The SDK now draws a black
+    // shadow behind the progress/duration readout, giving the "double text"
+    // effect (white text with a dark halo) like YouTube's player controls.
+    child.autoProgressTextColor = false
+    child.progressTextColor = Color.WHITE
     addView(
       child,
       LayoutParams(MATCH_PARENT, MATCH_PARENT),
