@@ -46,6 +46,21 @@ export interface PlayerState {
   videoId: string | null;
   /** Video pixel dimensions from `onVideoSizeChange` (0 until the first frame). */
   videoSize: { width: number; height: number };
+  /**
+   * Live player state from `onLiveStateChange`. `null` for VOD sources.
+   * For live, `state` is one of: `loading`, `offline`, `countdown`,
+   * `trailer`, `live`, `vod`. `isLive` is `true` only for `live`.
+   */
+  liveState: {
+    state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+    isLive: boolean;
+    reason?: string;
+    targetEpochMs?: number;
+    title?: string;
+    dvrEnabled?: boolean;
+  } | null;
+  /** Terminal live error from `onLiveError`. `null` for VOD or when no error. */
+  liveError: string | null;
 }
 
 /**
@@ -82,6 +97,15 @@ export interface UseBunnyStreamPlayerOptions {
   onPlaybackRateChange?: (e: { rate: number }) => void;
   onVideoSizeChange?: (e: { width: number; height: number }) => void;
   onPlaybackError?: (e: { message: string }) => void;
+  onLiveStateChange?: (e: {
+    state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+    isLive: boolean;
+    reason?: string;
+    targetEpochMs?: number;
+    title?: string;
+    dvrEnabled?: boolean;
+  }) => void;
+  onLiveError?: (e: { message: string }) => void;
 }
 
 /**
@@ -103,6 +127,17 @@ export type PlayerEventHandlers = {
   onPlaybackRateChange: (event: { nativeEvent: { rate: number } }) => void;
   onVideoSizeChange: (event: { nativeEvent: { width: number; height: number } }) => void;
   onPlaybackError: (event: { nativeEvent: { message: string } }) => void;
+  onLiveStateChange: (event: {
+    nativeEvent: {
+      state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+      isLive: boolean;
+      reason?: string;
+      targetEpochMs?: number;
+      title?: string;
+      dvrEnabled?: boolean;
+    };
+  }) => void;
+  onLiveError: (event: { nativeEvent: { message: string } }) => void;
 };
 
 export interface UseBunnyStreamPlayerResult {
@@ -131,6 +166,8 @@ const DEFAULT_PLAYER_STATE: PlayerState = {
   playbackRate: 1,
   videoId: null,
   videoSize: { width: 0, height: 0 },
+  liveState: null,
+  liveError: null,
 };
 
 const DEFAULT_PROGRESS: PlayerProgress = {
@@ -153,6 +190,11 @@ type PlayerAction =
   | { type: 'PLAYBACK_RATE'; rate: number }
   | { type: 'VIDEO_SIZE'; width: number; height: number }
   | { type: 'PLAYBACK_ERROR'; message: string }
+  | {
+      type: 'LIVE_STATE';
+      liveState: PlayerState['liveState'];
+    }
+  | { type: 'LIVE_ERROR'; message: string }
   | { type: 'RESET' };
 
 function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
@@ -235,6 +277,10 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       // Consumers can read `state.error` for the structured payload and subscribe to
       // `onPlaybackError` for the SDK message (e.g. live recovery signalling).
       return state;
+    case 'LIVE_STATE':
+      return { ...state, liveState: action.liveState };
+    case 'LIVE_ERROR':
+      return { ...state, liveError: action.message };
     case 'RESET':
       // Full reset to defaults — used when the source identity changes
       // (VOD → live, or a different VOD) so stale state doesn't linger.
@@ -368,6 +414,31 @@ export function useBunnyStreamPlayer(
         const { message } = e.nativeEvent;
         dispatch({ type: 'PLAYBACK_ERROR', message });
         optionsRef.current?.onPlaybackError?.({ message });
+      },
+      onLiveStateChange: (e) => {
+        const {
+          state: liveState,
+          isLive,
+          reason,
+          targetEpochMs,
+          title,
+          dvrEnabled,
+        } = e.nativeEvent;
+        const payload = {
+          state: liveState,
+          isLive,
+          ...(reason !== undefined && { reason }),
+          ...(targetEpochMs !== undefined && { targetEpochMs }),
+          ...(title !== undefined && { title }),
+          ...(dvrEnabled !== undefined && { dvrEnabled }),
+        };
+        dispatch({ type: 'LIVE_STATE', liveState: payload });
+        optionsRef.current?.onLiveStateChange?.(payload);
+      },
+      onLiveError: (e) => {
+        const { message } = e.nativeEvent;
+        dispatch({ type: 'LIVE_ERROR', message });
+        optionsRef.current?.onLiveError?.({ message });
       },
     }),
     [],
