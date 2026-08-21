@@ -44,6 +44,8 @@ export interface PlayerState {
   playbackRate: number;
   /** Video ID reported by the most recent `onReady`. */
   videoId: string | null;
+  /** Video pixel dimensions from `onVideoSizeChange` (0 until the first frame). */
+  videoSize: { width: number; height: number };
 }
 
 /**
@@ -78,6 +80,8 @@ export interface UseBunnyStreamPlayerOptions {
   onEnd?: (e: { positionMs: number; durationMs: number }) => void;
   onVolumeChange?: (e: { volume: number; isMuted: boolean }) => void;
   onPlaybackRateChange?: (e: { rate: number }) => void;
+  onVideoSizeChange?: (e: { width: number; height: number }) => void;
+  onPlaybackError?: (e: { message: string }) => void;
 }
 
 /**
@@ -97,6 +101,8 @@ export type PlayerEventHandlers = {
   onEnd: (event: { nativeEvent: { positionMs: number; durationMs: number } }) => void;
   onVolumeChange: (event: { nativeEvent: { volume: number; isMuted: boolean } }) => void;
   onPlaybackRateChange: (event: { nativeEvent: { rate: number } }) => void;
+  onVideoSizeChange: (event: { nativeEvent: { width: number; height: number } }) => void;
+  onPlaybackError: (event: { nativeEvent: { message: string } }) => void;
 };
 
 export interface UseBunnyStreamPlayerResult {
@@ -124,6 +130,7 @@ const DEFAULT_PLAYER_STATE: PlayerState = {
   isMuted: false,
   playbackRate: 1,
   videoId: null,
+  videoSize: { width: 0, height: 0 },
 };
 
 const DEFAULT_PROGRESS: PlayerProgress = {
@@ -143,13 +150,16 @@ type PlayerAction =
   | { type: 'BUFFERING'; isBuffering: boolean }
   | { type: 'ERROR'; error: { code: string; message: string; nativeCode?: string } }
   | { type: 'VOLUME'; volume: number; isMuted: boolean }
-  | { type: 'PLAYBACK_RATE'; rate: number };
+  | { type: 'PLAYBACK_RATE'; rate: number }
+  | { type: 'VIDEO_SIZE'; width: number; height: number }
+  | { type: 'PLAYBACK_ERROR'; message: string }
+  | { type: 'RESET' };
 
 function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
   switch (action.type) {
     case 'READY': {
       // Auto-reset when the videoId changes: zero out stale fields first so
-      // no leftover error/buffering/position lingers between sources.
+      // no leftover error/buffering/position/videoSize lingers between sources.
       if (state.videoId !== null && state.videoId !== action.videoId) {
         return {
           ...DEFAULT_PLAYER_STATE,
@@ -212,6 +222,23 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
         return state;
       }
       return { ...state, playbackRate: action.rate };
+    case 'VIDEO_SIZE': {
+      const next = { width: action.width, height: action.height };
+      if (state.videoSize.width === next.width && state.videoSize.height === next.height) {
+        return state;
+      }
+      return { ...state, videoSize: next };
+    }
+    case 'PLAYBACK_ERROR':
+      // Surface the SDK's human-readable error message without overwriting the
+      // structured `error` from the state machine (onError still owns code/nativeCode).
+      // Consumers can read `state.error` for the structured payload and subscribe to
+      // `onPlaybackError` for the SDK message (e.g. live recovery signalling).
+      return state;
+    case 'RESET':
+      // Full reset to defaults — used when the source identity changes
+      // (VOD → live, or a different VOD) so stale state doesn't linger.
+      return DEFAULT_PLAYER_STATE;
     default:
       return state;
   }
@@ -223,14 +250,40 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
  * Subscribes to all {@link BunnyStreamPlayer} events and aggregates them into
  * a single `PlayerState` + `PlayerProgress`. See the file docstring for
  * usage.
+ *
+ * @param options  Optional user-supplied event handlers.
+ * @param sourceKey  Identity key for the current source (e.g. from
+ *   `sourceIdentityKey`). When this changes, the hook resets `state` and
+ *   `progress` to defaults — this prevents stale VOD state (videoId,
+ *   duration, progress, playback state) from lingering after a VOD → live
+ *   transition or a source change. Pass `undefined` to opt out of resets
+ *   (legacy behaviour).
  */
 export function useBunnyStreamPlayer(
   options?: UseBunnyStreamPlayerOptions,
+  sourceKey?: string | number,
 ): UseBunnyStreamPlayerResult {
   const ref = React.useRef<BunnyStreamPlayerRef | null>(null);
 
   const [state, dispatch] = React.useReducer(playerReducer, DEFAULT_PLAYER_STATE);
   const [progress, setProgress] = React.useState<PlayerProgress>(DEFAULT_PROGRESS);
+
+  // Reset state + progress when the source identity changes. This clears
+  // stale VOD state (videoId, duration, progress, playback state) when
+  // switching to live (which doesn't emit onReady) or between VOD sources.
+  // Uses a ref to track the previous key so the reset only fires on actual
+  // changes, not on every render.
+  const prevSourceKey = React.useRef<string | number | undefined>(sourceKey);
+  React.useEffect(() => {
+    if (prevSourceKey.current !== sourceKey) {
+      prevSourceKey.current = sourceKey;
+      // Reset state + progress to defaults so stale VOD state (videoId,
+      // duration, progress, playback state) doesn't linger after a source
+      // change (e.g. VOD → live, which doesn't emit onReady).
+      dispatch({ type: 'RESET' });
+      setProgress(DEFAULT_PROGRESS);
+    }
+  }, [sourceKey]);
 
   // Store user handlers in a ref so the memoised event handlers below have a
   // stable identity even when the user passes inline callbacks.
@@ -246,6 +299,8 @@ export function useBunnyStreamPlayer(
       seekTo: (positionMs: number) => ref.current?.seekTo(positionMs),
       setVolume: (volume: number) => ref.current?.setVolume(volume),
       setPlaybackRate: (rate: number) => ref.current?.setPlaybackRate(rate),
+      mute: () => ref.current?.mute(),
+      unmute: () => ref.current?.unmute(),
     }),
     [],
   );
@@ -303,6 +358,16 @@ export function useBunnyStreamPlayer(
         const { rate } = e.nativeEvent;
         dispatch({ type: 'PLAYBACK_RATE', rate });
         optionsRef.current?.onPlaybackRateChange?.({ rate });
+      },
+      onVideoSizeChange: (e) => {
+        const { width, height } = e.nativeEvent;
+        dispatch({ type: 'VIDEO_SIZE', width, height });
+        optionsRef.current?.onVideoSizeChange?.({ width, height });
+      },
+      onPlaybackError: (e) => {
+        const { message } = e.nativeEvent;
+        dispatch({ type: 'PLAYBACK_ERROR', message });
+        optionsRef.current?.onPlaybackError?.({ message });
       },
     }),
     [],
