@@ -6,12 +6,16 @@ import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.media3.ui.PlayerControlView
+import androidx.media3.ui.PlayerView
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
+import net.bunny.bunnystreamplayer.ui.widget.BunnyPlayerView
 import net.bunny.reactnative.adapter.PlayerEventListener
 import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
@@ -19,6 +23,7 @@ import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
+import kotlin.math.ceil
 
 /**
  * React Native wrapper around the native [BunnyStreamPlayer] (SDK 4.0.0).
@@ -75,6 +80,7 @@ class BunnyStreamPlayerView(
 
   /** The native SDK player, sized to fill this wrapper. */
   val player: BunnyStreamPlayer = BunnyStreamPlayer(playerContext).also { child ->
+    child.autoProgressTextColor = true
     addView(
       child,
       LayoutParams(MATCH_PARENT, MATCH_PARENT),
@@ -360,6 +366,7 @@ class BunnyStreamPlayerView(
           val cp = DefaultBunnyPlayer.getInstance(context).currentPlayer
           if (cp != null && cp !== previousPlayer) {
             eventListener?.attach()
+            restoreNativeControllerLayout()
           } else if (attempts++ < 50) {
             postDelayed(this, 100)
           }
@@ -372,6 +379,64 @@ class BunnyStreamPlayerView(
   /** Applies controller visibility through the public SDK 4.0.0 property. */
   private fun applyControls(showControls: Boolean) {
     player.controlsEnabled = showControls
+  }
+
+  /**
+   * Compatibility adapter for SDK 4.0.0: setting `controlsEnabled = true`
+   * currently only changes Media3's `useController` flag. Under Fabric the
+   * controller can therefore remain hidden or retain a zero-width position
+   * label after the playback engine is replaced.
+   *
+   * TODO(Android SDK): remove this adapter after `controlsEnabled = true`
+   * shows and lays out the controller itself in the public Android SDK.
+   */
+  private fun restoreNativeControllerLayout() {
+    postDelayed({
+      val playerView = findPlayerView() ?: return@postDelayed
+      val showControls = committedProps.controls
+      playerView.useController = showControls
+      if (!showControls) {
+        playerView.hideController()
+        return@postDelayed
+      }
+
+      playerView.controllerShowTimeoutMs = PlayerControlView.DEFAULT_SHOW_TIMEOUT_MS
+      playerView.showController()
+
+      val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
+      if (controller != null && playerView.width > 0 && playerView.height > 0) {
+        val widthSpec = MeasureSpec.makeMeasureSpec(playerView.width, MeasureSpec.EXACTLY)
+        val heightSpec = MeasureSpec.makeMeasureSpec(playerView.height, MeasureSpec.EXACTLY)
+        controller.measure(widthSpec, heightSpec)
+        controller.layout(0, 0, playerView.width, playerView.height)
+        controller.requestLayout()
+      }
+      playerView.requestLayout()
+      repairInlinePositionWidth(playerView)
+      postDelayed({ repairInlinePositionWidth(playerView) }, 300)
+      postDelayed({ repairInlinePositionWidth(playerView) }, 700)
+    }, 500)
+  }
+
+  private fun findPlayerView(): PlayerView? =
+    player.findViewById<BunnyPlayerView>(net.bunny.player.R.id.player_view)
+
+  /** Repairs the SDK controller's position label when Fabric leaves it at 0 px. */
+  private fun repairInlinePositionWidth(playerView: PlayerView) {
+    val position = playerView.findViewById<TextView>(androidx.media3.ui.R.id.exo_position)
+      ?: return
+    if (position.visibility != View.VISIBLE || position.width > 0) return
+
+    val text = position.text?.toString().orEmpty()
+    if (text.isEmpty()) return
+    val textWidth = ceil(position.paint.measureText(text)).toInt() +
+      position.compoundPaddingLeft + position.compoundPaddingRight
+    if (textWidth <= 0) return
+
+    position.layoutParams = position.layoutParams.also { it.width = textWidth }
+    playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)?.requestLayout()
+    playerView.requestLayout()
+    position.layout(position.left, position.top, position.left + textWidth, position.bottom)
   }
 
   /**
@@ -513,6 +578,7 @@ class BunnyStreamPlayerView(
     commandQueue.reset()
     eventListener?.detach()
     player.setProgressListener(null)
+    player.autoProgressTextColor = false
     player.pause()
     // Detach SDK callbacks so a reused view (shouldn't happen, but defensively)
     // doesn't dispatch into a released emitter.

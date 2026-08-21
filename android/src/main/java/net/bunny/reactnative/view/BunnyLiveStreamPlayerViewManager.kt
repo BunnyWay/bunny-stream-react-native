@@ -86,6 +86,8 @@ class BunnyLiveStreamPlayerViewManager :
 
     private val DIRECT_EVENTS = mapOf(
       "topVideoSizeChange" to mapOf("registrationName" to "onVideoSizeChange"),
+      "topLiveStateChange" to mapOf("registrationName" to "onLiveStateChange"),
+      "topLiveError" to mapOf("registrationName" to "onLiveError"),
     )
   }
 }

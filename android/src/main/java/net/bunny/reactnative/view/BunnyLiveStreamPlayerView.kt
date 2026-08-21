@@ -12,12 +12,22 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import net.bunny.bunnystreamplayer.livestream.BunnyLiveStreamPlayer
+import net.bunny.bunnystreamplayer.livestream.BunnyLiveStreamPlayerViewModel
+import net.bunny.bunnystreamplayer.livestream.LiveStreamPlayerState
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.RnEvent
@@ -33,16 +43,24 @@ import net.bunny.reactnative.state.RnEvent
  *  2. Propagate `LifecycleOwner` and `ViewModelStoreOwner` from a bridge-owned
  *     [HostingLifecycleOwner] to the Compose tree (the composable calls
  *     `viewModel(...)` and `collectAsStateWithLifecycle()`, both of which need
- *     those owners present in the view tree). `SavedStateRegistryOwner` is not
+ *     those owner present in the view tree). `SavedStateRegistryOwner` is not
  *     set — the SDK live composable does not use `rememberSaveable`, and
  *     `ComposeView` creates its own `SavedStateRegistryOwner` from the
  *     `LifecycleOwner` when one is not found in the view tree.
- *  3. Render [BunnyLiveStreamPlayer] with the source props. The composable
+ *  3. Create a bridge-owned [BunnyLiveStreamPlayerViewModel] via
+ *     [ViewModelProvider] tied to [hostingOwner]'s `ViewModelStore`, and pass
+ *     it to the composable via the `viewModel` parameter. This avoids the
+ *     composable creating its own ViewModel (which would double-poll) and lets
+ *     the bridge collect `state` / `terminalError` and forward them to JS.
+ *  4. Render [BunnyLiveStreamPlayer] with the source props. The composable
  *     owns polling, the state resolver, countdown/trailer overlays, DVR,
  *     recovery and the live → VOD hand-off — the bridge does not reimplement
  *     any of it (PLAN.md §6 Faza 4: no resolver/polling duplication in JS).
- *  4. Forward `onVideoSizeChanged` and `onPlaybackError` to JS via the Fabric
- *     emitter.
+ *  5. Forward `onVideoSizeChanged` and `onLiveStateChange` to JS via the
+ *     Fabric emitter. `onLiveStateChange` carries the SDK's
+ *     [LiveStreamPlayerState] (loading / offline / countdown / trailer / live
+ *     / vod) plus an `isLive` boolean, so JS can drive custom UI without
+ *     duplicating the state resolver.
  *
  * Source changes (`streamId`/`libraryId`/`token`/`expires`) trigger a
  * controlled recomposition: the composable's `LaunchedEffect(libraryId,
@@ -60,6 +78,11 @@ import net.bunny.reactnative.state.RnEvent
  * pauses when the app goes to background (not just when the view detaches).
  * On detach we additionally dispatch ON_STOP as a safety net.
  *
+ * State collection: we collect `viewModel.state` and `viewModel.terminalError`
+ * in a [CoroutineScope] tied to the view, using `repeatOnLifecycle(STARTED)`
+ * so collection pauses when the lifecycle drops below STARTED (matching the
+ * composable's own `collectAsStateWithLifecycle` behaviour).
+ *
  * Lease: the live composable internally creates a [BunnyStreamPlayer] which
  * uses the `DefaultBunnyPlayer` singleton — the same engine the VOD path
  * uses. We acquire a [BunnyPlayerLease] on attach so that mounting a live
@@ -68,10 +91,11 @@ import net.bunny.reactnative.state.RnEvent
  * bypasses the bridge), but it ensures the VOD view cleans up when live
  * mounts. Concurrent VOD + live is not supported.
  *
- * Cleanup: `onDropViewInstance` calls [cleanup], which dispatches
- * `ON_DESTROY` (disposing the composition, cancelling polling and releasing
- * the player), clears the ViewModelStore (cancelling `viewModelScope`), and
- * releases the lease.
+ * Cleanup: `onDropViewInstance` calls [cleanup], which cancels the coroutine
+ * scope, dispatches `ON_DESTROY` (disposing the composition, cancelling
+ * polling and releasing the player), clears the ViewModelStore (calling
+ * `viewModel.onCleared()`, cancelling `viewModelScope`), and releases the
+ * lease.
  */
 class BunnyLiveStreamPlayerView(
   context: Context,
@@ -89,6 +113,27 @@ class BunnyLiveStreamPlayerView(
    * background/foreground.
    */
   private val hostingOwner = HostingLifecycleOwner()
+
+  /**
+   * Bridge-owned [BunnyLiveStreamPlayerViewModel], tied to [hostingOwner]'s
+   * `ViewModelStore` via [ViewModelProvider]. Passed to the composable so it
+   * doesn't create its own (which would double-poll). The composable's
+   * `LaunchedEffect(libraryId, streamId)` calls `viewModel.start(...)` on this
+   * instance, and its `DisposableEffect` observes our [hostingOwner] lifecycle
+   * to call `onForeground()/onBackground()`.
+   *
+   * `onCleared()` is called when the `ViewModelStore` is cleared in [cleanup].
+   */
+  private val viewModel: BunnyLiveStreamPlayerViewModel by lazy {
+    ViewModelProvider(hostingOwner)[BunnyLiveStreamPlayerViewModel::class.java]
+  }
+
+  /**
+   * Coroutine scope for collecting `viewModel.state` / `terminalError`.
+   * Cancelled in [cleanup]. Uses `Dispatchers.Main.immediate` so events are
+   * dispatched on the UI thread without a context switch.
+   */
+  private val stateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
   /**
    * Lease on the `DefaultBunnyPlayer` singleton. Acquired on attach, released
@@ -131,6 +176,34 @@ class BunnyLiveStreamPlayerView(
     // view-tree walk that starts above composeView still finds the owners.
     setViewTreeLifecycleOwner(hostingOwner)
     setViewTreeViewModelStoreOwner(hostingOwner)
+
+    // Start collecting live state and terminal errors. repeatOnLifecycle
+    // pauses collection when the lifecycle drops below STARTED, matching
+    // the composable's own collectAsStateWithLifecycle behaviour.
+    stateScope.launch {
+      hostingOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+        launch {
+          viewModel.state.collect { state ->
+            emitter?.dispatch(
+              RnEvent("onLiveStateChange") {
+                liveStateToPayload(state)
+              },
+            )
+          }
+        }
+        launch {
+          viewModel.terminalError.collect { error ->
+            if (error != null) {
+              emitter?.dispatch(
+                RnEvent("onLiveError") {
+                  mapOf("message" to error)
+                },
+              )
+            }
+          }
+        }
+      }
+    }
   }
 
   // --- Prop accumulation ---
@@ -182,14 +255,8 @@ class BunnyLiveStreamPlayerView(
 
   /**
    * The Compose content: a thin wrapper that forwards `onVideoSizeChanged`
-   * to the Fabric emitter and renders the SDK composable.
-   *
-   * `onPlaybackError` is NOT forwarded because the public
-   * [BunnyLiveStreamPlayer] composable does not expose it — the SDK handles
-   * live errors internally via its own overlay (terminalError state in
-   * `BunnyLiveStreamPlayerViewModel`). JS consumers should dismiss loading
-   * on `onVideoSizeChange` (first frame) and rely on the SDK's native error
-   * overlay for failure cases.
+   * to the Fabric emitter and renders the SDK composable with our
+   * bridge-owned [viewModel].
    */
   @Composable
   private fun LivePlayerContent(src: LiveSource) {
@@ -213,6 +280,7 @@ class BunnyLiveStreamPlayerView(
       expires = src.expires,
       modifier = Modifier,
       onVideoSizeChanged = rememberedOnSize,
+      viewModel = viewModel,
     )
   }
 
@@ -301,6 +369,8 @@ class BunnyLiveStreamPlayerView(
   fun cleanup() {
     if (cleanedUp) return
     cleanedUp = true
+    // Cancel state collection coroutines.
+    stateScope.cancel()
     // Remove Activity lifecycle observer if still attached.
     activityLifecycle?.let { old ->
       activityObserver?.let { obs -> old.lifecycle.removeObserver(obs) }
@@ -310,14 +380,51 @@ class BunnyLiveStreamPlayerView(
     // Dispatch ON_DESTROY — disposes the composition (DisposeOnViewTreeLifecycleDestroyed),
     // which runs the composable's DisposableEffect cleanup (viewModel.onBackground).
     hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    // Clear the ViewModelStore — cancels all viewModelScope coroutines,
-    // including any in-flight polling.
+    // Clear the ViewModelStore — calls viewModel.onCleared(), cancelling
+    // viewModelScope coroutines including any in-flight polling.
     hostingOwner.clearStore()
     // Release the player lease.
     lease?.release()
     lease = null
     removeAllViews()
   }
+
+  /**
+   * Maps the SDK's [LiveStreamPlayerState] sealed interface to a JS-friendly
+   * payload. `state` is a lowercase string matching the SDK's branch names;
+   * `isLive` is `true` only for [LiveStreamPlayerState.LivePlay].
+   */
+  private fun liveStateToPayload(state: LiveStreamPlayerState): Map<String, Any?> =
+    when (state) {
+      is LiveStreamPlayerState.Loading -> mapOf(
+        "state" to "loading",
+        "isLive" to false,
+      )
+      is LiveStreamPlayerState.Offline -> mapOf(
+        "state" to "offline",
+        "isLive" to false,
+        "reason" to state.reason.name.lowercase(),
+      )
+      is LiveStreamPlayerState.Countdown -> mapOf(
+        "state" to "countdown",
+        "isLive" to false,
+        "targetEpochMs" to state.targetEpochMs,
+        "title" to state.title,
+      )
+      is LiveStreamPlayerState.Trailer -> mapOf(
+        "state" to "trailer",
+        "isLive" to false,
+      )
+      is LiveStreamPlayerState.LivePlay -> mapOf(
+        "state" to "live",
+        "isLive" to true,
+        "dvrEnabled" to state.dvrEnabled,
+      )
+      is LiveStreamPlayerState.VodPlay -> mapOf(
+        "state" to "vod",
+        "isLive" to false,
+      )
+    }
 
   /** Immutable snapshot of the live source props. */
   private data class LiveSource(

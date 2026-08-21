@@ -48,7 +48,11 @@ export type {
   PlayerPlaybackErrorEvent,
 } from './specs/BunnyStreamPlayerNativeComponent';
 
-export type { LiveVideoSizeChangeEvent } from './specs/BunnyLiveStreamPlayerNativeComponent';
+export type {
+  LiveVideoSizeChangeEvent,
+  LiveStateChangeEvent,
+  LiveErrorEvent,
+} from './specs/BunnyLiveStreamPlayerNativeComponent';
 
 // --- Public source + props ---
 
@@ -105,6 +109,28 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   onVideoSizeChange?: (event: { nativeEvent: { width: number; height: number } }) => void;
   /** Fired when the SDK reports a playback error (human-readable message). VOD + live. */
   onPlaybackError?: (event: { nativeEvent: { message: string } }) => void;
+  /**
+   * Fired when the live player's state changes (loading / offline / countdown
+   * / trailer / live / vod). Carries `isLive: boolean` and context-specific
+   * fields (e.g. `targetEpochMs` for countdown, `dvrEnabled` for live).
+   * Live only.
+   */
+  onLiveStateChange?: (event: {
+    nativeEvent: {
+      state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+      isLive: boolean;
+      reason?: string;
+      targetEpochMs?: number;
+      title?: string;
+      dvrEnabled?: boolean;
+    };
+  }) => void;
+  /**
+   * Fired when the live player encounters a terminal error (e.g. 404, 401).
+   * The SDK also renders a native error overlay — this event lets JS drive
+   * additional UI or navigation. Live only.
+   */
+  onLiveError?: (event: { nativeEvent: { message: string } }) => void;
 }
 
 // --- Ref / commands ---
@@ -258,16 +284,18 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
       onPlaybackRateChange,
       onVideoSizeChange,
       onPlaybackError,
+      onLiveStateChange,
+      onLiveError,
       style,
       ...viewProps
     } = rest;
 
     if (source.type === 'live') {
       // onPlaybackError is NOT forwarded to the live host — the SDK's
-      // BunnyLiveStreamPlayer composable handles errors internally via its
-      // own overlay (terminalError state). JS consumers should dismiss
-      // loading on onVideoSizeChange (first frame) and rely on the SDK's
-      // native error overlay for failure cases.
+      // BunnyLiveStreamPlayer composable handles playback errors internally
+      // via its own overlay (terminalError state). JS consumers should use
+      // onLiveError for terminal errors and onLiveStateChange for state
+      // transitions, and dismiss loading on onVideoSizeChange (first frame).
       void onPlaybackError;
       return (
         <NativeLiveView
@@ -280,6 +308,8 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
           token={source.token}
           expires={source.expires}
           onVideoSizeChange={onVideoSizeChange}
+          onLiveStateChange={onLiveStateChange}
+          onLiveError={onLiveError}
           style={style}
           {...viewProps}
         />
