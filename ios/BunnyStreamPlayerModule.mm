@@ -1,10 +1,10 @@
 #import "BunnyStreamPlayerModule.h"
 
-#import "ReactTestApp-Swift.h"
+#import "BunnyStreamReactNative-Swift.h"
 
 @implementation BunnyStreamPlayerModule
 
-RCT_EXPORT_MODULE()
+RCT_EXPORT_MODULE("BunnyStreamPlayer")
 
 - (void)initialize:(NSString *)accessKey libraryId:(double)libraryId
 {
@@ -33,11 +33,6 @@ RCT_EXPORT_MODULE()
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {
   return std::make_shared<facebook::react::NativeBunnyStreamPlayerSpecJSI>(params);
-}
-
-+ (NSString *)moduleName
-{
-  return @"BunnyStreamPlayer";
 }
 
 @end

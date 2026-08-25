@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import BunnyStreamPlayer
 
 /// Swift wrapper that hosts the SDK's `BunnyStreamPlayer` SwiftUI view inside
 /// a `UIHostingController`, managed by the Fabric component view.
@@ -19,7 +20,7 @@ import UIKit
 ///   SDK does not expose public callbacks. The Fabric event emitter is wired
 ///   but never fires until the SDK adds callback support (Plan-iOS.md §12.1).
 @MainActor
-final class BunnyStreamPlayerViewImpl: UIView {
+@objc public final class BunnyStreamPlayerViewImpl: UIView {
 
   /// Immutable snapshot of committed props, used to detect source changes.
   struct Props: Equatable {
@@ -35,32 +36,32 @@ final class BunnyStreamPlayerViewImpl: UIView {
   private var currentProps = Props()
   private var isMounted = false
 
-  override init(frame: CGRect) {
+  public override init(frame: CGRect) {
     super.init(frame: frame)
     backgroundColor = .black
   }
 
-  required init?(coder: NSCoder) {
+  public required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
 
   /// Accumulated (pending) props — set individually by the Fabric view, then
   /// snapshotted in `commitProps`.
-  var pendingVideoId: String = ""
-  var pendingLibraryId: Int = 0
-  var pendingToken: String? = nil
-  var pendingExpires: Int64? = nil
-  var pendingAutoPlay: Bool = true
-  var pendingControls: Bool = true
+  @objc public var pendingVideoId: String = ""
+  @objc public var pendingLibraryId: Int = 0
+  @objc public var pendingToken: String? = nil
+  @objc public var pendingExpires: NSNumber? = nil
+  @objc public var pendingAutoPlay: Bool = true
+  @objc public var pendingControls: Bool = true
 
   /// Snapshots accumulated props and reloads the hosted player if the source
   /// identity changed. Called from the Fabric view's `finalizeUpdates`.
-  func commitProps() {
+  @objc public func commitProps() {
     let next = Props(
       videoId: pendingVideoId,
       libraryId: pendingLibraryId,
       token: pendingToken,
-      expires: pendingExpires,
+      expires: pendingExpires?.int64Value,
       autoPlay: pendingAutoPlay,
       controls: pendingControls
     )
@@ -90,7 +91,7 @@ final class BunnyStreamPlayerViewImpl: UIView {
 
     // Read the global configuration for the access key. The TurboModule's
     // `initialize(accessKey, libraryId)` stores it here.
-    let accessKey = BunnyStreamConfiguration.shared.current()?.accessKey
+    let accessKey = BunnyStreamConfiguration.shared.accessKey
 
     let player = BunnyStreamPlayer(
       accessKey: accessKey,
@@ -143,7 +144,7 @@ final class BunnyStreamPlayerViewImpl: UIView {
     return nil
   }
 
-  override func didMoveToWindow() {
+  public override func didMoveToWindow() {
     super.didMoveToWindow()
     // If the hosting controller was created before the view was attached to
     // the hierarchy (no parent VC was available), re-parent it now.
@@ -153,57 +154,57 @@ final class BunnyStreamPlayerViewImpl: UIView {
     }
   }
 
-  override func layoutSubviews() {
+  public override func layoutSubviews() {
     super.layoutSubviews()
     hostingController?.view.frame = bounds
   }
 
   // MARK: - Commands (no-op — SDK does not expose a public controller)
 
-  func play() {
+  @objc public func play() {
     #if DEBUG
     print("[BunnyStreamPlayerView] play() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func pause() {
+  @objc public func pause() {
     #if DEBUG
     print("[BunnyStreamPlayerView] pause() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func seekTo(positionMs: Double) {
+  @objc public func seekTo(positionMs: Double) {
     #if DEBUG
     print("[BunnyStreamPlayerView] seekTo(\(positionMs)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func setVolume(volume: Double) {
+  @objc public func setVolume(volume: Double) {
     #if DEBUG
     print("[BunnyStreamPlayerView] setVolume(\(volume)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func setPlaybackRate(rate: Double) {
+  @objc public func setPlaybackRate(rate: Double) {
     #if DEBUG
     print("[BunnyStreamPlayerView] setPlaybackRate(\(rate)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func mute() {
+  @objc public func mute() {
     #if DEBUG
     print("[BunnyStreamPlayerView] mute() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
-  func unmute() {
+  @objc public func unmute() {
     #if DEBUG
     print("[BunnyStreamPlayerView] unmute() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
     #endif
   }
 
   /// Called when the Fabric view is dropped. Removes the hosted SwiftUI view.
-  func cleanup() {
+  @objc public func cleanup() {
     removeHostingController()
   }
 }

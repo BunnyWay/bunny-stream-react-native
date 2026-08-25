@@ -1,6 +1,15 @@
 require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+ios_sdk_path = ENV.fetch(
+  "BUNNY_STREAM_IOS_SDK_PATH",
+  File.expand_path("../bunny-stream-ios-private", __dir__)
+)
+
+unless File.exist?(File.join(ios_sdk_path, "Package.swift"))
+  raise "Bunny Stream iOS SDK not found at #{ios_sdk_path}. " \
+        "Set BUNNY_STREAM_IOS_SDK_PATH to the local SDK checkout."
+end
 
 Pod::Spec.new do |s|
   s.name         = "BunnyStreamReactNative"
@@ -13,25 +22,24 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/BunnyWay/bunny-stream-react-native.git", :tag => "#{s.version}" }
 
-  # During development, all native bridge files (Swift + ObjC++) are added
-  # directly to the app target via the link_bunny_sdk.rb script so they can
-  # import the SDK's SwiftPM modules. The pod is kept as a no-op shell so
-  # autolinking still registers the TurboModule and component views.
-  # For distribution, the source_files should include all ios/**/*.{h,m,mm,swift,cpp}
-  # and the SDK should be a proper dependency (Plan-iOS.md §12.3).
-  s.source_files = "ios/**/*.podstub"
-  s.private_header_files = ""
+  s.source_files = "ios/**/*.{h,m,mm,swift,cpp}"
+  s.private_header_files = "ios/**/*.h"
+  s.swift_version = "5.9"
 
-  # Swift support requires the bridging header import to find the generated
-  # Codegen spec umbrella header.
   s.dependency "React-Core"
   s.dependency "React-RCTFabric"
   s.dependency "React-Codegen"
 
-  # The Bunny Stream iOS SDK is linked as a local SwiftPM package in the
-  # example app via a post_install hook in the Podfile. For distribution a
-  # vendored XCFramework or published pod should replace this (Plan-iOS.md §12.3).
-  # s.dependency "BunnyStream"
-
   install_modules_dependencies(s)
+
+  # React Native's CocoaPods integration attaches these local SwiftPM products
+  # directly to the BunnyStreamReactNative pod target. This keeps Swift and
+  # ObjC++ bridge sources in their proper pod target while the SDK remains a
+  # private local checkout.
+  spm_dependency(
+    s,
+    url: ios_sdk_path,
+    requirement: { kind: "exactVersion", version: "0.0.0" },
+    products: ["BunnyStreamPlayer", "BunnyStreamAPI"]
+  )
 end

@@ -7,7 +7,7 @@
 #import <react/renderer/components/BunnyStreamReactNativeSpec/Props.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/RCTComponentViewHelpers.h>
 
-#import "ReactTestApp-Swift.h"
+#import "BunnyStreamReactNative-Swift.h"
 
 using namespace facebook::react;
 
@@ -38,7 +38,7 @@ using namespace facebook::react;
 {
   const auto &newProps = *std::static_pointer_cast<BunnyStreamPlayerViewProps const>(props);
 
-  _impl.pendingVideoId = std::string(newProps.videoId).c_str() ?: @"";
+  _impl.pendingVideoId = [NSString stringWithUTF8String:newProps.videoId.c_str()] ?: @"";
   _impl.pendingLibraryId = (int)newProps.libraryId;
 
   if (!newProps.token.empty()) {
@@ -49,7 +49,7 @@ using namespace facebook::react;
 
   // expires: 0.0 means "not set" per Codegen Double? default
   if (newProps.expires != 0.0) {
-    _impl.pendingExpires = (int64_t)newProps.expires;
+    _impl.pendingExpires = @(newProps.expires);
   } else {
     _impl.pendingExpires = nil;
   }
@@ -57,7 +57,6 @@ using namespace facebook::react;
   _impl.pendingAutoPlay = newProps.autoPlay;
   _impl.pendingControls = newProps.controls;
 
-  _props = std::static_pointer_cast<Props const>(props);
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -94,7 +93,7 @@ using namespace facebook::react;
 
 - (void)seekTo:(double)positionMs
 {
-  [_impl seekToWithPositionMs:positionMs];
+  [_impl seekToPositionMs:positionMs];
 }
 
 - (void)setVolume:(double)volume
