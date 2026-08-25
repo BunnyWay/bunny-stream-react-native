@@ -186,6 +186,8 @@ Mapowanie `BunnyLiveStreamPlaybackState` → stringi Codegen:
 
 ## 6. Blokady w aktualnym API iOS SDK
 
+> **Ważne**: Repozytorium `bunny-stream-ios-private` jest tylko do odczytu z perspektywy mostka RN. Wszystkie zmiany API SDK muszą być wykonane przez zespół SDK. Pełna lista brakujących elementów znajduje się w sekcji 12.
+
 Bazowy VOD `BunnyStreamPlayer` z `origin/feature/ios-liveStream`:
 
 - nie wystawia publicznych callbacków playbacku;
@@ -263,7 +265,9 @@ Nie stosować refleksji, prywatnych pól, swizzlingu KVO na wewnętrznym `MediaP
 - [ ] W SDK zastąpić branch dependencies (`Kingfisher/master`, `SwiftSubtitles/main`; także pozostałe branch dependencies w package) przypiętymi wersjami lub rewizjami przed dystrybucją produkcyjną.
 - [ ] Zapisać diff snapshotu względem docelowego tagu oraz procedurę aktualizacji.
 
-### Faza 1a — zmiany w iOS SDK dla VOD (wymagane przed bridge'em)
+### Faza 1a — zmiany w iOS SDK dla VOD (zadanie dla zespołu SDK, wymagane przed bridge'em)
+
+> Te zmiany muszą być wykonane w repozytorium `bunny-stream-ios-private` przez zespół SDK. Mostek RN nie modyfikuje SDK. Pełna lista w sekcji 12.1.
 
 - [ ] Dodać publiczne callbacki na `BunnyStreamPlayer` (ścieżka A) LUB publiczne `MediaPlayer`+`MediaPlayerDelegate` (ścieżka B).
 - [ ] Dodać publiczny `controlsEnabled: Bool` (domyślnie `true`).
@@ -277,14 +281,18 @@ Nie stosować refleksji, prywatnych pól, swizzlingu KVO na wewnętrznym `MediaP
 - [ ] Udokumentować mapowanie `BunnyLiveStreamPlaybackState` → payload `onLiveStateChange` (patrz sekcja 5).
 - [ ] Nie łamać istniejącego drop-in API example app SDK.
 
-### Faza 1b — minimalne zmiany w iOS SDK dla natywnego live (wymagane)
+### Faza 1b — minimalne zmiany w iOS SDK dla natywnego live (zadanie dla zespołu SDK, wymagane)
+
+> Te zmiany muszą być wykonane w repozytorium `bunny-stream-ios-private` przez zespół SDK. Mostek RN nie modyfikuje SDK. Pełna lista w sekcji 12.2.
 
 - [ ] Dodać publiczny `onVideoSizeChange(width:height:)` do `BunnyStreamLivePlayer`, ponieważ obecny publiczny stan nie daje bridge'owi dostępu do `Video`/`MediaPlayer`.
 - [ ] Rozdzielić błąd terminalny od przejściowego recovery: albo osobny `onTerminalError`, albo stabilna publiczna klasyfikacja błędu. `onLiveError` RN emituje tylko terminalny błąd dokładnie raz.
 - [ ] Zagwarantować, że `stop()` anuluje polling i wszystkie zagnieżdżone Taski ładowania playera/recordingu, nie tylko główny `pollTask`.
 - [ ] Zachować callbacki live na main actor i nie emitować ich po `stop()`.
 
-### Faza 1c — zmiany w iOS SDK dla live custom controls (opcjonalnie, po natywnym live)
+### Faza 1c — zmiany w iOS SDK dla live custom controls (zadanie dla zespołu SDK, opcjonalnie, po natywnym live)
+
+> Te zmiany muszą być wykonane w repozytorium `bunny-stream-ios-private` przez zespół SDK. Mostek RN nie modyfikuje SDK. Pełna lista w sekcji 12.2.
 
 - [ ] Dodać publiczny `BunnyStreamLivePlayerController` (lub wystawić `MediaPlayer` z live) z `play`, `pause`, `seek`, `jumpToLive`, `mute`, `unmute`, `setPlaybackRate` (tam gdzie wspierane).
 - [ ] Wystawić publicznie `isAtLiveEdge` i `snapToLiveEdge` (lub `jumpToLive()` na controllerze).
@@ -494,3 +502,87 @@ Zmiana jest gotowa, gdy:
 10. iOS Codegen rejestruje oba hosty i TurboModule w Debug/Release RN New Architecture;
 11. paczka instaluje się w czystym projekcie bez prywatnych ścieżek, manualnego patchowania ani lokalnego SDK;
 12. dokumentacja opisuje iOS 15+, format dystrybucji, model `initialize`, VOD native/custom controls, live native UI i brak custom controls live do czasu Fazy 1c.
+
+## 12. Brakujące elementy w iOS SDK (wymagane do pełnego mostka)
+
+Repozytorium `bunny-stream-ios-private` (gałąź `origin/feature/ios-liveStream`, commit `e5fe42e`) jest traktowane jako gotowy baseline, ale **nie wolno go modyfikować z poziomu mostka RN**. Poniższe elementy muszą zostać dodane przez zespół SDK, zanim będą mogły być zaimplementowane w mostku.
+
+### 12.1. Brakujące API VOD (`BunnyStreamPlayer`)
+
+| Brak                                                                                                                                                                                                    | Wpływ na mostek                                                                              | Priorytet                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Publiczne callbacki playbacku (`onReady`, `onPlaybackStateChange`, `onProgress`, `onError`, `onBuffering`, `onPlay`, `onPause`, `onEnd`, `onVolumeChange`, `onPlaybackRateChange`, `onVideoSizeChange`) | Bez callbacków mostek RN nie może emitować eventów Codegen do TypeScript                     | **Blocker**                                              |
+| Publiczny controller komend (`play`, `pause`, `seek`, `setVolume`, `setPlaybackRate`, `mute`, `unmute`)                                                                                                 | Bez controllera ref commands z `BunnyStreamPlayerRef` nie mogą być zaimplementowane          | **Blocker**                                              |
+| `controlsEnabled: Bool`                                                                                                                                                                                 | Bez tej flagi nie można ukryć natywnych kontrolek dla `controls={false}`                     | **Blocker dla custom controls**                          |
+| `autoPlay: Bool`                                                                                                                                                                                        | Bez tego nie można kontrolować automatycznego startu playbacku                               | **Blocker dla `autoPlay` prop**                          |
+| `dispose()` / idempotentny cleanup                                                                                                                                                                      | Bez tego mostek nie może bezpiecznie zwolnić zasoby przy zmianie źródła/unmount              | **Blocker**                                              |
+| `seek(to:)` zachowujące stan paused/playing                                                                                                                                                             | Obecne `jump(to:)` automatycznie wznawia playback, co jest niezgodne z semantyką RN `seekTo` | **Blocker dla `seekTo`**                                 |
+| Per-player volume (nie sprzętowy `AVAudioSession.outputVolume`)                                                                                                                                         | Obecny `setupVolumeObserver` obserwuje głośność sprzętową, nie per-player                    | **Blocker dla `setVolume`/`onVolumeChange`**             |
+| Playback rate = wybrana prędkość (nie chwilowy `AVPlayer.rate`)                                                                                                                                         | Obecny rate observer zgłasza `rate=0` podczas pauzy                                          | **Blocker dla `setPlaybackRate`/`onPlaybackRateChange`** |
+
+### 12.2. Brakujące API Live (`BunnyStreamLivePlayer`)
+
+| Brak                                                                                       | Wpływ na mostek                                                                                                                                                      | Priorytet                                         |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `onVideoSizeChange(width:height:)`                                                         | Obecny `onStateChange` nie przekazuje `Video`/`MediaPlayer`, więc bridge nie może legalnie odczytać wymiarów                                                         | **Blocker dla `onVideoSizeChange` Codegen event** |
+| Rozdzielenie błędu terminalnego od przejściowego                                           | Obecny `onPlaybackError` zgłasza także błędy przejściowe, z których player sam się odzyskuje; `onLiveError` RN powinien emitować tylko terminalny błąd dokładnie raz | **Blocker dla `onLiveError` semantics**           |
+| `controlsEnabled: Bool`                                                                    | Bez tej flagi nie można ukryć natywnych kontrolek live dla `controls={false}`                                                                                        | **Blocker dla live custom controls**              |
+| Publiczny controller komend live (`play`, `pause`, `seek`, `jumpToLive`, `mute`, `unmute`) | `userWantsPlay` jest internal; bez controllera ref commands live nie mogą być zaimplementowane                                                                       | **Blocker dla live custom controls**              |
+| Publiczne `isAtLiveEdge` / `snapToLiveEdge`                                                | Internal w `MediaPlayer+Live.swift`; potrzebne dla `jumpToLive`                                                                                                      | **Blocker dla `jumpToLive`**                      |
+| Publiczny DVR/live-edge stan w `BunnyLiveStreamPlaybackState`                              | Tylko `isVodRecording` w `playing`; brak jawnego DVR/live-edge                                                                                                       | **Blocker dla `dvrEnabled`**                      |
+| Obserwowalny progress/buffering dla live                                                   | Tylko `onStateChange` i `onPlaybackError`; brak callbacków progress/buffering                                                                                        | **Blocker dla live custom UI**                    |
+| FairPlay dla live edge                                                                     | `makeLive` używa CMCD resource loader, ale nie podpina FairPlay — wsparcie DRM live edge niepotwierdzone                                                             | **Do potwierdzenia**                              |
+
+### 12.3. Brakujące API dystrybucyjne
+
+| Brak                                     | Wpływ                                                                                                                                    | Priorytet                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Oficjalny CocoaPod lub XCFramework       | SwiftPM package używa OpenAPI Generator build plugin, którego CocoaPods nie uruchomi; `s.package`/`:path` w podspecie nie jest przenośne | **Blocker dla instalacji npm u konsumenta** |
+| Przypięte wersje zależności (nie branch) | `Kingfisher/master`, `SwiftSubtitles/main` itd. nie są akceptowalne dla dystrybucji                                                      | **Blocker dla dystrybucji**                 |
+| OpenAPI generated sources w artefakcie   | Build plugin nie zadziała w CocoaPods/XCFramework                                                                                        | **Blocker dla dystrybucji**                 |
+
+## 13. Funkcje specyficzne tylko dla iOS
+
+Ta sekcja dokumentuje różnice między implementacją iOS a Androidem, które wynikają z konstrukcji iOS SDK i nie mają odpowiednika po stronie Androida.
+
+### 13.1. Architektura
+
+- **SwiftUI w `UIHostingController`**: iOS SDK używa SwiftUI (`BunnyStreamPlayer`, `BunnyStreamLivePlayer`), które mostek hostuje przez `UIHostingController` wewnątrz Fabric view. Android używa Compose przez `ComposeView`. Wzorzec jest analogiczny, ale iOS wymaga obsługi `addChild/didMove`, trait/safe-area propagation i symetrycznego removal.
+- **Brak globalnego `initialize`**: iOS SDK nie ma globalnego `BunnyStreamAPI.initialize`. `BunnyStreamAPI` jest instancjonowane bezpośrednio z `accessKey`. Mostek musi utrzymywać własny configuration store, z którego każdy host pobiera snapshot przy tworzeniu źródła. Android używa `BunnyStreamApi.initialize(context, accessKey, libraryId)`.
+- **Brak `BunnyPlayerLease`**: Android używa singletonu SDK i lease dla pojedynczego aktywnego playera. iOS tworzy osobny `MediaPlayer` dla każdego widoku — lease nie jest wymagany, chyba że test wykaże ograniczenie.
+
+### 13.2. VOD
+
+- **`watermark`**: iOS SDK przyjmuje `PlayerWatermark` w konstruktorze `BunnyStreamPlayer` i `BunnyStreamLivePlayer`. Android nie ma odpowiednika w tym samym miejscu (watermark jest obsługiwany inaczej).
+- **`playerIcons`**: iOS SDK przyjmuje `PlayerIcons` do customizacji ikon. Android używa innego mechanizmu.
+- **`FontManager.registerFonts()`**: iOS SDK rejestruje fonty w konstruktorze `BunnyStreamPlayer`. Mostek nie musi tego robić osobno.
+- **Audio session**: iOS SDK konfiguruje `AVAudioSession` w `setupAudioSession()` (kategoria `.playback`, tryb `.moviePlayback`). Android nie wymaga analogicznej konfiguracji.
+- **FairPlay vs Widevine**: iOS używa FairPlay (automatycznie podpinany w `MediaPlayer.make(video:)`). Android używa Widevine. Mostek nie musi implementować DRM — jest transparentny.
+- **IMA ads**: iOS używa `GoogleInteractiveMediaAds` 3.18.4 przez SwiftPM. Android używa IMA SDK przez Gradle. Linkowanie i zasoby mogą się różnić.
+
+### 13.3. Live
+
+- **`BunnyStreamLivePlayer` jako osobny widok**: iOS ma osobny publiczny `BunnyStreamLivePlayer` z własnym `LivePlaybackController`. Android używa tego samego `BunnyStreamPlayer` z `source.type='live'`. Mostek RN ukrywa tę różnicę za wspólnym `BunnyStreamPlayer` z `source: BunnyStreamSource`.
+- **Polling w SDK**: iOS `LivePlaybackController` samodzielnie odpytuje stan co 5 s. Android SDK również samodzielnie zarządza pollingiem. Mostek nie reimplementuje pollingu.
+- **Pre-stream trailer**: iOS używa `LoopingTrailerView` (looping `AVQueuePlayer`). Android używa innego mechanizmu.
+- **Countdown overlay**: iOS renderuje countdown w SwiftUI (`TimelineView.periodic`). Android renderuje w Compose.
+- **Offline/error overlay**: iOS renderuje natywnie w SwiftUI. Android w Compose.
+- **Live → VOD recording**: iOS automatycznie przełącza na VOD player po zakończeniu streamu (jeśli `recordVod`). Android analogicznie.
+- **DVR/live edge**: iOS rozróżnia `PlaybackKind = .vod | .event | .live` (internal). Android używa `dvrEnabled`.
+- **`BunnyLiveStreamPlaybackState`**: iOS ma publiczny enum z 6 stanami. Android ma `LiveStreamPlayerState` sealed interface. Mapowanie na wspólny Codegen union jest opisane w sekcji 5.
+- **Brak `onVideoSizeChange` live**: iOS SDK nie wystawia publicznego callbacku video size dla live (patrz sekcja 12.2). Android wystawia.
+- **Brak live custom controls**: iOS SDK nie wystawia publicznego controllera komend live (patrz sekcja 12.2). Android wystawia.
+
+### 13.4. Dystrybucja
+
+- **SwiftPM + OpenAPI Generator**: iOS SDK używa SwiftPM z `OpenAPIGenerator` build plugin dla `BunnyStreamAPI`. CocoaPods nie uruchamia build pluginów. Android nie ma analogicznego problemu.
+- **Branch dependencies**: iOS SDK ma `Kingfisher/master`, `SwiftSubtitles/main`, `TUSKit/main`, `HaishinKit.swift` 1.7.3. Android przypina wersje w Gradle.
+- **iOS 15+**: iOS SDK wymaga iOS 15+. Android ma inne minimum (API level z `minSdkVersion`).
+- **Swift 5.9**: iOS SDK wymaga Swift 5.9. Android używa Kotlin/Java.
+- **CocoaPods vs Gradle**: iOS dystrybuuje się przez CocoaPods (lub XCFramework). Android przez Gradle/Maven.
+
+### 13.5. Model uwierzytelnienia
+
+- **Access key w nagłówku HTTP**: iOS `VideoPlayerConfigLoader` wysyła `AccessKey` w nagłówku HTTP. Android robi analogicznie.
+- **Token + expires**: iOS przyjmuje `token: String?` i `expires: Int64?` w konstruktorze. Android analogicznie.
+- **Public VOD bez access key**: iOS `BunnyStreamPlayer` przyjmuje `accessKey: String?` (nil dla publicznych). Wspólne TS API obecnie wymaga niepustego klucza — decyzja produktowa (patrz sekcja 10, pytanie 8).
