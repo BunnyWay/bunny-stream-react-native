@@ -97,9 +97,14 @@ import BunnyStreamPlayer
       onStateChange: onStateChange,
       onPlaybackError: onPlaybackError
     )
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .ignoresSafeArea()
 
     // Wrap in AnyView so the hosting controller type is stable across reloads.
     let host = UIHostingController(rootView: AnyView(livePlayer))
+    if #available(iOS 16.4, *) {
+      host.safeAreaRegions = []
+    }
     host.view.backgroundColor = .black
     host.view.translatesAutoresizingMaskIntoConstraints = false
     host.view.frame = bounds
@@ -144,7 +149,30 @@ import BunnyStreamPlayer
 
   public override func layoutSubviews() {
     super.layoutSubviews()
-    hostingController?.view.frame = bounds
+
+    // Workaround: the SDK's SwiftUI player reads the window's safe area
+    // insets directly and applies them as internal padding, pushing the
+    // video content down. Shift the hosting controller's frame up by the
+    // top inset and extend its height to compensate.
+    let topInset = hostingController?.view.window?.safeAreaInsets.top ?? 0
+    var frame = bounds
+    if topInset > 0 {
+      frame.origin.y -= topInset
+      frame.size.height += topInset
+    }
+    hostingController?.view.frame = frame
+
+    if #unavailable(iOS 16.4),
+       let window = hostingController?.view.window,
+       window.safeAreaInsets != .zero {
+      let insets = window.safeAreaInsets
+      hostingController?.additionalSafeAreaInsets = UIEdgeInsets(
+        top: -insets.top,
+        left: -insets.left,
+        bottom: -insets.bottom,
+        right: -insets.right
+      )
+    }
   }
 
   // MARK: - State mapping
