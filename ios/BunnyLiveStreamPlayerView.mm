@@ -7,7 +7,7 @@
 #import <react/renderer/components/BunnyStreamReactNativeSpec/Props.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/RCTComponentViewHelpers.h>
 
-#import "ReactTestApp-Swift.h"
+#import "BunnyStreamReactNative-Swift.h"
 
 using namespace facebook::react;
 
@@ -29,7 +29,7 @@ liveStateFromString(const std::string &s)
 
 @implementation BunnyLiveStreamPlayerView {
   BunnyLiveStreamPlayerViewImpl *_impl;
-  BunnyLiveStreamPlayerViewEventEmitter::Shared _eventEmitter;
+  std::shared_ptr<const BunnyLiveStreamPlayerViewEventEmitter> _liveEventEmitter;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -49,8 +49,8 @@ liveStateFromString(const std::string &s)
     _impl.onLiveStateChange = ^(NSString *state, BOOL isLive, NSString *reason,
                                 NSNumber *targetEpochMs, NSString *title, BOOL dvrEnabled) {
       __strong __typeof__(weakSelf) strongSelf = weakSelf;
-      if (!strongSelf || !strongSelf->_eventEmitter) return;
-      strongSelf->_eventEmitter->onLiveStateChange({
+      if (!strongSelf || !strongSelf->_liveEventEmitter) return;
+      strongSelf->_liveEventEmitter->onLiveStateChange({
         .state = liveStateFromString(std::string([state UTF8String])),
         .isLive = (bool)isLive,
         .reason = reason ? std::string([reason UTF8String]) : "",
@@ -61,8 +61,8 @@ liveStateFromString(const std::string &s)
     };
     _impl.onLiveError = ^(NSString *message) {
       __strong __typeof__(weakSelf) strongSelf = weakSelf;
-      if (!strongSelf || !strongSelf->_eventEmitter) return;
-      strongSelf->_eventEmitter->onLiveError({
+      if (!strongSelf || !strongSelf->_liveEventEmitter) return;
+      strongSelf->_liveEventEmitter->onLiveError({
         .message = std::string([message UTF8String])
       });
     };
@@ -86,12 +86,11 @@ liveStateFromString(const std::string &s)
   }
 
   if (newProps.expires != 0.0) {
-    _impl.pendingExpires = (int64_t)newProps.expires;
+    _impl.pendingExpires = @(newProps.expires);
   } else {
     _impl.pendingExpires = nil;
   }
 
-  _props = std::static_pointer_cast<Props const>(props);
   [super updateProps:props oldProps:oldProps];
 }
 
@@ -111,13 +110,13 @@ liveStateFromString(const std::string &s)
 - (void)updateEventEmitter:(EventEmitter::Shared const &)eventEmitter
 {
   [super updateEventEmitter:eventEmitter];
-  _eventEmitter = std::static_pointer_cast<BunnyLiveStreamPlayerViewEventEmitter const>(eventEmitter);
+  _liveEventEmitter = std::static_pointer_cast<const BunnyLiveStreamPlayerViewEventEmitter>(eventEmitter);
 }
 
 - (void)prepareForRecycle
 {
   [_impl cleanup];
-  _eventEmitter.reset();
+  _liveEventEmitter.reset();
   [super prepareForRecycle];
 }
 

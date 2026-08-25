@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import BunnyStreamAPI
+import BunnyStreamPlayer
 
 /// Swift wrapper that hosts the SDK's `BunnyStreamLivePlayer` SwiftUI view
 /// inside a `UIHostingController`, managed by the Fabric component view.
@@ -17,7 +18,7 @@ import BunnyStreamAPI
 ///   this callback for live (Plan-iOS.md §12.2).
 /// - Recreates the hosted view only when the source identity changes.
 @MainActor
-final class BunnyLiveStreamPlayerViewImpl: UIView {
+@objc public final class BunnyLiveStreamPlayerViewImpl: UIView {
 
   /// Immutable snapshot of committed props.
   struct Props: Equatable {
@@ -33,32 +34,32 @@ final class BunnyLiveStreamPlayerViewImpl: UIView {
 
   /// Closure called when a live state change should be emitted to JS.
   /// Payload: (stateString, isLive, reason?, targetEpochMs?, title?, dvrEnabled?)
-  var onLiveStateChange: ((String, Bool, String?, Double?, String?, Bool) -> Void)?
+  @objc public var onLiveStateChange: ((String, Bool, String?, NSNumber?, String?, Bool) -> Void)?
 
   /// Closure called when a terminal live error should be emitted to JS.
-  var onLiveError: ((String) -> Void)?
+  @objc public var onLiveError: ((String) -> Void)?
 
-  override init(frame: CGRect) {
+  public override init(frame: CGRect) {
     super.init(frame: frame)
     backgroundColor = .black
   }
 
-  required init?(coder: NSCoder) {
+  public required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
 
   // Pending props — set individually by the Fabric view, snapshotted in commitProps.
-  var pendingLibraryId: Int = 0
-  var pendingStreamId: String = ""
-  var pendingToken: String? = nil
-  var pendingExpires: Int64? = nil
+  @objc public var pendingLibraryId: Int = 0
+  @objc public var pendingStreamId: String = ""
+  @objc public var pendingToken: String? = nil
+  @objc public var pendingExpires: NSNumber? = nil
 
-  func commitProps() {
+  @objc public func commitProps() {
     let next = Props(
       libraryId: pendingLibraryId,
       streamId: pendingStreamId,
       token: pendingToken,
-      expires: pendingExpires
+      expires: pendingExpires?.int64Value
     )
 
     let sourceChanged = next != currentProps
@@ -77,7 +78,7 @@ final class BunnyLiveStreamPlayerViewImpl: UIView {
   private func reloadPlayer() {
     removeHostingController()
 
-    let accessKey = BunnyStreamConfiguration.shared.current()?.accessKey ?? ""
+    let accessKey = BunnyStreamConfiguration.shared.accessKey ?? ""
 
     let onStateChange: (BunnyLiveStreamPlaybackState) -> Void = { [weak self] state in
       self?.handleStateChange(state)
@@ -133,7 +134,7 @@ final class BunnyLiveStreamPlayerViewImpl: UIView {
     return nil
   }
 
-  override func didMoveToWindow() {
+  public override func didMoveToWindow() {
     super.didMoveToWindow()
     if let host = hostingController, host.parent == nil, let parentVC = findParentViewController() {
       parentVC.addChild(host)
@@ -141,7 +142,7 @@ final class BunnyLiveStreamPlayerViewImpl: UIView {
     }
   }
 
-  override func layoutSubviews() {
+  public override func layoutSubviews() {
     super.layoutSubviews()
     hostingController?.view.frame = bounds
   }
@@ -184,7 +185,7 @@ final class BunnyLiveStreamPlayerViewImpl: UIView {
     }
   }
 
-  func cleanup() {
+  @objc public func cleanup() {
     onLiveStateChange = nil
     onLiveError = nil
     removeHostingController()
