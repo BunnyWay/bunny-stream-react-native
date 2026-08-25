@@ -16,6 +16,7 @@ using namespace facebook::react;
 
 @implementation BunnyStreamPlayerView {
   BunnyStreamPlayerViewImpl *_impl;
+  std::shared_ptr<const BunnyStreamPlayerViewEventEmitter> _eventEmitter;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -29,6 +30,82 @@ using namespace facebook::react;
     static const auto defaultProps = std::make_shared<const BunnyStreamPlayerViewProps>();
     _props = defaultProps;
     _impl = [[BunnyStreamPlayerViewImpl alloc] initWithFrame:frame];
+
+    // Wire the Swift impl's event closures to the Fabric event emitter.
+    __weak __typeof__(self) weakSelf = self;
+
+    _impl.onReady = ^(NSString *videoId, double durationMs) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onReady({
+        .videoId = std::string([videoId UTF8String]),
+        .durationMs = durationMs
+      });
+    };
+
+    _impl.onPlaybackStateChange = ^(NSString *state, double positionMs) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onPlaybackStateChange({
+        .state = std::string([state UTF8String]),
+        .positionMs = positionMs
+      });
+    };
+
+    _impl.onProgress = ^(double positionMs, double durationMs, double progress) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onProgress({
+        .positionMs = positionMs,
+        .durationMs = durationMs,
+        .progress = progress
+      });
+    };
+
+    _impl.onError = ^(NSString *code, NSString *message) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onError({
+        .code = std::string([code UTF8String]),
+        .message = std::string([message UTF8String])
+      });
+    };
+
+    _impl.onBuffering = ^(BOOL isBuffering) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onBuffering({
+        .isBuffering = (bool)isBuffering
+      });
+    };
+
+    _impl.onPlay = ^(double positionMs, double durationMs) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onPlay({
+        .positionMs = positionMs,
+        .durationMs = durationMs
+      });
+    };
+
+    _impl.onPause = ^(double positionMs, double durationMs) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onPause({
+        .positionMs = positionMs,
+        .durationMs = durationMs
+      });
+    };
+
+    _impl.onEnd = ^(double positionMs, double durationMs) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onEnd({
+        .positionMs = positionMs,
+        .durationMs = durationMs
+      });
+    };
+
     [self addSubview:_impl];
   }
   return self;
@@ -73,9 +150,16 @@ using namespace facebook::react;
   _impl.frame = RCTCGRectFromRect(layoutMetrics.frame);
 }
 
+- (void)updateEventEmitter:(EventEmitter::Shared const &)eventEmitter
+{
+  [super updateEventEmitter:eventEmitter];
+  _eventEmitter = std::static_pointer_cast<const BunnyStreamPlayerViewEventEmitter>(eventEmitter);
+}
+
 - (void)prepareForRecycle
 {
   [_impl cleanup];
+  _eventEmitter.reset();
   [super prepareForRecycle];
 }
 
