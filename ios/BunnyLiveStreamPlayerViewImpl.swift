@@ -106,7 +106,7 @@ import BunnyStreamPlayer
       host.safeAreaRegions = []
     }
     host.view.backgroundColor = .black
-    host.view.translatesAutoresizingMaskIntoConstraints = false
+    host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     host.view.frame = bounds
 
     if let parentVC = findParentViewController() {
@@ -149,19 +149,9 @@ import BunnyStreamPlayer
 
   public override func layoutSubviews() {
     super.layoutSubviews()
-
-    // Workaround: the SDK's SwiftUI player reads the window's safe area
-    // insets directly and applies them as internal padding, pushing the
-    // video content down. Shift the hosting controller's frame up by the
-    // top inset and extend its height to compensate.
-    let topInset = hostingController?.view.window?.safeAreaInsets.top ?? 0
-    var frame = bounds
-    if topInset > 0 {
-      frame.origin.y -= topInset
-      frame.size.height += topInset
-    }
-    hostingController?.view.frame = frame
-
+    hostingController?.view.frame = bounds
+    // Counter the window-level safe area insets that UIHostingController
+    // applies to its root view even though this view is embedded mid-screen.
     if #unavailable(iOS 16.4),
        let window = hostingController?.view.window,
        window.safeAreaInsets != .zero {
@@ -214,8 +204,6 @@ import BunnyStreamPlayer
   }
 
   @objc public func cleanup() {
-    onLiveStateChange = nil
-    onLiveError = nil
     removeHostingController()
   }
 }
