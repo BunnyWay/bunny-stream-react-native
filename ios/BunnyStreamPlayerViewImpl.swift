@@ -15,8 +15,9 @@ import BunnyStreamPlayer
 ///   `libraryId` + `token` + `expires`) changes, mirroring Android's
 ///   `commitProps` reload-on-source-change semantics.
 /// - Commands (`play`, `pause`, `seekTo`, `setVolume`, `setPlaybackRate`,
-///   `mute`, `unmute`) are **no-ops** because the SDK does not expose a public
-///   controller. They log a warning so integrators know the SDK limitation.
+///   `mute`, `unmute`) are applied to that same discovered `AVPlayer`, because
+///   the SDK does not expose a public controller. Commands issued before the
+///   player is discovered are queued and replayed on attach.
 /// - Events (`onReady`, `onProgress`, etc.) are emitted by discovering the
 ///   SDK's internal `AVPlayer` through the `AVPlayerLayer` in the view
 ///   hierarchy and observing it via KVO + periodic time observer. This
@@ -69,6 +70,10 @@ import BunnyStreamPlayer
   private var periodicTimeObserver: Any?
   private var hasEmittedReady = false
   private var playerSearchAttempts = 0
+
+  /// Commands issued before the SDK's `AVPlayer` was discovered. Replayed in
+  /// order once `attachObservers(to:)` runs.
+  private var pendingCommands: [(AVPlayer) -> Void] = []
 
   public override init(frame: CGRect) {
     super.init(frame: frame)
@@ -164,12 +169,14 @@ import BunnyStreamPlayer
 
     // The SDK creates its AVPlayer asynchronously during SwiftUI's `.task`.
     // Search the view hierarchy for the AVPlayerLayer with retries.
+    pendingCommands.removeAll()
     playerSearchAttempts = 0
     searchForPlayer()
   }
 
   private func removeHostingController() {
     removePlayerObservers()
+    pendingCommands.removeAll()
     hostingController?.willMove(toParent: nil)
     hostingController?.view.removeFromSuperview()
     hostingController?.removeFromParent()
@@ -327,11 +334,14 @@ import BunnyStreamPlayer
       forInterval: interval,
       queue: .main
     ) { [weak self] time in
-      guard let self = self, time.isValid else { return }
-      let positionMs = time.seconds * 1000
-      let durationMs = self.currentDurationMs(player)
-      let progress = durationMs > 0 ? positionMs / durationMs : 0
-      self.onProgress?(positionMs, durationMs, max(0, min(1, progress)))
+      guard time.isValid else { return }
+      DispatchQueue.main.async {
+        guard let self = self else { return }
+        let positionMs = time.seconds * 1000
+        let durationMs = self.currentDurationMs(player)
+        let progress = durationMs > 0 ? positionMs / durationMs : 0
+        self.onProgress?(positionMs, durationMs, max(0, min(1, progress)))
+      }
     }
 
     // End-of-playback notification.
@@ -341,6 +351,13 @@ import BunnyStreamPlayer
       name: .AVPlayerItemDidPlayToEndTime,
       object: player.currentItem
     )
+
+    // Replay commands issued while the player was still being created.
+    let queued = pendingCommands
+    pendingCommands.removeAll()
+    for command in queued {
+      command(player)
+    }
   }
 
   /// Observes a single `AVPlayerItem`'s `status`, `duration`, and buffering.
@@ -455,48 +472,59 @@ import BunnyStreamPlayer
     hasEmittedReady = false
   }
 
-  // MARK: - Commands (no-op — SDK does not expose a public controller)
+  // MARK: - Commands
+
+  /// Runs `command` against the discovered `AVPlayer`, or queues it until the
+  /// SDK finishes creating one (see `searchForPlayer`).
+  private func withPlayer(_ command: @escaping (AVPlayer) -> Void) {
+    if let player = observedPlayer {
+      command(player)
+    } else {
+      pendingCommands.append(command)
+    }
+  }
 
   @objc public func play() {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] play() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    withPlayer { $0.play() }
   }
 
   @objc public func pause() {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] pause() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    withPlayer { $0.pause() }
   }
 
   @objc public func seekTo(positionMs: Double) {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] seekTo(\(positionMs)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    guard positionMs.isFinite, positionMs >= 0 else { return }
+    withPlayer { player in
+      let time = CMTime(value: CMTimeValue(positionMs.rounded()), timescale: 1000)
+      // Zero tolerance so custom scrubbers land on the requested frame, and
+      // no implicit `play()` — seeking while paused must not resume playback.
+      player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+    }
   }
 
   @objc public func setVolume(volume: Double) {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] setVolume(\(volume)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    guard volume.isFinite else { return }
+    let clamped = Float(max(0, min(1, volume)))
+    withPlayer { $0.volume = clamped }
   }
 
   @objc public func setPlaybackRate(rate: Double) {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] setPlaybackRate(\(rate)) is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    guard rate.isFinite, rate > 0 else { return }
+    withPlayer { player in
+      // Only push the rate onto a playing player — assigning a non-zero rate
+      // to a paused one would resume playback.
+      if player.rate > 0 {
+        player.rate = Float(rate)
+      }
+    }
   }
 
   @objc public func mute() {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] mute() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    withPlayer { $0.isMuted = true }
   }
 
   @objc public func unmute() {
-    #if DEBUG
-    print("[BunnyStreamPlayerView] unmute() is a no-op — iOS SDK does not expose a public controller (Plan-iOS.md §12.1)")
-    #endif
+    withPlayer { $0.isMuted = false }
   }
 
   /// Called when the Fabric view is dropped. Removes the hosted SwiftUI view

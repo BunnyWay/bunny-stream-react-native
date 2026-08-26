@@ -8,11 +8,13 @@
 // integration point that conforms to the Codegen-generated
 // `RCTBunnyStreamPlayerViewViewProtocol`.
 //
-// Limitations (see Plan-iOS.md §12.1):
-// - Commands (play/pause/seek/setVolume/setPlaybackRate/mute/unmute) are
-//   no-ops because the SDK does not expose a public controller.
-// - Events (onReady/onProgress/etc.) are not emitted because the SDK does
-//   not expose public playback callbacks.
+// Because the SDK exposes neither a public controller nor public playback
+// callbacks (see Plan-iOS.md §12.1), both commands and events are bridged
+// through the SDK's internal `AVPlayer`, discovered via the `AVPlayerLayer`
+// in the hosted view hierarchy.
+//
+// Remaining limitation: `controls={false}` has no effect, since the SDK does
+// not expose a public `controlsEnabled` flag.
 @interface BunnyStreamPlayerView : RCTViewComponentView
 
 @end
