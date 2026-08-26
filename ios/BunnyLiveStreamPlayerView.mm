@@ -1,6 +1,5 @@
 #import "BunnyLiveStreamPlayerView.h"
 
-#import <React/RCTConversions.h>
 #import <React/RCTFabricComponentsPlugins.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/ComponentDescriptors.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/EventEmitters.h>
@@ -67,9 +66,17 @@ liveStateFromString(const std::string &s)
       });
     };
 
+    _impl.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.clipsToBounds = YES;
     [self addSubview:_impl];
   }
   return self;
+}
+
+- (void)layoutSubviews
+{
+  [super layoutSubviews];
+  _impl.frame = self.bounds;
 }
 
 - (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
@@ -103,8 +110,10 @@ liveStateFromString(const std::string &s)
 - (void)updateLayoutMetrics:(LayoutMetrics const &)layoutMetrics
                        oldLayoutMetrics:(LayoutMetrics const &)oldLayoutMetrics
 {
+  // `super` applies `layoutMetrics.frame` (parent coordinate space) to `self`.
+  // The impl is pinned to `self.bounds` in `layoutSubviews` — assigning the
+  // parent-space frame here would offset it twice.
   [super updateLayoutMetrics:layoutMetrics oldLayoutMetrics:oldLayoutMetrics];
-  _impl.frame = RCTCGRectFromRect(layoutMetrics.frame);
 }
 
 - (void)updateEventEmitter:(EventEmitter::Shared const &)eventEmitter

@@ -142,7 +142,7 @@ import BunnyStreamPlayer
       host.safeAreaRegions = []
     }
     host.view.backgroundColor = .black
-    host.view.translatesAutoresizingMaskIntoConstraints = false
+    host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     host.view.frame = bounds
 
     // Find the parent view controller in the view hierarchy and add the
@@ -201,26 +201,9 @@ import BunnyStreamPlayer
 
   public override func layoutSubviews() {
     super.layoutSubviews()
-
-    // Workaround: the SDK's SwiftUI player reads the window's safe area
-    // insets directly (via keyWindow) and applies them as internal padding,
-    // even though we set `safeAreaRegions = []` on the hosting controller
-    // and `.ignoresSafeArea()` on the view. This pushes the video content
-    // down by the top safe area inset (notch / status bar height).
-    //
-    // Manual fix: shift the hosting controller's frame up by the top inset
-    // and extend its height by the same amount so the video fills the
-    // original bounds while the internal padding compensates for the shift.
-    let topInset = hostingController?.view.window?.safeAreaInsets.top ?? 0
-    var frame = bounds
-    if topInset > 0 {
-      frame.origin.y -= topInset
-      frame.size.height += topInset
-    }
-    hostingController?.view.frame = frame
-
-    // Also counter the safe area insets at the hosting controller level
-    // (fallback for iOS < 16.4 where `safeAreaRegions` is unavailable).
+    hostingController?.view.frame = bounds
+    // Counter the window-level safe area insets that UIHostingController
+    // applies to its root view even though this view is embedded mid-screen.
     if #unavailable(iOS 16.4),
        let window = hostingController?.view.window,
        window.safeAreaInsets != .zero {
@@ -325,8 +308,17 @@ import BunnyStreamPlayer
     currentItemObservation = player.observe(\.currentItem, options: [.new]) { [weak self] p, _ in
       DispatchQueue.main.async {
         guard let self = self, let item = p.currentItem else { return }
+        self.hasEmittedReady = false
         self.observePlayerItem(item, player: p)
       }
+    }
+
+    // Emit the initial play state if the player is already playing.
+    if player.rate > 0 {
+      let positionMs = currentPositionMs(player)
+      let durationMs = currentDurationMs(player)
+      onPlay?(positionMs, durationMs)
+      onPlaybackStateChange?("playing", positionMs)
     }
 
     // Periodic time observer for progress (~4×/s, matching Android).
@@ -376,6 +368,25 @@ import BunnyStreamPlayer
       }
     }
 
+    // If the item is already in a final state, emit it now.
+    switch item.status {
+    case .readyToPlay:
+      if !hasEmittedReady {
+        hasEmittedReady = true
+        let durationMs = currentDurationMs(player)
+        onReady?(currentProps.videoId, durationMs)
+        onPlaybackStateChange?("ready", 0)
+      }
+    case .failed:
+      let msg = item.error?.localizedDescription ?? "Playback failed"
+      onError?("PLAYBACK_ERROR", msg)
+      onPlaybackStateChange?("error", 0)
+    case .unknown:
+      break
+    @unknown default:
+      break
+    }
+
     // Observe isPlaybackLikelyToKeepUp for buffering events.
     itemBufferingObservation = item.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] it, _ in
       DispatchQueue.main.async {
@@ -383,6 +394,8 @@ import BunnyStreamPlayer
         self.onBuffering?(!it.isPlaybackLikelyToKeepUp)
       }
     }
+
+    onBuffering?(!item.isPlaybackLikelyToKeepUp)
 
     // Observe duration — it may resolve after status becomes readyToPlay
     // for deferred-loading VOD assets.
@@ -487,16 +500,9 @@ import BunnyStreamPlayer
   }
 
   /// Called when the Fabric view is dropped. Removes the hosted SwiftUI view
-  /// and all player observers.
+  /// and all player observers. The event closures are kept wired because the
+  /// same `BunnyStreamPlayerView` instance (and its emitter) can be recycled.
   @objc public func cleanup() {
     removeHostingController()
-    onReady = nil
-    onPlaybackStateChange = nil
-    onProgress = nil
-    onError = nil
-    onBuffering = nil
-    onPlay = nil
-    onPause = nil
-    onEnd = nil
   }
 }
