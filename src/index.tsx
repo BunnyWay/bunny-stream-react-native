@@ -139,6 +139,18 @@ export type { BunnyStreamPlayerRef } from './types';
 
 // --- initialize ---
 
+function validateAccessKey(accessKey: string): void {
+  if (!accessKey || accessKey.trim().length === 0) {
+    throw new Error('initialize: accessKey must be a non-empty string (SDK 4.0.0 requirement)');
+  }
+}
+
+function validateLibraryId(libraryId: number): void {
+  if (!Number.isFinite(libraryId) || libraryId <= 0 || libraryId % 1 !== 0) {
+    throw new Error('initialize: libraryId must be a positive integer');
+  }
+}
+
 /**
  * Initialises the Bunny Stream SDK with an API access key and library ID.
  *
@@ -155,12 +167,8 @@ export type { BunnyStreamPlayerRef } from './types';
  * @throws {Error} if `accessKey` is empty or `libraryId` is not a positive integer.
  */
 export function initialize(accessKey: string, libraryId: number): void {
-  if (!accessKey || accessKey.trim().length === 0) {
-    throw new Error('initialize: accessKey must be a non-empty string (SDK 4.0.0 requirement)');
-  }
-  if (!Number.isFinite(libraryId) || libraryId <= 0 || libraryId % 1 !== 0) {
-    throw new Error('initialize: libraryId must be a positive integer');
-  }
+  validateAccessKey(accessKey);
+  validateLibraryId(libraryId);
   NativeBunnyStreamPlayer.initialize(accessKey, libraryId);
 }
 
@@ -347,6 +355,10 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
 
 BunnyStreamPlayer.displayName = 'BunnyStreamPlayer';
 
+function defaultTo<T, U>(value: T | undefined, fallback: U): T | U {
+  return value ?? fallback;
+}
+
 /**
  * Builds a stable identity key for a source so React remounts the native host
  * when the source identity changes. Includes `type` so VOD ↔ live transitions
@@ -358,10 +370,13 @@ BunnyStreamPlayer.displayName = 'BunnyStreamPlayer';
  * `sourceKey` parameter, which resets the hook's state on source change.
  */
 export function sourceIdentityKey(source: BunnyStreamSource): string {
+  const libraryId = defaultTo(source.libraryId, 0);
+  const token = defaultTo(source.token, '');
+  const expires = defaultTo(source.expires, '');
   if (source.type === 'live') {
-    return `live:${source.libraryId}:${source.streamId}:${source.token ?? ''}:${source.expires ?? ''}`;
+    return `live:${libraryId}:${source.streamId}:${token}:${expires}`;
   }
-  return `vod:${source.libraryId ?? 0}:${source.videoId}:${source.token ?? ''}:${source.expires ?? ''}`;
+  return `vod:${libraryId}:${source.videoId}:${token}:${expires}`;
 }
 
 // --- useBunnyStreamPlayer hook ---
