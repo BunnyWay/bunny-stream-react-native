@@ -381,14 +381,14 @@ export function sourceIdentityKey(source: BunnyStreamSource): string {
 
 // --- useBunnyStreamPlayer hook ---
 
-export { useBunnyStreamPlayer } from './useBunnyStreamPlayer';
+export { useBunnyStreamPlayer } from './hooks/useBunnyStreamPlayer';
 export type {
   PlayerEventHandlers,
   PlayerProgress,
   PlayerState,
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
-} from './useBunnyStreamPlayer';
+} from './hooks/useBunnyStreamPlayer';
 
 // --- REST API module (BunnyStreamApi) ---
 //
@@ -433,3 +433,9 @@ export {
   VideoStatusEnum,
 } from './api/BunnyStreamApi';
 export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
+
+// — useBunnyImage — resolves Bunny CDN image URLs (with Referer header) to
+// data: URIs so any image component (Image, expo-image, FastImage) can render
+// them despite the CDN's hotlink protection.
+export { useBunnyImage } from './hooks/useBunnyImage';
+export type { UseBunnyImageResult } from './hooks/useBunnyImage';
