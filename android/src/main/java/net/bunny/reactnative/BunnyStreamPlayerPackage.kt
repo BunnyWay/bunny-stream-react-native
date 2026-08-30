@@ -6,6 +6,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
+import net.bunny.reactnative.module.BunnyStreamApiModule
 import net.bunny.reactnative.module.BunnyStreamPlayerModule
 import net.bunny.reactnative.view.BunnyLiveStreamPlayerViewManager
 import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
@@ -27,6 +28,7 @@ class BunnyStreamPlayerPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
     when (name) {
       BunnyStreamPlayerModule.NAME -> BunnyStreamPlayerModule(reactContext)
+      BunnyStreamApiModule.NAME -> BunnyStreamApiModule(reactContext)
       else -> null
     }
 
@@ -41,6 +43,14 @@ class BunnyStreamPlayerPackage : BaseReactPackage() {
       BunnyStreamPlayerModule.NAME to ReactModuleInfo(
         name = BunnyStreamPlayerModule.NAME,
         className = BunnyStreamPlayerModule::class.java.name,
+        canOverrideExistingModule = false,
+        needsEagerInit = false,
+        isCxxModule = false,
+        isTurboModule = true,
+      ),
+      BunnyStreamApiModule.NAME to ReactModuleInfo(
+        name = BunnyStreamApiModule.NAME,
+        className = BunnyStreamApiModule::class.java.name,
         canOverrideExistingModule = false,
         needsEagerInit = false,
         isCxxModule = false,
