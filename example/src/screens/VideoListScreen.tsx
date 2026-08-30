@@ -266,7 +266,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
             </View>
           ) : null
         }
-        contentContainerStyle={isEmpty ? sectionStyles.emptyList : undefined}
+        contentContainerStyle={[isEmpty ? sectionStyles.emptyList : sectionStyles.list]}
       />
     </>
   );
@@ -337,6 +337,9 @@ const sectionStyles = StyleSheet.create({
   },
   emptyList: {
     flexGrow: 1,
+  },
+  list: {
+    paddingBottom: 48,
   },
 });
 
