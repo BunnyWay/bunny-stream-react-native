@@ -1,9 +1,9 @@
 export type RootStackParamList = {
   Home: undefined;
   VideoList: undefined;
+  LiveStreams: undefined;
   Settings: undefined;
   Player: { videoId: string; libraryId: number };
-  PlayerCustom: { videoId: string; libraryId: number };
   LivePlayer: {
     streamId: string;
     libraryId: number;

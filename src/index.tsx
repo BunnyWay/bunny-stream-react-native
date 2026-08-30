@@ -389,3 +389,47 @@ export type {
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
 } from './useBunnyStreamPlayer';
+
+// --- REST API module (BunnyStreamApi) ---
+//
+// Re-exports the public API surface, the typed BunnyResult envelope + BunnyError
+// taxonomy, and the domain models. The TurboModule itself is also exported for
+// consumers that need the raw Codegen spec (e.g. for mocking in tests).
+export {
+  BunnyStreamApi,
+  errorOrNull,
+  fold,
+  getOrNull,
+  liveStreamStatusLabel,
+  map,
+  videoStatusLabel,
+} from './api/BunnyStreamApi';
+export type {
+  BunnyError,
+  BunnyErrorKind,
+  BunnyResult,
+  Caption,
+  Chapter,
+  CreateVideoRequestInput,
+  ListOptions,
+  LiveStream,
+  LiveStreamCreateRequestInput,
+  LiveStreamList,
+  LiveStreamPlayData,
+  LiveStreamStatus,
+  MetaTag,
+  PlayerSettings,
+  Moment,
+  RtmpOutput,
+  UpdateVideoRequestInput,
+  Video,
+  VideoList,
+  VideoPlayData,
+  VideoStatus,
+} from './api/BunnyStreamApi';
+export {
+  LiveStreamStatusEnum,
+  TRANSITIONAL_VIDEO_STATUSES,
+  VideoStatusEnum,
+} from './api/BunnyStreamApi';
+export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
