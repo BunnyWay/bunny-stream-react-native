@@ -1,13 +1,13 @@
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   RefreshControl,
-  SectionList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,7 +26,7 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
-import { loadSettings, parseVideoIdsFromEnv } from '../storage/storage';
+import { loadSettings } from '../storage/storage';
 import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
 
@@ -41,26 +41,12 @@ type UiState =
   | { kind: 'loaded'; videos: Video[] }
   | { kind: 'error'; message: string };
 
-type VideoSection = {
-  key: 'env' | 'api';
-  title: string;
-  data: VideoItem[];
-};
-
-type VideoItem = { kind: 'video'; video: Video } | { kind: 'envId'; videoId: string };
-
 export function VideoListScreen({ navigation }: VideoListScreenProps) {
   const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   // Thumbnail URLs keyed by video ID — enriched via fetchPlayerSettings,
   // like the Android demo's LibraryViewModel.enrichMissingThumbnails.
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
-
-  // Video IDs configured in .env (BUNNY_VIDEO_IDS / BUNNY_VIDEO_ID).
-  const envVideoIds = React.useMemo(
-    () => parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID }),
-    [],
-  );
 
   const loadLibrary = React.useCallback(async () => {
     const stored = await loadSettings();
@@ -169,77 +155,23 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     navigation.navigate('Player', { videoId, libraryId });
   };
 
-  // Build sections: env IDs first (if any), then API videos.
-  const sections: VideoSection[] = React.useMemo(() => {
-    const result: VideoSection[] = [];
-    if (envVideoIds.length > 0) {
-      result.push({
-        key: 'env',
-        title: 'From .env',
-        data: envVideoIds.map((id) => ({ kind: 'envId', videoId: id }) as VideoItem),
-      });
-    }
-    if (uiState.kind === 'loaded') {
-      result.push({
-        key: 'api',
-        title: 'Library',
-        data: uiState.videos.map((v) => ({ kind: 'video', video: v }) as VideoItem),
-      });
-    }
-    return result;
-  }, [envVideoIds, uiState]);
-
-  const renderItem = ({ item }: { item: VideoItem }) => {
-    if (item.kind === 'envId') {
-      return (
-        <TouchableOpacity
-          style={videoCardStyles.card}
-          onPress={() => handlePlayVideo(item.videoId)}
-          activeOpacity={0.7}
-        >
-          <View style={videoCardStyles.thumbnailContainer}>
-            <View style={videoCardStyles.thumbnailPlaceholder} />
-          </View>
-          <View style={videoCardStyles.info}>
-            <Text style={videoCardStyles.title} numberOfLines={1}>
-              {item.videoId}
-            </Text>
-            <View style={videoCardStyles.pillRow}>
-              <View style={videoCardStyles.pill}>
-                <Text style={videoCardStyles.pillText}>env</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    }
-
-    const { video } = item;
-    const thumbUrl = thumbnails[video.id];
-
-    return (
-      <VideoCard video={video} thumbnailUrl={thumbUrl} onPress={() => handlePlayVideo(video.id)} />
-    );
-  };
-
-  const renderSectionHeader = ({ section }: { section: VideoSection }) => (
-    <Text style={sectionStyles.title}>{section.title}</Text>
-  );
-
-  const isEmpty =
-    envVideoIds.length === 0 && (uiState.kind === 'empty' || uiState.kind === 'error');
+  const videos = uiState.kind === 'loaded' ? uiState.videos : [];
+  const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
 
   return (
     <>
       <Header title="Video Library" onBack={() => navigation.goBack()} />
-      <SectionList
+      <FlatList
         style={styles.content}
-        sections={sections}
-        keyExtractor={(item, index) =>
-          item.kind === 'envId' ? `env:${item.videoId}` : `api:${item.video.id}:${index}`
-        }
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
+        data={videos}
+        keyExtractor={(video) => video.id}
+        renderItem={({ item: video }) => (
+          <VideoCard
+            video={video}
+            thumbnailUrl={thumbnails[video.id]}
+            onPress={() => handlePlayVideo(video.id)}
+          />
+        )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         refreshControl={
           <RefreshControl
@@ -327,14 +259,6 @@ function VideoCard({
 }
 
 const sectionStyles = StyleSheet.create({
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.onSurfaceVariant,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    marginTop: 16,
-  },
   emptyList: {
     flexGrow: 1,
   },
