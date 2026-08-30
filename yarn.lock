@@ -4675,6 +4675,7 @@ __metadata:
     react-native: "npm:0.86.2"
     react-native-builder-bob: "npm:^0.43.0"
     react-native-dotenv: "npm:^4.1.1"
+    react-native-fast-image: "npm:^8.6.3"
     react-native-monorepo-config: "npm:^0.4.0"
     react-native-safe-area-context: "npm:^5.5.2"
     react-native-screens: "npm:^4.27.0"
@@ -9555,6 +9556,16 @@ __metadata:
   dependencies:
     dotenv: "npm:^17.4.2"
   checksum: 10c0/cbda47aa5b2fd256100c36887ec90d1c818711c7ba37dc693d81cdb0f338a9ee8eba509a42009b1bdd9bec7a9d5ec4b42ab6ebbc853e7f336f9e3237ba96c596
+  languageName: node
+  linkType: hard
+
+"react-native-fast-image@npm:^8.6.3":
+  version: 8.6.3
+  resolution: "react-native-fast-image@npm:8.6.3"
+  peerDependencies:
+    react: ^17 || ^18
+    react-native: ">=0.60.0"
+  checksum: 10c0/4ebeae53ffeadf1e7e5e133c1cfda81f9efe978f9ece10c732a0338149fe9104681bfdabc8427dad7c934b02bfcbd0e205bb6ca43e2844abc6054630ebe34454
   languageName: node
   linkType: hard
 
