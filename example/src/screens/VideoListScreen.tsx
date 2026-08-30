@@ -5,6 +5,7 @@ import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } f
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Image,
   RefreshControl,
   SectionList,
   StyleSheet,
@@ -12,13 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
 
 import {
   BunnyStreamApi,
   TRANSITIONAL_VIDEO_STATUSES,
   fold,
   getOrNull,
+  useBunnyImage,
   videoStatusLabel,
   type Video,
   type VideoStatus,
@@ -33,23 +34,6 @@ type VideoListScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoLis
 
 /** Poll interval for refreshing the list while any video is still processing. */
 const STATUS_POLL_INTERVAL_MS = 5_000;
-
-/**
- * Bunny CDN requires a `Referer` header for "Block direct URL file access".
- * The Android demo adds this globally in its Coil ImageLoader; FastImage
- * (Glide-based) supports per-request headers so we set it here.
- */
-const BUNNY_REFERER = 'https://iframe.mediadelivery.net/';
-
-function isBunnyCdnUrl(url: string): boolean {
-  return url.includes('b-cdn.net') || url.includes('mediadelivery');
-}
-
-function bunnyImageSource(uri: string) {
-  return isBunnyCdnUrl(uri)
-    ? { uri, headers: { Referer: BUNNY_REFERER }, priority: FastImage.priority.normal }
-    : { uri, priority: FastImage.priority.normal };
-}
 
 type UiState =
   | { kind: 'loading' }
@@ -232,46 +216,9 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
 
     const { video } = item;
     const thumbUrl = thumbnails[video.id];
-    console.log('thumbUrl', thumbnails[video.id]);
 
     return (
-      <TouchableOpacity
-        style={videoCardStyles.card}
-        onPress={() => handlePlayVideo(video.id)}
-        activeOpacity={0.7}
-      >
-        <View style={videoCardStyles.thumbnailContainer}>
-          {thumbUrl ? (
-            <FastImage
-              source={bunnyImageSource(thumbUrl)}
-              style={videoCardStyles.thumbnail}
-              resizeMode={FastImage.resizeMode.cover}
-            />
-          ) : (
-            <View style={videoCardStyles.thumbnailPlaceholder} />
-          )}
-        </View>
-        <View style={videoCardStyles.info}>
-          <Text style={videoCardStyles.title} numberOfLines={1}>
-            {video.title || 'Untitled'}
-          </Text>
-          <View style={videoCardStyles.pillRow}>
-            <View style={videoCardStyles.pill}>
-              <Text style={videoCardStyles.pillText}>
-                {videoStatusLabel(video.status as VideoStatus)}
-              </Text>
-            </View>
-            <View style={videoCardStyles.pill}>
-              <Text style={videoCardStyles.pillText}>{formatDuration(video.lengthSeconds)}</Text>
-            </View>
-            {video.views > 0 ? (
-              <View style={videoCardStyles.pill}>
-                <Text style={videoCardStyles.pillText}>{video.views} views</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </TouchableOpacity>
+      <VideoCard video={video} thumbnailUrl={thumbUrl} onPress={() => handlePlayVideo(video.id)} />
     );
   };
 
@@ -330,6 +277,53 @@ function formatDuration(seconds: number): string {
   const min = Math.floor(seconds / 60);
   const sec = seconds % 60;
   return `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+/** Renders a single video card. Uses `useBunnyImage` to resolve the Bunny
+ * CDN thumbnail URL (with Referer header) to a data: URI the plain `Image`
+ * can render. */
+function VideoCard({
+  video,
+  thumbnailUrl,
+  onPress,
+}: {
+  video: Video;
+  thumbnailUrl: string | undefined;
+  onPress: () => void;
+}) {
+  const { uri } = useBunnyImage(thumbnailUrl);
+
+  return (
+    <TouchableOpacity style={videoCardStyles.card} onPress={onPress} activeOpacity={0.7}>
+      <View style={videoCardStyles.thumbnailContainer}>
+        {uri ? (
+          <Image source={{ uri }} style={videoCardStyles.thumbnail} resizeMode="cover" />
+        ) : (
+          <View style={videoCardStyles.thumbnailPlaceholder} />
+        )}
+      </View>
+      <View style={videoCardStyles.info}>
+        <Text style={videoCardStyles.title} numberOfLines={1}>
+          {video.title || 'Untitled'}
+        </Text>
+        <View style={videoCardStyles.pillRow}>
+          <View style={videoCardStyles.pill}>
+            <Text style={videoCardStyles.pillText}>
+              {videoStatusLabel(video.status as VideoStatus)}
+            </Text>
+          </View>
+          <View style={videoCardStyles.pill}>
+            <Text style={videoCardStyles.pillText}>{formatDuration(video.lengthSeconds)}</Text>
+          </View>
+          {video.views > 0 ? (
+            <View style={videoCardStyles.pill}>
+              <Text style={videoCardStyles.pillText}>{video.views} views</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 const sectionStyles = StyleSheet.create({
