@@ -2,14 +2,7 @@ import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   BunnyStreamApi,
@@ -142,10 +135,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {/* Properties card — mirrors Android demo's LiveStreamPropertiesCard */}
         {stream ? <PropertiesCard stream={stream} videoSize={videoSize} /> : null}
-
-        <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.errorButtonText}>Go Back</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );

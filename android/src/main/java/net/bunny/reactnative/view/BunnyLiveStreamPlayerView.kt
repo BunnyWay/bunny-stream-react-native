@@ -288,13 +288,18 @@ class BunnyLiveStreamPlayerView(
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    // If cleanup already ran (host is DESTROYED), do not touch the lifecycle —
+    // React Native may re-attach a recycled view after drop. Bail out early.
+    if (hostingOwner.isDestroyed) return
     // Acquire the player lease — revokes any active VOD lease so the VOD
     // view cleans up. The live composable uses the same DefaultBunnyPlayer
     // singleton internally; concurrent VOD + live is not supported.
     if (lease == null) {
       lease = BunnyPlayerLease(onRevoke = {
         // Another view (VOD) is taking ownership — pause our polling.
-        hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        if (!hostingOwner.isDestroyed) {
+          hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+        }
       }).also { it.acquire() }
     }
 
@@ -329,7 +334,12 @@ class BunnyLiveStreamPlayerView(
 
   override fun onDetachedFromWindow() {
     // Pause polling before detaching — ON_STOP triggers viewModel.onBackground().
-    hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+    // Guard against DESTROYED: if cleanup() already ran (which dispatches
+    // ON_DESTROY), React Native may still call onDetachedFromWindow on the
+    // recycled view. LifecycleRegistry forbids moving back from DESTROYED.
+    if (!hostingOwner.isDestroyed) {
+      hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+    }
     // Stop observing the Activity lifecycle while detached.
     activityLifecycle?.let { old ->
       activityObserver?.let { obs -> old.lifecycle.removeObserver(obs) }
@@ -354,7 +364,14 @@ class BunnyLiveStreamPlayerView(
     val width = MeasureSpec.getSize(widthMeasureSpec)
     val height = MeasureSpec.getSize(heightMeasureSpec)
     setMeasuredDimension(width, height)
-    measureChildWithMargins(composeView, widthMeasureSpec, 0, heightMeasureSpec, 0)
+    // Skip measuring the ComposeView if it is not attached to a window yet —
+    // ComposeView.onMeasure tries to resolve the window recomposer, which
+    // throws "Cannot locate windowRecomposer ... is not attached to a window"
+    // when measured before attach. Fabric can trigger a layout pass during
+    // mount before the view is attached.
+    if (composeView.isAttachedToWindow) {
+      measureChildWithMargins(composeView, widthMeasureSpec, 0, heightMeasureSpec, 0)
+    }
   }
 
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -459,7 +476,14 @@ private class HostingLifecycleOwner : LifecycleOwner, ViewModelStoreOwner {
   override val lifecycle: Lifecycle get() = lifecycleRegistry
   override val viewModelStore: ViewModelStore get() = store
 
+  /** True once [handleLifecycleEvent] has dispatched [Lifecycle.Event.ON_DESTROY]. */
+  val isDestroyed: Boolean get() = lifecycleRegistry.currentState == Lifecycle.State.DESTROYED
+
   fun handleLifecycleEvent(event: Lifecycle.Event) {
+    // Ignore any event once we've reached DESTROYED — React Native may
+    // re-attach/detach a recycled view after cleanup, and LifecycleRegistry
+    // throws on transitions out of DESTROYED.
+    if (isDestroyed && event != Lifecycle.Event.ON_DESTROY) return
     lifecycleRegistry.handleLifecycleEvent(event)
   }
 
