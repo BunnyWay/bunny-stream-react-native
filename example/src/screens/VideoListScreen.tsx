@@ -4,7 +4,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   RefreshControl,
@@ -182,12 +181,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'loading' ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading videos…</Text>
-            </View>
-          ) : uiState.kind === 'empty' ? (
+          uiState.kind === 'empty' ? (
             <Text style={styles.videoListEmpty}>No videos in this library.</Text>
           ) : uiState.kind === 'error' ? (
             <View style={styles.loadingContainer}>
