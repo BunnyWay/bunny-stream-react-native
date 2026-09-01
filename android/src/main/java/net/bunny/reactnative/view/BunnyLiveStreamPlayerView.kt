@@ -330,6 +330,19 @@ class BunnyLiveStreamPlayerView(
     // the Activity is currently started; this duplicate is harmless because
     // LifecycleRegistry deduplicates state transitions.
     hostingOwner.handleLifecycleEvent(Lifecycle.Event.ON_START)
+    post {
+      if (!hostingOwner.isDestroyed && composeView.isAttachedToWindow) {
+        val childWidth = measuredWidth
+        val childHeight = measuredHeight
+        if (childWidth > 0 && childHeight > 0) {
+          composeView.measure(
+            MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(childHeight, MeasureSpec.EXACTLY),
+          )
+          composeView.layout(0, 0, childWidth, childHeight)
+        }
+      }
+    }
   }
 
   override fun onDetachedFromWindow() {

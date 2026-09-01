@@ -68,43 +68,42 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const statusColor = status ? (STATUS_COLORS[status] ?? '#aaa') : '#aaa';
 
   return (
-    <View style={playerStyles.container}>
+    <View style={styles.playerContainer}>
       <Header title={stream?.title || 'Live Player'} onBack={() => navigation.goBack()} />
-      <ScrollView style={styles.content} contentContainerStyle={playerStyles.scrollContent}>
-        {/* Player */}
-        <View style={styles.playerWrapper}>
-          <BunnyStreamPlayer
-            style={styles.player}
-            source={source}
-            onVideoSizeChange={(e) => {
-              setVideoSize(e.nativeEvent);
-              setLoading(false);
-            }}
-            onLiveStateChange={(e) => {
-              setLoading(false);
-              eventHandlers.onLiveStateChange?.(e);
-            }}
-            onLiveError={(e) => {
-              setLoading(false);
-              eventHandlers.onLiveError?.(e);
-            }}
-          />
+      <View style={styles.playerWrapper}>
+        <BunnyStreamPlayer
+          style={styles.player}
+          source={source}
+          onVideoSizeChange={(e) => {
+            setVideoSize(e.nativeEvent);
+            setLoading(false);
+          }}
+          onLiveStateChange={(e) => {
+            setLoading(false);
+            eventHandlers.onLiveStateChange?.(e);
+          }}
+          onLiveError={(e) => {
+            setLoading(false);
+            eventHandlers.onLiveError?.(e);
+          }}
+        />
 
-          {loading ? (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
-          ) : null}
+        {loading ? (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        ) : null}
 
-          {/* LIVE badge when stream is running */}
-          {isLive ? (
-            <View style={liveBadgeStyles.container}>
-              <View style={liveBadgeStyles.dot} />
-              <Text style={liveBadgeStyles.text}>LIVE</Text>
-            </View>
-          ) : null}
-        </View>
+        {/* LIVE badge when stream is running */}
+        {isLive ? (
+          <View style={liveBadgeStyles.container}>
+            <View style={liveBadgeStyles.dot} />
+            <Text style={liveBadgeStyles.text}>LIVE</Text>
+          </View>
+        ) : null}
+      </View>
 
+      <ScrollView style={styles.content}>
         {/* Countdown display */}
         {liveState?.state === 'countdown' && liveState.targetEpochMs ? (
           <CountdownDisplay targetEpochMs={liveState.targetEpochMs} title={liveState.title} />
@@ -119,8 +118,8 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {/* Status card — mirrors Android demo's LiveStatusCard */}
         <View style={cardStyles.statusCard}>
-          <Text style={cardStyles.cardTitle}>Status</Text>
           <View style={cardStyles.statusRow}>
+            <Text style={cardStyles.cardTitle}>Status</Text>
             <View style={[cardStyles.statusPill, { backgroundColor: statusColor }]}>
               <Text style={cardStyles.statusPillText}>
                 {status ? liveStreamStatusLabel(status) : '—'}
@@ -246,18 +245,11 @@ function CountdownDisplay({ targetEpochMs, title }: { targetEpochMs: number; tit
 }
 
 const playerStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    paddingBottom: 48,
-  },
   errorPanel: {
     backgroundColor: 'rgba(211, 47, 47, 0.1)',
     borderRadius: 8,
     padding: 12,
-    marginTop: 12,
+    margin: 16,
   },
   errorText: {
     color: '#d32f2f',
@@ -339,7 +331,6 @@ const cardStyles = StyleSheet.create({
     fontWeight: '600',
     color: colors.onSurfaceVariant,
     textTransform: 'uppercase',
-    marginBottom: 12,
   },
   statusRow: {
     flexDirection: 'row',
