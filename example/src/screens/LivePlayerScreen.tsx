@@ -49,7 +49,11 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const isLive = liveState?.isLive ?? false;
 
   // Fetch live stream metadata for the properties card — mirrors the
-  // Android demo's LiveStreamPropertiesCard.
+  // Android demo's LiveStreamPropertiesCard. Re-fetches when the live
+  // state transitions to `vod` or `offline` so the status card reflects
+  // the stream's new (ended / processing) status instead of the stale
+  // "Running" from the initial fetch.
+  const liveStateKind = liveState?.state;
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -62,7 +66,23 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [streamId, libraryId]);
+  }, [streamId, libraryId, liveStateKind]);
+
+  // Re-show the loading overlay when the SDK transitions between major
+  // states (e.g. live → vod, live → offline) — the composable tears down
+  // and rebuilds the player, which can briefly show a black frame. The
+  // overlay clears on the next onVideoSizeChange (first frame of the new
+  // content) or onLiveStateChange to a non-loading state.
+  const prevLiveState = React.useRef<string | undefined>(undefined);
+  React.useEffect(() => {
+    if (prevLiveState.current !== undefined && prevLiveState.current !== liveStateKind) {
+      // State changed — show loading until the next frame or state settles
+      if (liveStateKind === 'vod' || liveStateKind === 'offline') {
+        setLoading(true);
+      }
+    }
+    prevLiveState.current = liveStateKind;
+  }, [liveStateKind]);
 
   const status = stream?.status as LiveStreamStatus | undefined;
   const statusColor = status ? (STATUS_COLORS[status] ?? '#aaa') : '#aaa';
@@ -99,6 +119,13 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
           <View style={liveBadgeStyles.container}>
             <View style={liveBadgeStyles.dot} />
             <Text style={liveBadgeStyles.text}>LIVE</Text>
+          </View>
+        ) : null}
+
+        {/* Stream-ended banner when the SDK transitions to VOD playback */}
+        {liveState?.state === 'vod' && !loading ? (
+          <View style={liveBadgeStyles.endedBanner}>
+            <Text style={liveBadgeStyles.endedText}>Stream ended — playing recording</Text>
           </View>
         ) : null}
       </View>
@@ -281,6 +308,22 @@ const liveBadgeStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  endedBanner: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  endedText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 
