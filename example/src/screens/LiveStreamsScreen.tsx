@@ -56,6 +56,8 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
   const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editStream, setEditStream] = React.useState<LiveStream | null>(null);
+  const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
 
   const loadStreams = React.useCallback(async () => {
     const stored = await loadSettings();
@@ -102,8 +104,30 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
     loadStreams();
   };
 
+  const handleEditSaved = () => {
+    setEditStream(null);
+    loadStreams();
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (libraryId == null || deleteStream == null) return;
+    const streamId = deleteStream.id;
+    setDeleteStream(null);
+    const result = await BunnyStreamApi.deleteLiveStream(libraryId, streamId);
+    if (result.ok) {
+      loadStreams();
+    } else {
+      setUiState({ kind: 'error', message: result.error.message });
+    }
+  };
+
   const renderItem = ({ item }: { item: LiveStream }) => (
-    <LiveStreamCard stream={item} onWatch={() => handleWatch(item)} />
+    <LiveStreamCard
+      stream={item}
+      onWatch={() => handleWatch(item)}
+      onEdit={() => setEditStream(item)}
+      onDelete={() => setDeleteStream(item)}
+    />
   );
 
   const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
@@ -150,12 +174,54 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
       </TouchableOpacity>
 
       {/* Create live stream modal */}
-      <CreateLiveStreamModal
+      <LiveStreamEditorModal
         visible={createOpen}
         libraryId={libraryId}
+        stream={null}
         onClose={() => setCreateOpen(false)}
-        onCreated={handleCreated}
+        onDone={handleCreated}
       />
+
+      {/* Edit live stream modal */}
+      <LiveStreamEditorModal
+        visible={editStream != null}
+        libraryId={libraryId}
+        stream={editStream}
+        onClose={() => setEditStream(null)}
+        onDone={handleEditSaved}
+      />
+
+      {/* Delete confirmation modal */}
+      <Modal
+        visible={deleteStream != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteStream(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete live stream?</Text>
+            <Text style={styles.modalSubtitle}>
+              "{deleteStream?.title}" will be permanently deleted. Recorded VODs remain in the
+              library.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.errorButton, { flex: 1, marginRight: 8 }]}
+                onPress={handleDeleteConfirm}
+              >
+                <Text style={styles.errorButtonText}>Delete</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.errorButton, { flex: 1, backgroundColor: colors.disabled }]}
+                onPress={() => setDeleteStream(null)}
+              >
+                <Text style={styles.errorButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -165,7 +231,17 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
  * LiveStreamItem: a Row with text metadata + pills on the left, a play
  * button and overflow menu on the right. No thumbnail in the list.
  */
-function LiveStreamCard({ stream, onWatch }: { stream: LiveStream; onWatch: () => void }) {
+function LiveStreamCard({
+  stream,
+  onWatch,
+  onEdit,
+  onDelete,
+}: {
+  stream: LiveStream;
+  onWatch: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const status = stream.status as LiveStreamStatus;
   const statusColor = STATUS_COLORS[status] ?? '#aaa';
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -202,13 +278,15 @@ function LiveStreamCard({ stream, onWatch }: { stream: LiveStream; onWatch: () =
     {
       label: 'Edit',
       action: () => {
-        setMenuOpen(false); /* TODO: Edit */
+        setMenuOpen(false);
+        onEdit();
       },
     },
     {
       label: 'Delete',
       action: () => {
-        setMenuOpen(false); /* TODO: Delete */
+        setMenuOpen(false);
+        onDelete();
       },
       destructive: true,
     },
@@ -450,8 +528,9 @@ const fabStyles = StyleSheet.create({
 });
 
 /**
- * Create live stream modal — mirrors the Android demo's
- * LiveStreamEditorScreen. Fields are grouped into sections:
+ * Live stream editor modal — mirrors the Android demo's
+ * LiveStreamEditorScreen. Used for both create (stream=null) and edit
+ * (stream=<existing>) flows. Fields are grouped into sections:
  *   Details (title, description, public, record VOD)
  *   Schedule (enable, start, end, countdown)
  *   DVR (enable, timeframe)
@@ -459,20 +538,23 @@ const fabStyles = StyleSheet.create({
  *   Thumbnail (enable, image URL)
  *   RTMP outputs (up to 4 rows of endpoint + stream key)
  *
- * Only `title` is required. On success, calls `onCreated` which closes
+ * Only `title` is required. On success, calls `onDone` which closes
  * the modal and refreshes the list.
  */
-function CreateLiveStreamModal({
+function LiveStreamEditorModal({
   visible,
   libraryId,
+  stream,
   onClose,
-  onCreated,
+  onDone,
 }: {
   visible: boolean;
   libraryId: number | null;
+  stream: LiveStream | null;
   onClose: () => void;
-  onCreated: () => void;
+  onDone: () => void;
 }) {
+  const isEdit = stream != null;
   // Details
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -506,33 +588,58 @@ function CreateLiveStreamModal({
 
   const MAX_RTMP = 4;
 
-  // Reset form when modal opens
+  // Reset/prefill form when modal opens
   React.useEffect(() => {
     if (visible) {
-      setTitle('');
-      setDescription('');
-      setIsPublic(true);
-      setRecordVod(false);
-      setScheduleEnabled(false);
-      setScheduledStart('');
-      setScheduledEnd('');
-      setEnableCountdown(false);
-      setDvrEnabled(false);
-      setDvrWindow('12:00:00');
-      setTrailerEnabled(false);
-      setTrailerVideoId('');
-      setThumbnailEnabled(false);
-      setThumbnailUrl('');
-      setRtmpOutputs([]);
+      if (stream) {
+        setTitle(stream.title);
+        setDescription(stream.description ?? '');
+        setIsPublic(stream.isPublic);
+        setRecordVod(stream.recordVod);
+        const hasSchedule = stream.scheduledStartTime != null || stream.scheduledEndTime != null;
+        setScheduleEnabled(hasSchedule);
+        setScheduledStart(stream.scheduledStartTime ?? '');
+        setScheduledEnd(stream.scheduledEndTime ?? '');
+        setEnableCountdown(stream.enableCountdown ?? false);
+        setDvrEnabled(stream.dvrEnabled);
+        setDvrWindow(stream.dvrWindowSeconds ? formatHms(stream.dvrWindowSeconds) : '12:00:00');
+        const hasTrailer = stream.preStreamTrailerVideoId != null;
+        setTrailerEnabled(hasTrailer);
+        setTrailerVideoId(stream.preStreamTrailerVideoId ?? '');
+        setThumbnailEnabled(false);
+        setThumbnailUrl('');
+        setRtmpOutputs(
+          (stream.rtmpOutputs ?? []).map((o) => ({
+            url: o.endpoint ?? '',
+            key: o.streamKey ?? '',
+          })),
+        );
+      } else {
+        setTitle('');
+        setDescription('');
+        setIsPublic(true);
+        setRecordVod(false);
+        setScheduleEnabled(false);
+        setScheduledStart('');
+        setScheduledEnd('');
+        setEnableCountdown(false);
+        setDvrEnabled(false);
+        setDvrWindow('12:00:00');
+        setTrailerEnabled(false);
+        setTrailerVideoId('');
+        setThumbnailEnabled(false);
+        setThumbnailUrl('');
+        setRtmpOutputs([]);
+      }
       setSaving(false);
       setError(null);
     }
-  }, [visible]);
+  }, [visible, stream]);
 
   const dvrWindowError = dvrEnabled ? validateHms(dvrWindow) : null;
   const canSubmit = title.trim().length > 0 && !saving && libraryId != null && !dvrWindowError;
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!canSubmit || libraryId == null) return;
     setSaving(true);
     setError(null);
@@ -542,7 +649,7 @@ function CreateLiveStreamModal({
       .filter((o) => o.endpoint.length > 0);
     const dvrSeconds = dvrEnabled ? parseHms(dvrWindow) : null;
 
-    const result = await BunnyStreamApi.createLiveStream(libraryId, {
+    const payload = {
       title: title.trim(),
       description: description.trim() || null,
       isPublic,
@@ -555,15 +662,29 @@ function CreateLiveStreamModal({
       preStreamTrailerVideoId:
         trailerEnabled && trailerVideoId.trim() ? trailerVideoId.trim() : null,
       rtmpOutputs: rtmp.length > 0 ? rtmp : null,
-    });
-    fold(
-      result,
-      () => onCreated(),
-      (err) => {
-        setError(err.message);
-        setSaving(false);
-      },
-    );
+    };
+
+    if (isEdit && stream) {
+      const result = await BunnyStreamApi.updateLiveStream(libraryId, stream.id, payload);
+      fold(
+        result,
+        () => onDone(),
+        (err) => {
+          setError(err.message);
+          setSaving(false);
+        },
+      );
+    } else {
+      const result = await BunnyStreamApi.createLiveStream(libraryId, payload);
+      fold(
+        result,
+        () => onDone(),
+        (err) => {
+          setError(err.message);
+          setSaving(false);
+        },
+      );
+    }
   };
 
   return (
@@ -576,10 +697,12 @@ function CreateLiveStreamModal({
               Cancel
             </Text>
           </TouchableOpacity>
-          <Text style={createStyles.headerTitle}>New live stream</Text>
-          <TouchableOpacity onPress={handleCreate} disabled={!canSubmit}>
+          <Text style={createStyles.headerTitle}>
+            {isEdit ? 'Edit live stream' : 'New live stream'}
+          </Text>
+          <TouchableOpacity onPress={handleSave} disabled={!canSubmit}>
             <Text style={[createStyles.saveButton, !canSubmit && createStyles.textDisabled]}>
-              {saving ? 'Creating…' : 'Create'}
+              {saving ? (isEdit ? 'Saving…' : 'Creating…') : isEdit ? 'Save' : 'Create'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -839,6 +962,14 @@ function parseHms(hms: string): number | null {
   const s = parseInt(m[3], 10);
   if (min > 59 || s > 59) return null;
   return h * 3600 + min * 60 + s;
+}
+
+/** Inverse of parseHms — formats seconds as HH:MM:SS. */
+function formatHms(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 /** Validate HH:MM:SS format and range (30s - 43200s). Returns error message or null. */
