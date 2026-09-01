@@ -8,6 +8,7 @@ import {
   FlatList,
   Modal,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -449,10 +450,17 @@ const fabStyles = StyleSheet.create({
 });
 
 /**
- * Create live stream modal — a simplified version of the Android demo's
- * LiveStreamEditorScreen. Only `title` is required; other fields are
- * optional toggles. On success, calls `onCreated` which closes the modal
- * and refreshes the list.
+ * Create live stream modal — mirrors the Android demo's
+ * LiveStreamEditorScreen. Fields are grouped into sections:
+ *   Details (title, description, public, record VOD)
+ *   Schedule (enable, start, end, countdown)
+ *   DVR (enable, timeframe)
+ *   Pre-stream trailer (enable, video ID)
+ *   Thumbnail (enable, image URL)
+ *   RTMP outputs (up to 4 rows of endpoint + stream key)
+ *
+ * Only `title` is required. On success, calls `onCreated` which closes
+ * the modal and refreshes the list.
  */
 function CreateLiveStreamModal({
   visible,
@@ -465,14 +473,38 @@ function CreateLiveStreamModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  // Details
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [isPublic, setIsPublic] = React.useState(true);
   const [recordVod, setRecordVod] = React.useState(false);
+
+  // Schedule
+  const [scheduleEnabled, setScheduleEnabled] = React.useState(false);
+  const [scheduledStart, setScheduledStart] = React.useState('');
+  const [scheduledEnd, setScheduledEnd] = React.useState('');
+  const [enableCountdown, setEnableCountdown] = React.useState(false);
+
+  // DVR
   const [dvrEnabled, setDvrEnabled] = React.useState(false);
+  const [dvrWindow, setDvrWindow] = React.useState('12:00:00');
+
+  // Trailer
+  const [trailerEnabled, setTrailerEnabled] = React.useState(false);
+  const [trailerVideoId, setTrailerVideoId] = React.useState('');
+
+  // Thumbnail
+  const [thumbnailEnabled, setThumbnailEnabled] = React.useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState('');
+
+  // RTMP outputs
+  const [rtmpOutputs, setRtmpOutputs] = React.useState<{ url: string; key: string }[]>([]);
+
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const insets = useSafeAreaInsets();
+
+  const MAX_RTMP = 4;
 
   // Reset form when modal opens
   React.useEffect(() => {
@@ -481,24 +513,48 @@ function CreateLiveStreamModal({
       setDescription('');
       setIsPublic(true);
       setRecordVod(false);
+      setScheduleEnabled(false);
+      setScheduledStart('');
+      setScheduledEnd('');
+      setEnableCountdown(false);
       setDvrEnabled(false);
+      setDvrWindow('12:00:00');
+      setTrailerEnabled(false);
+      setTrailerVideoId('');
+      setThumbnailEnabled(false);
+      setThumbnailUrl('');
+      setRtmpOutputs([]);
       setSaving(false);
       setError(null);
     }
   }, [visible]);
 
-  const canSubmit = title.trim().length > 0 && !saving && libraryId != null;
+  const dvrWindowError = dvrEnabled ? validateHms(dvrWindow) : null;
+  const canSubmit = title.trim().length > 0 && !saving && libraryId != null && !dvrWindowError;
 
   const handleCreate = async () => {
     if (!canSubmit || libraryId == null) return;
     setSaving(true);
     setError(null);
+
+    const rtmp = rtmpOutputs
+      .map((o) => ({ endpoint: o.url.trim(), streamKey: o.key.trim() || null }))
+      .filter((o) => o.endpoint.length > 0);
+    const dvrSeconds = dvrEnabled ? parseHms(dvrWindow) : null;
+
     const result = await BunnyStreamApi.createLiveStream(libraryId, {
       title: title.trim(),
       description: description.trim() || null,
       isPublic,
       recordVod,
+      scheduledStartTime: scheduleEnabled && scheduledStart.trim() ? scheduledStart.trim() : null,
+      scheduledEndTime: scheduleEnabled && scheduledEnd.trim() ? scheduledEnd.trim() : null,
+      enableCountdown: scheduleEnabled ? enableCountdown : null,
       dvrEnabled,
+      dvrWindowSeconds: dvrSeconds,
+      preStreamTrailerVideoId:
+        trailerEnabled && trailerVideoId.trim() ? trailerVideoId.trim() : null,
+      rtmpOutputs: rtmp.length > 0 ? rtmp : null,
     });
     fold(
       result,
@@ -513,19 +569,25 @@ function CreateLiveStreamModal({
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={[createStyles.container, { paddingTop: insets.top }]}>
+        {/* Header */}
         <View style={createStyles.header}>
           <TouchableOpacity onPress={onClose} disabled={saving}>
-            <Text style={[createStyles.cancelButton, saving && createStyles.disabled]}>Cancel</Text>
+            <Text style={[createStyles.cancelButton, saving && createStyles.textDisabled]}>
+              Cancel
+            </Text>
           </TouchableOpacity>
           <Text style={createStyles.headerTitle}>New live stream</Text>
           <TouchableOpacity onPress={handleCreate} disabled={!canSubmit}>
-            <Text style={[createStyles.saveButton, !canSubmit && createStyles.disabled]}>
+            <Text style={[createStyles.saveButton, !canSubmit && createStyles.textDisabled]}>
               {saving ? 'Creating…' : 'Create'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={createStyles.form}>
+        <ScrollView style={createStyles.scroll} contentContainerStyle={createStyles.scrollContent}>
+          {/* Details section */}
+          <Text style={createStyles.sectionTitle}>Details</Text>
+
           <Text style={createStyles.label}>Title *</Text>
           <TextInput
             style={createStyles.input}
@@ -533,7 +595,6 @@ function CreateLiveStreamModal({
             onChangeText={setTitle}
             placeholder="Stream title"
             placeholderTextColor="#999"
-            autoFocus
           />
 
           <Text style={createStyles.label}>Description</Text>
@@ -549,19 +610,199 @@ function CreateLiveStreamModal({
           />
 
           <View style={createStyles.toggleRow}>
-            <Text style={createStyles.toggleLabel}>Public</Text>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>Public</Text>
+            </View>
             <Switch value={isPublic} onValueChange={setIsPublic} />
           </View>
 
           <View style={createStyles.toggleRow}>
-            <Text style={createStyles.toggleLabel}>Record VOD</Text>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>Video on demand</Text>
+              <Text style={createStyles.toggleSubtitle}>
+                Store the stream as a VOD after it ends
+              </Text>
+            </View>
             <Switch value={recordVod} onValueChange={setRecordVod} />
           </View>
 
+          {/* Schedule section */}
+          <Text style={createStyles.sectionTitle}>Schedule</Text>
           <View style={createStyles.toggleRow}>
-            <Text style={createStyles.toggleLabel}>DVR enabled</Text>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>Schedule start date and time</Text>
+              <Text style={createStyles.toggleSubtitle}>Select when you want to go live</Text>
+            </View>
+            <Switch value={scheduleEnabled} onValueChange={setScheduleEnabled} />
+          </View>
+
+          {scheduleEnabled ? (
+            <>
+              <Text style={createStyles.label}>Scheduled start (ISO 8601)</Text>
+              <TextInput
+                style={createStyles.input}
+                value={scheduledStart}
+                onChangeText={setScheduledStart}
+                placeholder="2026-01-15T18:00:00Z"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <Text style={createStyles.label}>Scheduled end (optional)</Text>
+              <TextInput
+                style={createStyles.input}
+                value={scheduledEnd}
+                onChangeText={setScheduledEnd}
+                placeholder="2026-01-15T20:00:00Z"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={createStyles.toggleRow}>
+                <View style={createStyles.toggleText}>
+                  <Text style={createStyles.toggleLabel}>Enable countdown</Text>
+                  <Text style={createStyles.toggleSubtitle}>
+                    Show a countdown before the stream starts
+                  </Text>
+                </View>
+                <Switch value={enableCountdown} onValueChange={setEnableCountdown} />
+              </View>
+            </>
+          ) : null}
+
+          {/* DVR section */}
+          <Text style={createStyles.sectionTitle}>DVR</Text>
+          <View style={createStyles.toggleRow}>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>DVR</Text>
+              <Text style={createStyles.toggleSubtitle}>
+                Let viewers rewind behind the live point (30s - 12hrs)
+              </Text>
+            </View>
             <Switch value={dvrEnabled} onValueChange={setDvrEnabled} />
           </View>
+
+          {dvrEnabled ? (
+            <>
+              <Text style={createStyles.label}>DVR timeframe (HH:MM:SS)</Text>
+              <TextInput
+                style={[createStyles.input, dvrWindowError && createStyles.inputError]}
+                value={dvrWindow}
+                onChangeText={setDvrWindow}
+                placeholder="12:00:00"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {dvrWindowError ? (
+                <Text style={createStyles.fieldError}>{dvrWindowError}</Text>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* Pre-stream trailer section */}
+          <Text style={createStyles.sectionTitle}>Pre-stream trailer</Text>
+          <View style={createStyles.toggleRow}>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>Pre-stream trailer</Text>
+              <Text style={createStyles.toggleSubtitle}>
+                Play a short video before the stream starts
+              </Text>
+            </View>
+            <Switch value={trailerEnabled} onValueChange={setTrailerEnabled} />
+          </View>
+
+          {trailerEnabled ? (
+            <>
+              <Text style={createStyles.label}>Trailer video ID</Text>
+              <TextInput
+                style={createStyles.input}
+                value={trailerVideoId}
+                onChangeText={setTrailerVideoId}
+                placeholder="Video GUID from your library"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </>
+          ) : null}
+
+          {/* Thumbnail section */}
+          <Text style={createStyles.sectionTitle}>Thumbnail</Text>
+          <View style={createStyles.toggleRow}>
+            <View style={createStyles.toggleText}>
+              <Text style={createStyles.toggleLabel}>Thumbnail</Text>
+              <Text style={createStyles.toggleSubtitle}>Set a custom thumbnail image</Text>
+            </View>
+            <Switch value={thumbnailEnabled} onValueChange={setThumbnailEnabled} />
+          </View>
+
+          {thumbnailEnabled ? (
+            <>
+              <Text style={createStyles.label}>Image URL</Text>
+              <TextInput
+                style={createStyles.input}
+                value={thumbnailUrl}
+                onChangeText={setThumbnailUrl}
+                placeholder="https://example.com/poster.jpg"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </>
+          ) : null}
+
+          {/* RTMP outputs section */}
+          <Text style={createStyles.sectionTitle}>RTMP outputs</Text>
+          <Text style={createStyles.sectionHint}>
+            Forward the stream to external destinations (max {MAX_RTMP}).
+          </Text>
+
+          {rtmpOutputs.map((output, i) => (
+            <View key={i} style={createStyles.rtmpRow}>
+              <Text style={createStyles.label}>Stream URL</Text>
+              <TextInput
+                style={createStyles.input}
+                value={output.url}
+                onChangeText={(v) => updateRtmpRow(rtmpOutputs, setRtmpOutputs, i, { url: v })}
+                placeholder="rtmp://live.example.com/app"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <Text style={createStyles.label}>Stream Key</Text>
+              <TextInput
+                style={createStyles.input}
+                value={output.key}
+                onChangeText={(v) => updateRtmpRow(rtmpOutputs, setRtmpOutputs, i, { key: v })}
+                placeholder="Optional stream key"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={createStyles.removeButton}
+                onPress={() => setRtmpOutputs(rtmpOutputs.filter((_, idx) => idx !== i))}
+              >
+                <Text style={createStyles.removeButtonText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {rtmpOutputs.length < MAX_RTMP ? (
+            <TouchableOpacity
+              style={createStyles.addButton}
+              onPress={() => setRtmpOutputs([...rtmpOutputs, { url: '', key: '' }])}
+            >
+              <Text style={createStyles.addButtonText}>+ Add RTMP output</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={createStyles.maxNote}>Maximum of {MAX_RTMP} RTMP outputs reached.</Text>
+          )}
 
           {error ? (
             <View style={createStyles.errorBox}>
@@ -574,10 +815,39 @@ function CreateLiveStreamModal({
               <ActivityIndicator color={colors.primary} />
             </View>
           ) : null}
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
+}
+
+function updateRtmpRow(
+  rows: { url: string; key: string }[],
+  setRows: (r: { url: string; key: string }[]) => void,
+  index: number,
+  patch: Partial<{ url: string; key: string }>,
+) {
+  setRows(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+}
+
+/** Parse HH:MM:SS to seconds. Returns null if invalid. */
+function parseHms(hms: string): number | null {
+  const m = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(hms.trim());
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const s = parseInt(m[3], 10);
+  if (min > 59 || s > 59) return null;
+  return h * 3600 + min * 60 + s;
+}
+
+/** Validate HH:MM:SS format and range (30s - 43200s). Returns error message or null. */
+function validateHms(hms: string): string | null {
+  const seconds = parseHms(hms);
+  if (seconds == null) return 'Use HH:MM:SS format (e.g. 12:00:00)';
+  if (seconds < 30) return 'Minimum DVR window is 30 seconds';
+  if (seconds > 43200) return 'Maximum DVR window is 12 hours (43200 seconds)';
+  return null;
 }
 
 const createStyles = StyleSheet.create({
@@ -608,11 +878,28 @@ const createStyles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  disabled: {
+  textDisabled: {
     color: '#bbb',
   },
-  form: {
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 48,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.onSurfaceVariant,
+    textTransform: 'uppercase',
+    marginTop: 24,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    marginBottom: 8,
   },
   label: {
     fontSize: 14,
@@ -631,6 +918,9 @@ const createStyles = StyleSheet.create({
     fontSize: 15,
     color: colors.onSurface,
   },
+  inputError: {
+    borderColor: '#d32f2f',
+  },
   textArea: {
     minHeight: 80,
   },
@@ -641,9 +931,57 @@ const createStyles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 8,
   },
+  toggleText: {
+    flex: 1,
+    paddingRight: 12,
+  },
   toggleLabel: {
     fontSize: 15,
     color: colors.onSurface,
+  },
+  toggleSubtitle: {
+    fontSize: 12,
+    color: colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  fieldError: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  rtmpRow: {
+    marginTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  removeButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  removeButtonText: {
+    color: '#d32f2f',
+    fontSize: 14,
+  },
+  addButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    borderStyle: 'dashed',
+  },
+  addButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  maxNote: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    marginTop: 12,
+    textAlign: 'center',
   },
   errorBox: {
     backgroundColor: 'rgba(211, 47, 47, 0.1)',
