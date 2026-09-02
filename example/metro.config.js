@@ -1,17 +1,19 @@
 const path = require('path');
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { getDefaultConfig } = require('@react-native/metro-config');
+const { withMetroConfig } = require('react-native-monorepo-config');
+
+const root = path.resolve(__dirname, '..');
 
 /**
  * Metro configuration
- * https://reactnative.dev/docs/metro
+ * https://facebook.github.io/metro/docs/configuration
  *
- * @type {import('@react-native/metro-config').MetroConfig}
+ * @type {import('metro-config').MetroConfig}
  */
-const config = {
-  watchFolders: [path.resolve(__dirname, '..')],
-  resolver: {
-    nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],
-  },
-};
+const config = withMetroConfig(getDefaultConfig(__dirname), {
+  root,
+  dirname: __dirname,
+  conditions: ['bunny-stream-react-native-source'],
+});
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = config;

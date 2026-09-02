@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Bunny icon scaled to ~58dp, centered in 108dp viewport (safe zone) -->
+    <!-- Original viewBox: 0 0 42 42.7; scale factor 1.4; offset to center -->
+    <group
+        android:scaleX="1.4"
+        android:scaleY="1.4"
+        android:translateX="24.6"
+        android:translateY="24">
+
+        <!-- Ear -->
+        <path
+            android:fillColor="#FBAA19"
+            android:pathData="M21,6.8l9.9,5.4L21.8,0C20.3,2,20,4.6,21,6.8z"/>
+
+        <!-- Dot -->
+        <path
+            android:fillColor="#F78D1E"
+            android:pathData="M16.5,26.7c1.2,0,2.2,1,2.2,2.3c0,1.2-1,2.2-2.3,2.2c-1.2,0-2.2-1-2.2-2.2C14.3,27.8,15.3,26.7,16.5,26.7z"/>
+
+        <!-- Main body -->
+        <path
+            android:fillColor="#FEBE2D"
+            android:pathData="M9.7,1.8l27.6,15c0.7,0.3,0.9,1.1,0.6,1.8c-0.1,0.3-0.3,0.5-0.6,0.6c-2.1,1.3-4.4,2.2-6.8,2.6l-5.8,11.8c0,0-1.8,4.1-6.8,2.5c2.1-2.1,4.6-4,4.6-7.2c0-3.4-2.7-6.1-6.1-6.1s-6.1,2.7-6.1,6.1l0,0c0,4.2,4.2,6,6.5,8.9c1,1.5,0.9,3.5-0.3,4.8C13.7,39.8,8.2,35,5.9,31.9c-1.2-1.6-1.9-3.5-2-5.5c0.2-4.4,3.2-8.2,7.4-9.5c1.3-0.4,2.6-0.5,3.9-0.5c1.8,0.1,3.6,0.7,5.2,1.6c2.5,1.4,3.6,1.1,5.3-0.4c1-0.8,2.1-3.5,0.4-4.1c-0.6-0.2-1.1-0.3-1.7-0.4c-3.1-0.6-8.6-1.2-10.6-2.3C10.6,9,8.4,5.3,9.7,1.8z"/>
+
+        <!-- Body shadow -->
+        <path
+            android:fillColor="#EA4425"
+            android:pathData="M22.5,29c1.3-6.7-5.5-13.1-10.8-12.2l0.4-0.1c-0.3,0.1-0.6,0.1-0.8,0.2c-4.2,1.3-7.2,5.1-7.4,9.5c0,2,0.7,4,2,5.5c2.3,3.1,7.8,7.9,10.7,10.8c1.2-1.3,1.4-3.3,0.3-4.8c-2.4-2.9-6.5-4.7-6.5-8.9c0-3.4,2.7-6.1,6.1-6.1C19.9,22.9,22.6,25.6,22.5,29z"/>
+
+        <!-- Top stroke -->
+        <path
+            android:fillColor="#F47920"
+            android:pathData="M9.7,1.8l21,11.4l0,0l0.6,0.3c0.5,0.4,1,1.2,0.4,2.6c-1,2.1-5,4.2-9.6,2.6c1.4,0.4,2.4-0.1,3.7-1.1c1-0.8,2.1-3.5,0.4-4.1c-0.6-0.2-1.1-0.3-1.7-0.4c-3.1-0.6-8.6-1.2-10.6-2.3C10.6,9,8.4,5.3,9.7,1.8z"/>
+
+        <!-- Top highlight -->
+        <path
+            android:fillColor="#FDCA0B"
+            android:pathData="M9.7,1.8c2.2,8,15.4,8.7,22,12L9.7,1.8z"/>
+
+        <!-- Lower body -->
+        <path
+            android:fillColor="#E73C25"
+            android:pathData="M16.9,37.9c-2.3-2.9-6.5-4.7-6.5-8.9c0-3.1,2.3-5.6,5.3-6C10.9,23,7,26.9,7,31.8c0,0.6,0.1,1.2,0.2,1.8c1.9,2.2,4.7,4.7,7,6.9c0.9,0.8,1.8,1.7,2.4,2.3c0.6-0.7,0.9-1.5,1-2.4l0,0C17.7,39.5,17.4,38.6,16.9,37.9z"/>
+
+        <!-- Side curve -->
+        <path
+            android:fillColor="#FDBA12"
+            android:pathData="M22.5,29.7c0-0.2,0-0.5,0-0.7c1.3-6.7-5.6-13.1-10.8-12.2c1.1-0.3,2.3-0.4,3.4-0.3C22,16.7,24,24.1,22.5,29.7z"/>
+
+        <!-- Small dot -->
+        <path
+            android:fillColor="#FEBE2D"
+            android:pathData="M2.3,14.8L2.3,14.8c1.2,0,2.3,1,2.3,2.3v2.3H2.3c-1.2,0-2.3-1-2.3-2.3c0,0,0,0,0,0l0,0C0,15.9,1,14.8,2.3,14.8z"/>
+    </group>
+</vector>
