@@ -284,7 +284,7 @@ function LiveStreamCard({
       disabled: !canGoLive,
     },
     {
-      label: 'RTMP',
+      label: 'Ingest',
       action: () => {
         setMenuOpen(false);
         onRtmp();
