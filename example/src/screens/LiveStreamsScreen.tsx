@@ -123,6 +123,20 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
     }
   };
 
+  const handleToggleLive = async (stream: LiveStream) => {
+    if (libraryId == null) return;
+    const status = stream.status as LiveStreamStatus;
+    const isRunning = status === LiveStreamStatusEnum.RUNNING;
+    const result = isRunning
+      ? await BunnyStreamApi.stopLiveStream(libraryId, stream.id)
+      : await BunnyStreamApi.startLiveStream(libraryId, stream.id);
+    if (result.ok) {
+      loadStreams();
+    } else {
+      setUiState({ kind: 'error', message: result.error.message });
+    }
+  };
+
   const renderItem = ({ item }: { item: LiveStream }) => (
     <LiveStreamCard
       stream={item}
@@ -130,6 +144,7 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
       onEdit={() => setEditStream(item)}
       onDelete={() => setDeleteStream(item)}
       onRtmp={() => setRtmpStream(item)}
+      onToggleLive={() => handleToggleLive(item)}
     />
   );
 
@@ -243,23 +258,25 @@ function LiveStreamCard({
   onEdit,
   onDelete,
   onRtmp,
+  onToggleLive,
 }: {
   stream: LiveStream;
   onWatch: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onRtmp: () => void;
+  onToggleLive: () => void;
 }) {
   const status = stream.status as LiveStreamStatus;
   const statusColor = STATUS_COLORS[status] ?? '#aaa';
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   // Watch is enabled only when the stream has an HLS playback URL.
-  // Go live is disabled for terminal states (ENDED / VOD_PROCESSING) — the
-  // SDK rejects re-publishing those. Edit and Delete are always enabled.
-  // Mirrors the Android demo's LiveStreamsScreen.kt overflow menu logic.
+  // Start/End live is disabled for terminal states (ENDED / VOD_PROCESSING) —
+  // the SDK rejects re-publishing those. Edit and Delete are always enabled.
   const canWatch = Boolean(stream.playbackUrlHls);
-  const canGoLive =
+  const isRunning = status === LiveStreamStatusEnum.RUNNING;
+  const canToggleLive =
     status !== LiveStreamStatusEnum.ENDED && status !== LiveStreamStatusEnum.VOD_PROCESSING;
 
   const menuItems: {
@@ -277,11 +294,13 @@ function LiveStreamCard({
       disabled: !canWatch,
     },
     {
-      label: 'Go live',
+      label: isRunning ? 'End live' : 'Start live',
       action: () => {
-        setMenuOpen(false); /* TODO: GoLive */
+        setMenuOpen(false);
+        onToggleLive();
       },
-      disabled: !canGoLive,
+      disabled: !canToggleLive,
+      destructive: isRunning,
     },
     {
       label: 'Ingest',
