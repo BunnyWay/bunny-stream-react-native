@@ -36,7 +36,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { streamId, libraryId, token, expires } = route.params;
-  const [loading, setLoading] = React.useState(true);
   const [videoSize, setVideoSize] = React.useState<{ width: number; height: number } | null>(null);
   const [stream, setStream] = React.useState<LiveStream | null>(null);
 
@@ -47,6 +46,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
   const liveState = state.liveState;
   const isLive = liveState?.isLive ?? false;
+  const loading = state.isLoading;
 
   // Fetch live stream metadata for the properties card — mirrors the
   // Android demo's LiveStreamPropertiesCard. Re-fetches when the live
@@ -68,22 +68,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
     };
   }, [streamId, libraryId, liveStateKind]);
 
-  // Re-show the loading overlay when the SDK transitions between major
-  // states (e.g. live → vod, live → offline) — the composable tears down
-  // and rebuilds the player, which can briefly show a black frame. The
-  // overlay clears on the next onVideoSizeChange (first frame of the new
-  // content) or onLiveStateChange to a non-loading state.
-  const prevLiveState = React.useRef<string | undefined>(undefined);
-  React.useEffect(() => {
-    if (prevLiveState.current !== undefined && prevLiveState.current !== liveStateKind) {
-      // State changed — show loading until the next frame or state settles
-      if (liveStateKind === 'vod' || liveStateKind === 'offline') {
-        setLoading(true);
-      }
-    }
-    prevLiveState.current = liveStateKind;
-  }, [liveStateKind]);
-
   const status = stream?.status as LiveStreamStatus | undefined;
   const statusColor = status ? (STATUS_COLORS[status] ?? '#aaa') : '#aaa';
 
@@ -96,14 +80,12 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
           source={source}
           onVideoSizeChange={(e) => {
             setVideoSize(e.nativeEvent);
-            setLoading(false);
+            eventHandlers.onVideoSizeChange?.(e);
           }}
           onLiveStateChange={(e) => {
-            setLoading(false);
             eventHandlers.onLiveStateChange?.(e);
           }}
           onLiveError={(e) => {
-            setLoading(false);
             eventHandlers.onLiveError?.(e);
           }}
         />
