@@ -2,6 +2,7 @@ import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import Clipboard from '@react-native-clipboard/clipboard';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -58,6 +59,7 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editStream, setEditStream] = React.useState<LiveStream | null>(null);
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
+  const [rtmpStream, setRtmpStream] = React.useState<LiveStream | null>(null);
 
   const loadStreams = React.useCallback(async () => {
     const stored = await loadSettings();
@@ -127,6 +129,7 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
       onWatch={() => handleWatch(item)}
       onEdit={() => setEditStream(item)}
       onDelete={() => setDeleteStream(item)}
+      onRtmp={() => setRtmpStream(item)}
     />
   );
 
@@ -222,6 +225,9 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
           </View>
         </View>
       </Modal>
+
+      {/* RTMP ingest details modal */}
+      <RtmpIngestModal stream={rtmpStream} onClose={() => setRtmpStream(null)} />
     </>
   );
 }
@@ -236,11 +242,13 @@ function LiveStreamCard({
   onWatch,
   onEdit,
   onDelete,
+  onRtmp,
 }: {
   stream: LiveStream;
   onWatch: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onRtmp: () => void;
 }) {
   const status = stream.status as LiveStreamStatus;
   const statusColor = STATUS_COLORS[status] ?? '#aaa';
@@ -274,6 +282,13 @@ function LiveStreamCard({
         setMenuOpen(false); /* TODO: GoLive */
       },
       disabled: !canGoLive,
+    },
+    {
+      label: 'RTMP',
+      action: () => {
+        setMenuOpen(false);
+        onRtmp();
+      },
     },
     {
       label: 'Edit',
@@ -1129,3 +1144,113 @@ const createStyles = StyleSheet.create({
     marginTop: 16,
   },
 });
+
+// --- RTMP Ingest Modal ---
+
+const rtmpStyles = StyleSheet.create({
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.onSurface,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+  },
+  rowText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'monospace',
+    color: colors.onSurface,
+    marginRight: 8,
+  },
+  copyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+  },
+  copyButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  unavailable: {
+    fontSize: 13,
+    color: colors.disabled,
+    fontStyle: 'italic',
+  },
+});
+
+/**
+ * Modal showing RTMP ingest details (stream key + primary/backup URLs) for a
+ * live stream, with copy-to-clipboard buttons. Mirrors the iOS demo's
+ * `LiveStreamIngestDetailsView`.
+ */
+function RtmpIngestModal({ stream, onClose }: { stream: LiveStream | null; onClose: () => void }) {
+  const [copied, setCopied] = React.useState<string | null>(null);
+
+  const handleCopy = async (value: string, label: string) => {
+    await Clipboard.setString(value);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 1500);
+  };
+
+  const streamKey = stream?.streamKey;
+  const primaryUrl = stream?.primaryIngestUrl;
+  const backupUrl = stream?.backupIngestUrl;
+
+  const copyableRow = (label: string, value: string | null) => {
+    if (!value || value.length === 0) {
+      return <Text style={rtmpStyles.unavailable}>Not provided by the API for this stream.</Text>;
+    }
+    return (
+      <View style={rtmpStyles.row}>
+        <Text style={rtmpStyles.rowText} numberOfLines={2}>
+          {value}
+        </Text>
+        <TouchableOpacity style={rtmpStyles.copyButton} onPress={() => handleCopy(value, label)}>
+          <Text style={rtmpStyles.copyButtonText}>{copied === label ? 'Copied!' : 'Copy'}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <Modal visible={stream != null} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>RTMP Ingest</Text>
+
+          <View style={rtmpStyles.section}>
+            <Text style={rtmpStyles.sectionTitle}>Stream key</Text>
+            {copyableRow('Stream key', streamKey ?? null)}
+          </View>
+
+          <View style={rtmpStyles.section}>
+            <Text style={rtmpStyles.sectionTitle}>Primary ingest URL</Text>
+            {copyableRow('Primary URL', primaryUrl ?? null)}
+          </View>
+
+          <View style={rtmpStyles.section}>
+            <Text style={rtmpStyles.sectionTitle}>Backup ingest URL</Text>
+            {copyableRow('Backup URL', backupUrl ?? null)}
+          </View>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={[styles.errorButton, { flex: 1 }]} onPress={onClose}>
+              <Text style={styles.errorButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
