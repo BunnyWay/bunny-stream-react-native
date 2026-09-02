@@ -1,6 +1,7 @@
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -19,10 +20,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   React.useEffect(() => {
     (async () => {
       const stored = await loadSettings();
-      if (stored) {
-        setAccessKey(stored.accessKey ?? '');
-        setLibraryId(stored.libraryId ?? '');
-      }
+      // Fall back to .env defaults when no stored value exists so the user
+      // sees pre-filled fields instead of empty inputs.
+      setAccessKey(stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '');
+      setLibraryId(String(stored?.libraryId ?? BUNNY_LIBRARY_ID ?? ''));
     })();
   }, []);
 

@@ -130,4 +130,74 @@ describe('useBunnyStreamPlayer reducer transitions', () => {
     expect(result.current.progress).toEqual({ positionMs: 0, durationMs: 0, progress: 0 });
     await unmount();
   });
+
+  // --- isLoading ---
+
+  it('isLoading is true by default', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    expect(result.current.state.isLoading).toBe(true);
+    await unmount();
+  });
+
+  it('READY clears isLoading (VOD first frame)', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onReady, {
+      videoId: 'vid-1',
+      durationMs: 60_000,
+    });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('VIDEO_SIZE clears isLoading (first frame decoded)', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onVideoSizeChange, { width: 1920, height: 1080 });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('LIVE_STATE with non-loading state clears isLoading', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onLiveStateChange, {
+      state: 'live',
+      isLive: true,
+    });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('LIVE_STATE with loading state preserves isLoading', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    // First, clear isLoading via a non-loading state
+    await fire(result.current.eventHandlers.onLiveStateChange, {
+      state: 'live',
+      isLive: true,
+    });
+    expect(result.current.state.isLoading).toBe(false);
+    // Now simulate a reload — LIVE_STATE with 'loading' should NOT re-set isLoading
+    // (the RESET action handles source changes; LIVE_STATE just reports current state)
+    await fire(result.current.eventHandlers.onLiveStateChange, {
+      state: 'loading',
+      isLive: false,
+    });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('LIVE_ERROR clears isLoading', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onLiveError, { message: 'Stream failed' });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('ERROR clears isLoading', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onError, {
+      code: 'ERR',
+      message: 'Playback failed',
+    });
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
 });
