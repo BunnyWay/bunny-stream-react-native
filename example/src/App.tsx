@@ -11,6 +11,7 @@ import { initialize } from 'bunny-stream-react-native';
 import { ScreenWrapper } from './components/ScreenWrapper';
 import { CustomControlsPlayerScreen } from './screens/CustomControlsPlayerScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { LivePlayerScreen } from './screens/LivePlayerScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { VideoListScreen } from './screens/VideoListScreen';
@@ -28,8 +29,11 @@ export default function App() {
       const resolvedAccessKey = stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '';
       const resolvedLibraryId = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
       const libIdNum = parseInt(resolvedLibraryId, 10);
-      if (!isNaN(libIdNum)) {
-        initialize(resolvedAccessKey || null, libIdNum);
+      // SDK 4.0.0 requires a non-empty access key. Skip initialization when
+      // none is configured rather than throwing — the user can set it in
+      // Settings, and the player screens surface a clear message.
+      if (!isNaN(libIdNum) && resolvedAccessKey.trim().length > 0) {
+        initialize(resolvedAccessKey, libIdNum);
       }
       setLoading(false);
     })();
@@ -54,6 +58,7 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Player" component={PlayerScreen} />
           <Stack.Screen name="PlayerCustom" component={CustomControlsPlayerScreen} />
+          <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ScreenWrapper>

@@ -22,6 +22,15 @@ buildscript {
     }
 }
 
+// Local snapshot of the Bunny Stream Android SDK 4.0.0 (live-stream branch).
+// Published to mavenLocal() from bunny-stream-android-private @ fb86350.
+// Remove before npm publish — see PLAN.md §7 Faza 0 / Faza 9.
+allprojects {
+    repositories {
+        mavenLocal()
+    }
+}
+
 // Enable core library desugaring for the :app project.
 // Required by transitive deps of the Bunny Stream Android SDK
 // (media3-exoplayer-ima, interactivemedia).

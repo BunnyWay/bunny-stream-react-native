@@ -90,6 +90,9 @@ jobs:
           sarif_file: fallow-results.sarif
 
   build-android:
+    # TODO: Re-enable once the 4.0.0 live-stream Android SDK is published to a
+    # resolvable Maven repository (currently a local-only SNAPSHOT).
+    if: false
     runs-on: ubuntu-latest
 
     env:

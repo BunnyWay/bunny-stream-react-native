@@ -7,15 +7,21 @@ import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 import net.bunny.reactnative.module.BunnyStreamPlayerModule
+import net.bunny.reactnative.view.BunnyLiveStreamPlayerViewManager
 import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
 
 /**
  * React Native package for the Bunny Stream player bridge.
  *
  * Registered automatically via autolinking — the host app does not need to
- * add it manually to `PackageList`. Both the TurboModule ([BunnyStreamPlayerModule])
- * and the Fabric ViewManager ([BunnyStreamPlayerViewManager]) are declared here so
- * that React Native can discover them on app startup.
+ * add it manually to `PackageList`. The TurboModule ([BunnyStreamPlayerModule])
+ * and both Fabric ViewManagers ([BunnyStreamPlayerViewManager] for VOD and
+ * [BunnyLiveStreamPlayerViewManager] for live) are declared here so that
+ * React Native can discover them on app startup.
+ *
+ * The live ViewManager is internal to the bridge — the public npm API exposes
+ * a single `BunnyStreamPlayer` component that selects between the two hosts
+ * based on `source.type` (PLAN.md §5).
  */
 class BunnyStreamPlayerPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
@@ -25,7 +31,10 @@ class BunnyStreamPlayerPackage : BaseReactPackage() {
     }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
-    listOf(BunnyStreamPlayerViewManager())
+    listOf(
+      BunnyStreamPlayerViewManager(),
+      BunnyLiveStreamPlayerViewManager(),
+    )
 
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider {
     mapOf(
