@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamPlayer, type BunnyStreamPlayerRef } from 'bunny-stream-react-native';
+import { BunnyStreamPlayer, useBunnyStreamPlayer } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
 import { styles } from '../theme/styles';
@@ -15,53 +15,44 @@ type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { videoId, libraryId } = route.params;
-  const playerRef = React.useRef<BunnyStreamPlayerRef>(null);
-  const [status, setStatus] = React.useState('idle');
-  const [progress, setProgress] = React.useState<string | null>(null);
+  const player = useBunnyStreamPlayer();
+
+  const { state, progress, controls } = player;
+  const loading = state.playbackState === 'idle' || state.playbackState === 'loading';
+
   const [currentSpeed, setCurrentSpeed] = React.useState(1.0);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(true);
 
   const handleSpeedChange = (speed: number) => {
     setCurrentSpeed(speed);
-    playerRef.current?.setPlaybackRate(speed);
+    controls.setPlaybackRate(speed);
   };
+
+  const progressPct = `${(progress.progress * 100).toFixed(0)}%`;
 
   return (
     <View style={styles.playerContainer}>
       <Header title="Player" onBack={() => navigation.goBack()} />
       <View style={styles.playerWrapper}>
         <BunnyStreamPlayer
-          ref={playerRef}
+          ref={player.ref}
           style={styles.player}
           videoId={videoId}
           libraryId={libraryId}
           autoPlay
-          onReady={(e) => {
-            setError(null);
-            setLoading(false);
-            setStatus(`ready • ${e.nativeEvent.durationMs}ms`);
-          }}
-          onPlay={() => setStatus('playing')}
-          onPause={() => setStatus('paused')}
-          onEnd={() => setStatus('ended')}
-          onError={(e) => {
-            setError(e.nativeEvent.message || 'Unknown error');
-            setLoading(false);
-            setStatus('error');
-          }}
-          onProgress={(e) => setProgress(`progress ${(e.nativeEvent.progress * 100).toFixed(0)}%`)}
+          {...player.eventHandlers}
         />
+
         {loading ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         ) : null}
-        {error ? (
+
+        {state.error ? (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorIcon}>⚠</Text>
             <Text style={styles.errorTitle}>Playback Error</Text>
-            <Text style={styles.errorMessage}>{error}</Text>
+            <Text style={styles.errorMessage}>{state.error.message}</Text>
             <Text style={styles.errorVideoId} numberOfLines={1}>
               Video ID: {videoId}
             </Text>
@@ -71,9 +62,10 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           </View>
         ) : null}
       </View>
+
       <Text style={styles.status}>
-        {status}
-        {progress ? ` • ${progress}` : ''}
+        {state.playbackState}
+        {progress.progress > 0 ? ` • progress ${progressPct}` : ''}
       </Text>
 
       <View style={styles.speedSection}>

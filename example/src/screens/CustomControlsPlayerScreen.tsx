@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamPlayer, type BunnyStreamPlayerRef } from 'bunny-stream-react-native';
+import { BunnyStreamPlayer, useBunnyStreamPlayer } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
 import { styles } from '../theme/styles';
@@ -23,78 +23,42 @@ type CustomControlsPlayerScreenProps = NativeStackScreenProps<RootStackParamList
 
 export function CustomControlsPlayerScreen({ navigation, route }: CustomControlsPlayerScreenProps) {
   const { videoId, libraryId } = route.params;
-  const playerRef = React.useRef<BunnyStreamPlayerRef>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [positionMs, setPositionMs] = React.useState(0);
-  const [durationMs, setDurationMs] = React.useState(0);
-  const [error, setError] = React.useState<string | null>(null);
-  const [status, setStatus] = React.useState('idle');
-  const [loading, setLoading] = React.useState(true);
+  const player = useBunnyStreamPlayer();
 
-  const handlePlay = () => {
-    playerRef.current?.play();
-  };
-
-  const handlePause = () => {
-    playerRef.current?.pause();
-  };
+  const { state, progress, controls } = player;
+  const loading = state.playbackState === 'idle' || state.playbackState === 'loading';
 
   const handleSeek = (deltaMs: number) => {
-    const target = Math.max(0, Math.min(positionMs + deltaMs, durationMs));
-    playerRef.current?.seekTo(target);
+    const target = Math.max(0, Math.min(progress.positionMs + deltaMs, state.durationMs));
+    controls.seekTo(target);
   };
 
-  const progress = durationMs > 0 ? positionMs / durationMs : 0;
+  const seekProgress =
+    state.durationMs > 0 ? progress.positionMs / state.durationMs : progress.progress;
 
   return (
     <View style={styles.playerContainer}>
       <Header title="Player (Custom)" onBack={() => navigation.goBack()} />
       <View style={styles.playerWrapper}>
         <BunnyStreamPlayer
-          ref={playerRef}
+          ref={player.ref}
           style={styles.player}
           videoId={videoId}
           libraryId={libraryId}
           autoPlay
           controls={false}
-          onReady={(e) => {
-            setError(null);
-            setLoading(false);
-            setDurationMs(e.nativeEvent.durationMs);
-            setStatus('ready');
-          }}
-          onPlay={() => {
-            setIsPlaying(true);
-            setStatus('playing');
-          }}
-          onPause={() => {
-            setIsPlaying(false);
-            setStatus('paused');
-          }}
-          onEnd={() => {
-            setIsPlaying(false);
-            setStatus('ended');
-          }}
-          onError={(e) => {
-            setError(e.nativeEvent.message || 'Unknown error');
-            setLoading(false);
-            setStatus('error');
-          }}
-          onProgress={(e) => {
-            setPositionMs(e.nativeEvent.positionMs);
-            setDurationMs(e.nativeEvent.durationMs);
-          }}
+          {...player.eventHandlers}
         />
         {loading ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         ) : null}
-        {error ? (
+        {state.error ? (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorIcon}>⚠</Text>
             <Text style={styles.errorTitle}>Playback Error</Text>
-            <Text style={styles.errorMessage}>{error}</Text>
+            <Text style={styles.errorMessage}>{state.error.message}</Text>
             <Text style={styles.errorVideoId} numberOfLines={1}>
               Video ID: {videoId}
             </Text>
@@ -104,15 +68,15 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
           </View>
         ) : null}
       </View>
-      <Text style={styles.status}>{status}</Text>
+      <Text style={styles.status}>{state.playbackState}</Text>
 
       {/* Position bar */}
       <View style={styles.controlsSection}>
         <View style={styles.positionBar}>
-          <View style={[styles.positionBarFill, { width: `${progress * 100}%` }]} />
+          <View style={[styles.positionBarFill, { width: `${seekProgress * 100}%` }]} />
         </View>
         <Text style={styles.positionText}>
-          {formatTime(positionMs)} / {formatTime(durationMs)}
+          {formatTime(progress.positionMs)} / {formatTime(state.durationMs)}
         </Text>
 
         {/* Control buttons */}
@@ -121,17 +85,17 @@ export function CustomControlsPlayerScreen({ navigation, route }: CustomControls
             <Text style={styles.controlButtonText}>⏪</Text>
           </TouchableOpacity>
 
-          {isPlaying ? (
+          {state.isPlaying ? (
             <TouchableOpacity
               style={[styles.controlButton, styles.controlButtonPrimary]}
-              onPress={handlePause}
+              onPress={controls.pause}
             >
               <Text style={[styles.controlButtonText, styles.controlButtonTextPrimary]}>⏸</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={[styles.controlButton, styles.controlButtonPrimary]}
-              onPress={handlePlay}
+              onPress={controls.play}
             >
               <Text style={[styles.controlButtonText, styles.controlButtonTextPrimary]}>▶</Text>
             </TouchableOpacity>
