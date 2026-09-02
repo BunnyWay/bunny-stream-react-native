@@ -133,6 +133,18 @@ import React
     deleteLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
   }
 
+  @objc public func startLiveStreamWithLibraryId(_ libraryId: Double,
+                                                 streamId: String,
+                                                 resolve: @escaping RCTPromiseResolveBlock) {
+    startLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
+  }
+
+  @objc public func stopLiveStreamWithLibraryId(_ libraryId: Double,
+                                                streamId: String,
+                                                resolve: @escaping RCTPromiseResolveBlock) {
+    stopLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
+  }
+
   @objc public func fetchPlayerSettingsWithLibraryId(_ libraryId: Double,
                                                videoId: String,
                                                token: String?,
@@ -510,6 +522,35 @@ import React
     Task {
       do {
         try await repo.deleteLiveStream(libraryId: Int(libraryId), streamId: streamId)
+        resolve(okEnvelope(NSNull()))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func startLiveStream(libraryId: Double, streamId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let repo = api.liveStreams
+    Task {
+      do {
+        try await repo.startLiveStream(libraryId: Int(libraryId), streamId: streamId)
+        // iOS SDK's startLiveStream is async throws (no return value), so we
+        // return null — the caller should re-fetch the stream to get the updated
+        // status. Android's variant returns the updated LiveStream.
+        resolve(okEnvelope(NSNull()))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func stopLiveStream(libraryId: Double, streamId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let repo = api.liveStreams
+    Task {
+      do {
+        try await repo.stopLiveStream(libraryId: Int(libraryId), streamId: streamId)
         resolve(okEnvelope(NSNull()))
       } catch {
         resolve(envelope(from: error))

@@ -204,6 +204,22 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun startLiveStream(libraryId: Double, streamId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .startLiveStream(libraryId.toLong(), streamId)
+        .let { mappers.run { it.toEnvelope { v -> v.toWritableMap() } } }
+    }
+  }
+
+  override fun stopLiveStream(libraryId: Double, streamId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .stopLiveStream(libraryId.toLong(), streamId)
+        .let { mappers.run { it.toEnvelope { v -> v.toWritableMap() } } }
+    }
+  }
+
   // endregion
 
   // region — Player settings —
