@@ -1,5 +1,6 @@
 #import "BunnyStreamPlayerModule.h"
 
+#import <React/RCTBridgeModule.h>
 #import "BunnyStreamReactNative-Swift.h"
 
 @implementation BunnyStreamPlayerModule
