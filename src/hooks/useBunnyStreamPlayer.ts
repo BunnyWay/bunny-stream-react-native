@@ -14,8 +14,8 @@
 
 // fallow-ignore-file complexity -- idiomatic flat useReducer switch with 9 cases; splitting into per-action handlers adds indirection without reducing cyclomatic complexity. CRAP score is inflated by missing coverage data (20 unit tests cover every case).
 
-import type { PlayerPlaybackState } from './specs/BunnyStreamPlayerNativeComponent';
-import type { BunnyStreamPlayerRef } from './types';
+import type { PlayerPlaybackState } from '../specs/BunnyStreamPlayerNativeComponent';
+import type { BunnyStreamPlayerRef } from '../types';
 
 import * as React from 'react';
 

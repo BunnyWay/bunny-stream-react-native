@@ -145,7 +145,10 @@
     "type": "all",
     "jsSrcsDir": "src/specs",
     "android": {
-      "javaPackageName": "net.bunny.reactnative"
+      "javaPackageName": "net.bunny.reactnative",
+      "modules": [
+        "BunnyStreamApi"
+      ]
     },
     "ios": {
       "modules": {

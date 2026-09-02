@@ -1,8 +1,8 @@
-import type { UseBunnyStreamPlayerOptions } from '../useBunnyStreamPlayer';
+import type { UseBunnyStreamPlayerOptions } from '../hooks/useBunnyStreamPlayer';
 
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useBunnyStreamPlayer } from '../useBunnyStreamPlayer';
+import { useBunnyStreamPlayer } from '../hooks/useBunnyStreamPlayer';
 
 // Convenience: fire a native-event-shaped payload at a handler.
 export async function fire<T>(

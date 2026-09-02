@@ -1,4 +1,4 @@
-import type { PlayerEventHandlers } from '../useBunnyStreamPlayer';
+import type { PlayerEventHandlers } from '../hooks/useBunnyStreamPlayer';
 
 import { describe, expect, it, jest } from '@jest/globals';
 

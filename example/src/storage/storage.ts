@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ACCESS_KEY = '@bunny_demo/access_key';
 const LIBRARY_KEY = '@bunny_demo/library_id';
-const VIDEO_IDS_KEY = '@bunny_demo/video_ids';
+const DIRECT_PLAY_VIDEO_ID_KEY = '@bunny_demo/direct_play_video_id';
+const DIRECT_PLAY_LIBRARY_ID_KEY = '@bunny_demo/direct_play_library_id';
 
 export type Settings = {
   accessKey: string | null;
@@ -82,43 +83,35 @@ export async function clearSettings(): Promise<void> {
   }
 }
 
-// --- Video IDs ---
+// --- Direct play last-used values ---
 
-export async function loadVideoIds(): Promise<string[]> {
+export type DirectPlayValues = {
+  videoId: string;
+  libraryId: string;
+};
+
+export async function loadDirectPlayValues(): Promise<DirectPlayValues | null> {
   try {
-    const raw = await AsyncStorage.getItem(VIDEO_IDS_KEY);
-    if (!raw) {
-      return [];
+    const [videoId, libraryId] = await Promise.all([
+      AsyncStorage.getItem(DIRECT_PLAY_VIDEO_ID_KEY),
+      AsyncStorage.getItem(DIRECT_PLAY_LIBRARY_ID_KEY),
+    ]);
+    if (videoId === null && libraryId === null) {
+      return null;
     }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
+    return { videoId: videoId ?? '', libraryId: libraryId ?? '' };
   } catch {
-    return [];
+    return null;
   }
 }
 
-export async function saveVideoIds(ids: string[]): Promise<void> {
+export async function saveDirectPlayValues(values: DirectPlayValues): Promise<void> {
   try {
-    await AsyncStorage.setItem(VIDEO_IDS_KEY, JSON.stringify(ids));
+    await Promise.all([
+      AsyncStorage.setItem(DIRECT_PLAY_VIDEO_ID_KEY, values.videoId),
+      AsyncStorage.setItem(DIRECT_PLAY_LIBRARY_ID_KEY, values.libraryId),
+    ]);
   } catch {
-    // ignore
+    // ignore — best-effort
   }
-}
-
-export async function addVideoId(id: string): Promise<string[]> {
-  const trimmed = id.trim();
-  const current = await loadVideoIds();
-  if (current.includes(trimmed)) {
-    return current;
-  }
-  const next = [trimmed, ...current];
-  await saveVideoIds(next);
-  return next;
-}
-
-export async function removeVideoId(id: string): Promise<string[]> {
-  const current = await loadVideoIds();
-  const next = current.filter((v) => v !== id);
-  await saveVideoIds(next);
-  return next;
 }
