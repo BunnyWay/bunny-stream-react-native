@@ -7,3 +7,9 @@ require "#{ws_dir}/node_modules/react-native-test-app/test_app.rb"
 workspace 'BunnyStreamReactNativeExample.xcworkspace'
 
 use_test_app! :hermes_enabled => true, :fabric_enabled => true
+
+# NOTE: After `pod install`, run `ruby ios/link_bunny_sdk.rb` to link the
+# BunnyStream iOS SDK (local SwiftPM package) and the Swift/ObjC++ bridge
+# files to the app target. This is done outside the Podfile because
+# CocoaPods overwrites the generated ReactTestApp.xcodeproj after post_install
+# hooks run, discarding any modifications made in the hook.

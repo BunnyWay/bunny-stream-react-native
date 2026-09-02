@@ -124,6 +124,7 @@ export const styles = StyleSheet.create({
   playerWrapper: {
     width: '100%',
     aspectRatio: 16 / 9,
+    position: 'relative',
     backgroundColor: Black20Color(),
   },
   loadingOverlay: {

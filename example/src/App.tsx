@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initialize } from 'bunny-stream-react-native';
 
@@ -39,28 +40,26 @@ export default function App() {
     })();
   }, []);
 
-  if (loading) {
-    return (
-      <ScreenWrapper style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FD8D32" />
-        </View>
-      </ScreenWrapper>
-    );
-  }
-
   return (
-    <ScreenWrapper style={styles.container}>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="VideoList" component={VideoListScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Player" component={PlayerScreen} />
-          <Stack.Screen name="PlayerCustom" component={CustomControlsPlayerScreen} />
-          <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ScreenWrapper>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <ScreenWrapper style={styles.container}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FD8D32" />
+          </View>
+        ) : (
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="VideoList" component={VideoListScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Player" component={PlayerScreen} />
+              <Stack.Screen name="PlayerCustom" component={CustomControlsPlayerScreen} />
+              <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        )}
+      </ScreenWrapper>
+    </SafeAreaProvider>
   );
 }

@@ -50,6 +50,7 @@ example/ios/Pods
 
 # Ruby
 example/vendor/
+example/.bundle/ruby/
 
 # node.js
 #
