@@ -10,9 +10,9 @@ import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-c
 import { initialize } from 'bunny-stream-react-native';
 
 import { ScreenWrapper } from './components/ScreenWrapper';
-import { CustomControlsPlayerScreen } from './screens/CustomControlsPlayerScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LivePlayerScreen } from './screens/LivePlayerScreen';
+import { LiveStreamsScreen } from './screens/LiveStreamsScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { VideoListScreen } from './screens/VideoListScreen';
@@ -52,9 +52,9 @@ export default function App() {
             <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="VideoList" component={VideoListScreen} />
+              <Stack.Screen name="LiveStreams" component={LiveStreamsScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Player" component={PlayerScreen} />
-              <Stack.Screen name="PlayerCustom" component={CustomControlsPlayerScreen} />
               <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
             </Stack.Navigator>
           </NavigationContainer>

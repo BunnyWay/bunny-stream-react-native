@@ -381,11 +381,61 @@ export function sourceIdentityKey(source: BunnyStreamSource): string {
 
 // --- useBunnyStreamPlayer hook ---
 
-export { useBunnyStreamPlayer } from './useBunnyStreamPlayer';
+export { useBunnyStreamPlayer } from './hooks/useBunnyStreamPlayer';
 export type {
   PlayerEventHandlers,
   PlayerProgress,
   PlayerState,
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
-} from './useBunnyStreamPlayer';
+} from './hooks/useBunnyStreamPlayer';
+
+// --- REST API module (BunnyStreamApi) ---
+//
+// Re-exports the public API surface, the typed BunnyResult envelope + BunnyError
+// taxonomy, and the domain models. The TurboModule itself is also exported for
+// consumers that need the raw Codegen spec (e.g. for mocking in tests).
+export {
+  BunnyStreamApi,
+  errorOrNull,
+  fold,
+  getOrNull,
+  liveStreamStatusLabel,
+  map,
+  videoStatusLabel,
+} from './api/BunnyStreamApi';
+export type {
+  BunnyError,
+  BunnyErrorKind,
+  BunnyResult,
+  Caption,
+  Chapter,
+  CreateVideoRequestInput,
+  ListOptions,
+  LiveStream,
+  LiveStreamCreateRequestInput,
+  LiveStreamList,
+  LiveStreamPlayData,
+  LiveStreamStatus,
+  MetaTag,
+  PlayerSettings,
+  Moment,
+  RtmpOutput,
+  UpdateVideoRequestInput,
+  Video,
+  VideoList,
+  VideoPlayData,
+  VideoStatus,
+} from './api/BunnyStreamApi';
+export {
+  LiveStreamStatusEnum,
+  TRANSITIONAL_VIDEO_STATUSES,
+  VideoStatusEnum,
+} from './api/BunnyStreamApi';
+export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
+
+// — useBunnyImage — resolves Bunny CDN image URLs (with Referer header) to
+// data: URIs so any image component (Image, expo-image, FastImage) can render
+// them despite the CDN's hotlink protection.
+export { useBunnyImage } from './hooks/useBunnyImage';
+export type { UseBunnyImageResult } from './hooks/useBunnyImage';
