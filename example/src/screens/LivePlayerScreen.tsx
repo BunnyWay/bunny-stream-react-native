@@ -45,7 +45,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { state, eventHandlers } = useBunnyStreamPlayer(undefined, sourceKey);
 
   const liveState = state.liveState;
-  const isLive = liveState?.isLive ?? false;
   const loading = state.isLoading;
 
   // Fetch live stream metadata for the properties card — mirrors the
@@ -93,21 +92,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         {loading ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
-          </View>
-        ) : null}
-
-        {/* LIVE badge when stream is running */}
-        {isLive ? (
-          <View style={liveBadgeStyles.container}>
-            <View style={liveBadgeStyles.dot} />
-            <Text style={liveBadgeStyles.text}>LIVE</Text>
-          </View>
-        ) : null}
-
-        {/* Stream-ended banner when the SDK transitions to VOD playback */}
-        {liveState?.state === 'vod' && !loading ? (
-          <View style={liveBadgeStyles.endedBanner}>
-            <Text style={liveBadgeStyles.endedText}>Stream ended — playing recording</Text>
           </View>
         ) : null}
       </View>
@@ -263,49 +247,6 @@ const playerStyles = StyleSheet.create({
   errorText: {
     color: '#d32f2f',
     fontSize: 13,
-  },
-});
-
-const liveBadgeStyles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e53935',
-    marginRight: 6,
-  },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  endedBanner: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  endedText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
   },
 });
 
