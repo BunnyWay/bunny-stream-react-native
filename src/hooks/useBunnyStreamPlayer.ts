@@ -47,6 +47,16 @@ export interface PlayerState {
   /** Video pixel dimensions from `onVideoSizeChange` (0 until the first frame). */
   videoSize: { width: number; height: number };
   /**
+   * `true` while the player is loading/buffering before the first frame.
+   * Cleared when:
+   * - VOD: `onReady` or `onVideoSizeChange` fires (first frame decoded).
+   * - Live: `onLiveStateChange` fires with a non-`loading` state
+   *   (e.g. `live`, `vod`, `offline`, `countdown`, `trailer`).
+   * - Any error fires (terminal or live).
+   * Re-set to `true` on source change (RESET).
+   */
+  isLoading: boolean;
+  /**
    * Live player state from `onLiveStateChange`. `null` for VOD sources.
    * For live, `state` is one of: `loading`, `offline`, `countdown`,
    * `trailer`, `live`, `vod`. `isLive` is `true` only for `live`.
@@ -166,6 +176,7 @@ const DEFAULT_PLAYER_STATE: PlayerState = {
   playbackRate: 1,
   videoId: null,
   videoSize: { width: 0, height: 0 },
+  isLoading: true,
   liveState: null,
   liveError: null,
 };
@@ -208,6 +219,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
           videoId: action.videoId,
           durationMs: action.durationMs,
           playbackState: 'ready',
+          isLoading: false,
         };
       }
       return {
@@ -216,6 +228,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
         durationMs: action.durationMs,
         videoId: action.videoId,
         error: null,
+        isLoading: false,
       };
     }
     case 'STATE_CHANGE': {
@@ -253,6 +266,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
         error: action.error,
         playbackState: 'error',
         isPlaying: false,
+        isLoading: false,
       };
     case 'VOLUME':
       if (state.volume === action.volume && state.isMuted === action.isMuted) {
@@ -269,7 +283,7 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       if (state.videoSize.width === next.width && state.videoSize.height === next.height) {
         return state;
       }
-      return { ...state, videoSize: next };
+      return { ...state, videoSize: next, isLoading: false };
     }
     case 'PLAYBACK_ERROR':
       // Surface the SDK's human-readable error message without overwriting the
@@ -278,9 +292,17 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
       // `onPlaybackError` for the SDK message (e.g. live recovery signalling).
       return state;
     case 'LIVE_STATE':
-      return { ...state, liveState: action.liveState };
+      // Clear isLoading when the live player reports a non-loading state
+      // (live, vod, offline, countdown, trailer). On iOS, onVideoSizeChange
+      // is not emitted for live streams, so this is the only signal that
+      // content is ready.
+      return {
+        ...state,
+        liveState: action.liveState,
+        isLoading: action.liveState?.state === 'loading' ? state.isLoading : false,
+      };
     case 'LIVE_ERROR':
-      return { ...state, liveError: action.message };
+      return { ...state, liveError: action.message, isLoading: false };
     case 'RESET':
       // Full reset to defaults — used when the source identity changes
       // (VOD → live, or a different VOD) so stale state doesn't linger.
