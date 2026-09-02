@@ -1,0 +1,3 @@
+// This file exists so the BunnyStreamReactNative pod has at least one
+// source file. The actual bridge files are added to the app target
+// directly via link_bunny_sdk.rb during development.
