@@ -176,6 +176,26 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                                                            resolve:resolve];
 }
 
+- (void)startLiveStream:(double)libraryId
+               streamId:(NSString *)streamId
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] startLiveStreamWithLibraryId:libraryId
+                                                          streamId:streamId
+                                                           resolve:resolve];
+}
+
+- (void)stopLiveStream:(double)libraryId
+              streamId:(NSString *)streamId
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] stopLiveStreamWithLibraryId:libraryId
+                                                         streamId:streamId
+                                                          resolve:resolve];
+}
+
 // MARK: - Player settings
 
 - (void)fetchPlayerSettings:(double)libraryId
