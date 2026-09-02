@@ -240,10 +240,11 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
    * Returns `null` when the required `title` is missing.
    */
   private fun parseCreateVideoRequest(map: ReadableMap): CreateVideoRequest? {
-    val title = map.getString("title") ?: return null
-    val collectionId = map.optString("collectionId")
-    val thumbnailTime = if (map.hasKey("thumbnailTime")) map.getInt("thumbnailTime") else null
-    return CreateVideoRequest(title = title, collectionId = collectionId, thumbnailTime = thumbnailTime)
+    val title = if (map.hasKey("title") && !map.isNull("title")) map.getString("title") else null
+    val titleSafe = title ?: return null
+    val collectionId = if (map.hasKey("collectionId") && !map.isNull("collectionId")) map.getString("collectionId") else null
+    val thumbnailTime = if (map.hasKey("thumbnailTime") && !map.isNull("thumbnailTime")) map.getInt("thumbnailTime") else null
+    return CreateVideoRequest(title = titleSafe, collectionId = collectionId, thumbnailTime = thumbnailTime)
   }
 
   /**
@@ -251,8 +252,8 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
    * Missing keys map to `null` (leave unchanged).
    */
   private fun parseUpdateVideoRequest(map: ReadableMap): UpdateVideoRequest {
-    val title = map.optString("title")
-    val collectionId = map.optString("collectionId")
+    val title = if (map.hasKey("title") && !map.isNull("title")) map.getString("title") else null
+    val collectionId = if (map.hasKey("collectionId") && !map.isNull("collectionId")) map.getString("collectionId") else null
     return UpdateVideoRequest(title = title, collectionId = collectionId)
   }
 
@@ -261,9 +262,10 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
    * [LiveStreamCreateRequest]. Missing keys map to `null` (not sent).
    */
   private fun parseLiveStreamCreateRequest(map: ReadableMap): LiveStreamCreateRequest {
-    fun bool(key: String): Boolean? = if (map.hasKey(key)) map.getBoolean(key) else null
-    fun string(key: String): String? = map.optString(key)
-    fun int(key: String): Int? = if (map.hasKey(key)) map.getInt(key) else null
+    fun bool(key: String): Boolean? = if (map.hasKey(key) && !map.isNull(key)) map.getBoolean(key) else null
+    fun string(key: String): String? =
+      if (map.hasKey(key) && !map.isNull(key)) map.getString(key) else null
+    fun int(key: String): Int? = if (map.hasKey(key) && !map.isNull(key)) map.getInt(key) else null
 
     val rtmpOutputs = if (map.hasKey("rtmpOutputs")) {
       map.getArray("rtmpOutputs")?.let { array ->
