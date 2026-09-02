@@ -2,6 +2,7 @@ import type { HostComponent, ViewProps } from 'react-native';
 import type {
   DirectEventHandler,
   Double,
+  Int32,
   WithDefault,
 } from 'react-native/Libraries/Types/CodegenTypes';
 
@@ -50,6 +51,15 @@ export type PlayerPlaybackRateChangeEvent = Readonly<{
   rate: Double;
 }>;
 
+export type PlayerVideoSizeChangeEvent = Readonly<{
+  width: Int32;
+  height: Int32;
+}>;
+
+export type PlayerPlaybackErrorEvent = Readonly<{
+  message: string;
+}>;
+
 export interface NativeProps extends ViewProps {
   videoId: string;
   libraryId?: Double;
@@ -67,6 +77,8 @@ export interface NativeProps extends ViewProps {
   onEnd?: DirectEventHandler<PlayerPositionEvent> | null;
   onVolumeChange?: DirectEventHandler<PlayerVolumeChangeEvent> | null;
   onPlaybackRateChange?: DirectEventHandler<PlayerPlaybackRateChangeEvent> | null;
+  onVideoSizeChange?: DirectEventHandler<PlayerVideoSizeChangeEvent> | null;
+  onPlaybackError?: DirectEventHandler<PlayerPlaybackErrorEvent> | null;
 }
 
 export interface NativeCommands {
@@ -75,10 +87,12 @@ export interface NativeCommands {
   seekTo: (viewRef: React.ElementRef<HostComponent<NativeProps>>, positionMs: Double) => void;
   setVolume: (viewRef: React.ElementRef<HostComponent<NativeProps>>, volume: Double) => void;
   setPlaybackRate: (viewRef: React.ElementRef<HostComponent<NativeProps>>, rate: Double) => void;
+  mute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  unmute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
-  supportedCommands: ['play', 'pause', 'seekTo', 'setVolume', 'setPlaybackRate'],
+  supportedCommands: ['play', 'pause', 'seekTo', 'setVolume', 'setPlaybackRate', 'mute', 'unmute'],
 });
 
 export default codegenNativeComponent<NativeProps>(

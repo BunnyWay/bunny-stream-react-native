@@ -1,6 +1,6 @@
 buildscript {
   ext.BunnyStreamReactNative = [
-    kotlinVersion: "2.1.20",
+    kotlinVersion: "2.2.20",
     minSdkVersion: 26,
     compileSdkVersion: 36
   ]
@@ -13,20 +13,33 @@ buildscript {
     return BunnyStreamReactNative[prop]
   }
 
+  // TODO: Pinned local snapshot of the Bunny Stream Android SDK 4.0.0 (live-stream branch).
+  // Published to mavenLocal() from bunny-stream-android-private @ fb86350 via:
+  //   ./gradlew :api:publishToMavenLocal :player:publishToMavenLocal \
+  //     -Pversion=4.0.0-live.fb86350-SNAPSHOT
+  // See PLAN.md §2 and §7 Faza 0. Replace with the public Maven artifact and
+  // re-enable the build:android CI job before npm publish.
+  ext.bunnyStreamSdkVersion = "4.0.0-live.shadow.1-SNAPSHOT"
+
   repositories {
     google()
     mavenCentral()
+    mavenLocal()
   }
 
   dependencies {
     classpath "com.android.tools.build:gradle:8.7.2"
     // noinspection DifferentKotlinGradleVersion
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
+    // Compose compiler plugin (built into Kotlin 2.0+) — required to host
+    // the SDK's BunnyLiveStreamPlayer composable in a ComposeView.
+    classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
   }
 }
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
+apply plugin: "org.jetbrains.kotlin.plugin.compose"
 apply plugin: "com.facebook.react"
 
 android {
@@ -39,6 +52,10 @@ android {
   }
 
   compileOptions {
+    // SDK 4.0.0 requires core library desugaring (media3-exoplayer-ima /
+    // interactivemedia rely on java.time and other desugared APIs). Enabled
+    // here so consumers of the npm package inherit it without extra setup.
+    coreLibraryDesugaringEnabled true
     sourceCompatibility JavaVersion.VERSION_17
     targetCompatibility JavaVersion.VERSION_17
   }
@@ -56,19 +73,48 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
-  implementation "net.bunny:player:3.3.0"
+  implementation "net.bunny:player:${bunnyStreamSdkVersion}"
   // api is a runtime-scoped transitive dep of player; declare explicitly
-  // so BunnyStreamApi is on the compile classpath of the bridge.
-  implementation "net.bunny:api:3.3.0"
+  // so BunnyStreamApi and the live-stream domain models are on the compile
+  // classpath of the bridge (used by the live host and the TurboModule).
+  implementation "net.bunny:api:${bunnyStreamSdkVersion}"
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
-  implementation "androidx.media3:media3-common:1.6.0"
-  // media3-ui provides PlayerView (useController / showController) which the
-  // native SDK's BunnyPlayerView extends.
-  implementation "androidx.media3:media3-ui:1.6.0"
+  implementation "androidx.media3:media3-common:1.10.1"
+  // media3-ui provides PlayerView (controlsEnabled) which the native SDK's
+  // BunnyPlayerView extends.
+  implementation "androidx.media3:media3-ui:1.10.1"
   // lifecycle is needed for setViewTreeLifecycleOwner — the native SDK uses
-  // findViewTreeLifecycleOwner() to register its lifecycle observer.
-  implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
+  // findViewTreeLifecycleOwner() to register its lifecycle observer, and the
+  // live host uses LocalLifecycleOwner/ViewModelStoreOwner from lifecycle 2.10.
+  implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.10.0"
+  // Compose runtime + ui + viewmodel needed to host BunnyLiveStreamPlayer
+  // (a Compose composable) inside a ComposeView backed by Fabric. The SDK
+  // declares these as `runtime` scope (transitive), so they are not on the
+  // compile classpath of the bridge — declare them explicitly.
+  // lifecycle-runtime (core) provides ViewTreeLifecycleOwner; -ktx alone
+  // does not expose it on the compile classpath.
+  implementation "androidx.lifecycle:lifecycle-runtime:2.10.0"
+  implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0"
+  implementation "androidx.lifecycle:lifecycle-viewmodel:2.10.0"
+  implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0"
+  implementation "androidx.lifecycle:lifecycle-runtime-compose:2.10.0"
+  // savedstate provides ViewTreeSavedStateRegistryOwner (set/get) for the
+  // ComposeView host — the SDK declares it as `runtime` scope (transitive).
+  implementation "androidx.savedstate:savedstate:1.4.0"
+  implementation platform("androidx.compose:compose-bom:2025.03.01")
+  implementation "androidx.compose.runtime:runtime"
+  implementation "androidx.compose.ui:ui"
+  implementation "androidx.compose.ui:ui-tooling-preview"
+  implementation "androidx.compose.foundation:foundation"
+  implementation "androidx.compose.material3:material3"
+  // AppCompat is needed so the bridge can provide a ContextThemeWrapper with
+  // an AppCompat dark theme. The SDK's controls use
+  // androidx.appcompat.widget.PopupMenu, which only renders a dark popup with
+  // an AppCompat parent theme (platform Theme.Material can leave it white-on-white).
+  implementation "androidx.appcompat:appcompat:1.7.1"
+  // Core library desugaring — required by SDK 4.0.0 transitive deps.
+  coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
 
   testImplementation "org.jetbrains.kotlin:kotlin-test:${getExtOrDefault('kotlinVersion')}"
   testImplementation "org.jetbrains.kotlin:kotlin-test-junit:${getExtOrDefault('kotlinVersion')}"

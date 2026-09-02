@@ -32,7 +32,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       Alert.alert('Invalid input', 'Please enter a valid numeric Library ID.');
       return;
     }
-    initialize(accessKey || null, libId);
+    if (!accessKey.trim()) {
+      Alert.alert('Invalid input', 'Please enter a non-empty Access Key (SDK 4.0.0 requirement).');
+      return;
+    }
+    initialize(accessKey, libId);
     await saveSettings({ accessKey, libraryId });
     navigation.goBack();
   };

@@ -109,6 +109,16 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.setPlaybackRate(rate)
   }
 
+  @ReactMethod
+  override fun mute(view: BunnyStreamPlayerView) {
+    view.mute()
+  }
+
+  @ReactMethod
+  override fun unmute(view: BunnyStreamPlayerView) {
+    view.unmute()
+  }
+
   companion object {
     const val NAME = "BunnyStreamPlayerView"
 
@@ -133,6 +143,10 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
       "topVolumeChange" to mapOf("registrationName" to "onVolumeChange"),
       "playbackRateChange" to mapOf("registrationName" to "onPlaybackRateChange"),
       "topPlaybackRateChange" to mapOf("registrationName" to "onPlaybackRateChange"),
+      "videoSizeChange" to mapOf("registrationName" to "onVideoSizeChange"),
+      "topVideoSizeChange" to mapOf("registrationName" to "onVideoSizeChange"),
+      "playbackError" to mapOf("registrationName" to "onPlaybackError"),
+      "topPlaybackError" to mapOf("registrationName" to "onPlaybackError"),
     )
   }
 }

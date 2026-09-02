@@ -19,7 +19,10 @@ import net.bunny.reactnative.NativeBunnyStreamPlayerSpec
 class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
   NativeBunnyStreamPlayerSpec(reactContext) {
 
-  override fun initialize(accessKey: String?, libraryId: Double) {
+  override fun initialize(accessKey: String, libraryId: Double) {
+    require(accessKey.isNotBlank()) {
+      "accessKey must be a non-empty string (SDK 4.0.0 requirement)"
+    }
     val libraryIdLong = validateLibraryId(libraryId)
     BunnyStreamApi.initialize(
       context = reactApplicationContext.applicationContext,

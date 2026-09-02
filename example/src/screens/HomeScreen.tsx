@@ -9,6 +9,7 @@ import { Header } from '../components/Header';
 import { HomeOption } from '../components/HomeOption';
 import { loadSettings, parseVideoIdsFromEnv } from '../storage/storage';
 import { styles } from '../theme/styles';
+import { DirectLivePlayModal } from './DirectLivePlayModal';
 import { DirectVideoPlayModal } from './DirectVideoPlayModal';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -17,6 +18,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [hasConfig, setHasConfig] = React.useState(false);
   const [showDirectPlayModal, setShowDirectPlayModal] = React.useState(false);
   const [showDirectPlayCustomModal, setShowDirectPlayCustomModal] = React.useState(false);
+  const [showDirectLiveModal, setShowDirectLiveModal] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -57,6 +59,21 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     navigation.navigate('PlayerCustom', { videoId, libraryId: libId });
   };
 
+  const handleDirectLivePlay = (
+    streamId: string,
+    libraryId: number,
+    token: string | null,
+    expires: number | null,
+  ) => {
+    setShowDirectLiveModal(false);
+    navigation.navigate('LivePlayer', {
+      streamId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
+  };
+
   const defaultVideoId = parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID })[0] ?? '';
 
   return (
@@ -85,6 +102,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             title="Direct video play (custom)"
             subtitle="JS controls only"
             onPress={() => setShowDirectPlayCustomModal(true)}
+          />
+          <View style={styles.divider} />
+          <HomeOption
+            title="Direct live stream play"
+            subtitle="Native live host (SDK controls)"
+            onPress={() => setShowDirectLiveModal(true)}
           />
         </View>
 
@@ -126,6 +149,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         defaultVideoId={defaultVideoId}
         onPlay={handleDirectPlayCustom}
         onCancel={() => setShowDirectPlayCustomModal(false)}
+      />
+      <DirectLivePlayModal
+        visible={showDirectLiveModal}
+        defaultLibraryId={BUNNY_LIBRARY_ID ?? ''}
+        onPlay={handleDirectLivePlay}
+        onCancel={() => setShowDirectLiveModal(false)}
       />
     </>
   );
