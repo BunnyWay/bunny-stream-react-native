@@ -195,28 +195,43 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
             <View style={styles.controlsRow}>
               <TouchableOpacity style={styles.controlButton} onPress={() => handleSeek(-SEEK_MS)}>
-                <Text style={styles.controlButtonText}>⏪</Text>
+                <Text style={styles.controlButtonLabel}>-10s</Text>
               </TouchableOpacity>
 
               {state.isPlaying ? (
-                <TouchableOpacity
-                  style={[styles.controlButton, styles.controlButtonPrimary]}
-                  onPress={controls.pause}
-                >
-                  <Text style={[styles.controlButtonText, styles.controlButtonTextPrimary]}>⏸</Text>
+                <TouchableOpacity style={styles.controlButtonPrimary} onPress={controls.pause}>
+                  <PauseIcon />
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity
-                  style={[styles.controlButton, styles.controlButtonPrimary]}
-                  onPress={controls.play}
-                >
-                  <Text style={[styles.controlButtonText, styles.controlButtonTextPrimary]}>▶</Text>
+                <TouchableOpacity style={styles.controlButtonPrimary} onPress={controls.play}>
+                  <PlayIcon />
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity style={styles.controlButton} onPress={() => handleSeek(SEEK_MS)}>
-                <Text style={styles.controlButtonText}>⏩</Text>
+                <Text style={styles.controlButtonLabel}>+10s</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Speed picker — visible alongside custom controls */}
+            <Text style={styles.speedTitle}>Playback Speed</Text>
+            <View style={styles.speedRow}>
+              {SPEED_OPTIONS.map((speed) => {
+                const isActive = speed === currentSpeed;
+                return (
+                  <TouchableOpacity
+                    key={speed}
+                    style={[styles.speedButton, isActive && styles.speedButtonActive]}
+                    onPress={() => handleSpeedChange(speed)}
+                  >
+                    <Text
+                      style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}
+                    >
+                      {speed}x
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         ) : (
@@ -334,3 +349,34 @@ const metaStyles = StyleSheet.create({
     marginHorizontal: 16,
   },
 });
+
+// --- Vector icons drawn with pure Views (no icon library dependency) ---
+
+/** Filled right-pointing triangle — play. */
+function PlayIcon() {
+  return (
+    <View
+      style={{
+        width: 0,
+        height: 0,
+        borderTopWidth: 11,
+        borderBottomWidth: 11,
+        borderLeftWidth: 17,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderLeftColor: colors.onPrimary,
+        marginLeft: 3,
+      }}
+    />
+  );
+}
+
+/** Two vertical bars — pause. */
+function PauseIcon() {
+  return (
+    <View style={{ flexDirection: 'row', gap: 5 }}>
+      <View style={{ width: 5, height: 22, backgroundColor: colors.onPrimary, borderRadius: 1 }} />
+      <View style={{ width: 5, height: 22, backgroundColor: colors.onPrimary, borderRadius: 1 }} />
+    </View>
+  );
+}
