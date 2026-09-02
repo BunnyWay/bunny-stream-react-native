@@ -90,6 +90,7 @@
     "@react-native/babel-preset": "0.86.2",
     "@react-native/jest-preset": "0.86.2",
     "@release-it/conventional-changelog": "^11.0.1",
+    "@testing-library/react-native": "^14.0.1",
     "@types/react": "^19.2.0",
     "commitlint": "^21.0.2",
     "del-cli": "^7.0.0",
@@ -107,6 +108,7 @@
     "react-native": "0.86.2",
     "react-native-builder-bob": "^0.43.0",
     "release-it": "^20.2.0",
+    "test-renderer": "1.2",
     "turbo": "^2.9.16",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.1"
@@ -173,13 +175,21 @@
     ],
     "testPathIgnorePatterns": [
       "<rootDir>/node_modules/",
-      "<rootDir>/lib/"
+      "<rootDir>/lib/",
+      "<rootDir>/src/__tests__/helpers.tsx"
     ]
   },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
-    ]
+    ],
+    "rules": {
+      "header-max-length": [
+        2,
+        "always",
+        150
+      ]
+    }
   },
   "release-it": {
     "git": {
