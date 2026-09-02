@@ -344,6 +344,7 @@ class BunnyStreamPlayerView(
    */
   private fun reloadVideo(props: BunnyStreamPlayerProps) {
     playbackGeneration = generationToken.bump()
+    controllerShownForGeneration = -1L
     commandQueue.reset()
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
@@ -402,6 +403,16 @@ class BunnyStreamPlayerView(
    * controller can therefore remain hidden or retain a zero-width position
    * label after the playback engine is replaced.
    *
+   * This method only repairs the controller **layout** (measure/layout the
+   * controller view so it has non-zero dimensions). It deliberately does NOT
+   * call `showController()` — that is deferred to [showControllerAfterReady],
+   * which runs after STATE_READY. Calling `showController()` during BUFFERING
+   * causes Media3 to hide `exo_bottom_bar` (while keeping `exo_center_controls`
+   * visible), producing the "bottom bar flickers then disappears, center play
+   * button stays for 5s" symptom. Showing the controller only after STATE_READY
+   * ensures the full controller (bottom bar + center) is visible and the 5 s
+   * auto-hide timer starts at the right moment.
+   *
    * TODO(Android SDK): remove this adapter after `controlsEnabled = true`
    * shows and lays out the controller itself in the public Android SDK.
    */
@@ -415,9 +426,10 @@ class BunnyStreamPlayerView(
         return@postDelayed
       }
 
-      playerView.controllerShowTimeoutMs = PlayerControlView.DEFAULT_SHOW_TIMEOUT_MS
-      playerView.showController()
-
+      // Only repair layout here — do NOT call showController() during BUFFERING.
+      // showController() is deferred to showControllerAfterReady() (called from
+      // onPlayerReady after STATE_READY) to avoid Media3 hiding exo_bottom_bar
+      // during the buffering state.
       val controller = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_controller)
       if (controller != null && playerView.width > 0 && playerView.height > 0) {
         val widthSpec = MeasureSpec.makeMeasureSpec(playerView.width, MeasureSpec.EXACTLY)
@@ -430,7 +442,57 @@ class BunnyStreamPlayerView(
       repairInlinePositionWidth(playerView)
       postDelayed({ repairInlinePositionWidth(playerView) }, 300)
       postDelayed({ repairInlinePositionWidth(playerView) }, 700)
+
+      // Hide the controller during BUFFERING. The SDK shows it automatically
+      // when the player attaches, but Media3 hides exo_bottom_bar during
+      // BUFFERING (while keeping exo_center_controls visible), producing a
+      // split visibility state (center play button only). Hiding the whole
+      // controller here prevents that flicker; showControllerAfterReady()
+      // will show it with full controls after STATE_READY.
+      playerView.hideController()
     }, 500)
+  }
+
+  /**
+   * Shows the controller after the player reaches STATE_READY. Called from
+   * [onPlayerReady]. This is split from [restoreNativeControllerLayout] because
+   * calling `showController()` during BUFFERING causes Media3 to hide the
+   * bottom bar (`exo_bottom_bar`) while keeping the center play/pause button
+   * (`exo_center_controls`) visible — producing a split controls visibility
+   * state and a flicker when the auto-hide timer fires.
+   *
+   * Guarded by [controllerShownForGeneration] so we only show once per source
+   * load (a single load may fire onPlayerReady + multiple onIsPlayingChanged).
+   */
+  private var controllerShownForGeneration: Long = -1L
+
+  private fun showControllerAfterReady() {
+    if (controllerShownForGeneration == playbackGeneration) return
+    if (!committedProps.controls) return
+    controllerShownForGeneration = playbackGeneration
+    val playerView = findPlayerView() ?: return
+    playerView.controllerShowTimeoutMs = PlayerControlView.DEFAULT_SHOW_TIMEOUT_MS
+    // Force-hide then show to reset Media3's internal controller visibility
+    // state. During BUFFERING, Media3 hides exo_bottom_bar while keeping
+    // exo_center_controls visible. After STATE_READY, showController() alone
+    // does not restore the bottom bar because the controller was already
+    // "visible" (just with a split sub-view state). hideController() →
+    // showController() forces a full visibility cycle that restores all
+    // sub-views.
+    playerView.hideController()
+    playerView.showController()
+
+    // Explicitly restore exo_bottom_bar visibility — Media3 may have left it
+    // INVISIBLE from the BUFFERING state and showController() doesn't always
+    // reset sub-view visibility.
+    val bottomBar = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_bottom_bar)
+    if (bottomBar != null && bottomBar.visibility != View.VISIBLE) {
+      bottomBar.visibility = View.VISIBLE
+    }
+    val centerControls = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_center_controls)
+    if (centerControls != null && centerControls.visibility != View.VISIBLE) {
+      centerControls.visibility = View.VISIBLE
+    }
   }
 
   private fun findPlayerView(): PlayerView? =
@@ -538,6 +600,7 @@ class BunnyStreamPlayerView(
    */
   fun onPlayerReady() {
     commandQueue.setReady(true)
+    showControllerAfterReady()
   }
 
   // --- Sizing / layout ---
