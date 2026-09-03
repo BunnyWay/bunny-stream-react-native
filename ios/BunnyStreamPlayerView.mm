@@ -1,6 +1,7 @@
 #import "BunnyStreamPlayerView.h"
 
 #import <React/RCTFabricComponentsPlugins.h>
+#import <React/RCTBridgeModule.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/ComponentDescriptors.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/EventEmitters.h>
 #import <react/renderer/components/BunnyStreamReactNativeSpec/Props.h>

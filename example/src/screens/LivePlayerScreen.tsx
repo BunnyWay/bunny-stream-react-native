@@ -36,7 +36,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { streamId, libraryId, token, expires } = route.params;
-  const [loading, setLoading] = React.useState(true);
   const [videoSize, setVideoSize] = React.useState<{ width: number; height: number } | null>(null);
   const [stream, setStream] = React.useState<LiveStream | null>(null);
 
@@ -46,7 +45,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { state, eventHandlers } = useBunnyStreamPlayer(undefined, sourceKey);
 
   const liveState = state.liveState;
-  const isLive = liveState?.isLive ?? false;
+  const loading = state.isLoading;
 
   // Fetch live stream metadata for the properties card — mirrors the
   // Android demo's LiveStreamPropertiesCard. Re-fetches when the live
@@ -68,22 +67,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
     };
   }, [streamId, libraryId, liveStateKind]);
 
-  // Re-show the loading overlay when the SDK transitions between major
-  // states (e.g. live → vod, live → offline) — the composable tears down
-  // and rebuilds the player, which can briefly show a black frame. The
-  // overlay clears on the next onVideoSizeChange (first frame of the new
-  // content) or onLiveStateChange to a non-loading state.
-  const prevLiveState = React.useRef<string | undefined>(undefined);
-  React.useEffect(() => {
-    if (prevLiveState.current !== undefined && prevLiveState.current !== liveStateKind) {
-      // State changed — show loading until the next frame or state settles
-      if (liveStateKind === 'vod' || liveStateKind === 'offline') {
-        setLoading(true);
-      }
-    }
-    prevLiveState.current = liveStateKind;
-  }, [liveStateKind]);
-
   const status = stream?.status as LiveStreamStatus | undefined;
   const statusColor = status ? (STATUS_COLORS[status] ?? '#aaa') : '#aaa';
 
@@ -96,14 +79,12 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
           source={source}
           onVideoSizeChange={(e) => {
             setVideoSize(e.nativeEvent);
-            setLoading(false);
+            eventHandlers.onVideoSizeChange?.(e);
           }}
           onLiveStateChange={(e) => {
-            setLoading(false);
             eventHandlers.onLiveStateChange?.(e);
           }}
           onLiveError={(e) => {
-            setLoading(false);
             eventHandlers.onLiveError?.(e);
           }}
         />
@@ -111,21 +92,6 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         {loading ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
-          </View>
-        ) : null}
-
-        {/* LIVE badge when stream is running */}
-        {isLive ? (
-          <View style={liveBadgeStyles.container}>
-            <View style={liveBadgeStyles.dot} />
-            <Text style={liveBadgeStyles.text}>LIVE</Text>
-          </View>
-        ) : null}
-
-        {/* Stream-ended banner when the SDK transitions to VOD playback */}
-        {liveState?.state === 'vod' && !loading ? (
-          <View style={liveBadgeStyles.endedBanner}>
-            <Text style={liveBadgeStyles.endedText}>Stream ended — playing recording</Text>
           </View>
         ) : null}
       </View>
@@ -281,49 +247,6 @@ const playerStyles = StyleSheet.create({
   errorText: {
     color: '#d32f2f',
     fontSize: 13,
-  },
-});
-
-const liveBadgeStyles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e53935',
-    marginRight: 6,
-  },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  endedBanner: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  endedText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
   },
 });
 

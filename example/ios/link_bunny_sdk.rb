@@ -1,12 +1,29 @@
 #!/usr/bin/env ruby
 
+require "fileutils"
 require "xcodeproj"
 
 example_dir = File.expand_path(File.join(__dir__, ".."))
+assets_catalog_path = File.join(example_dir, "node_modules", "react-native-test-app", "ios", "assetsCatalog.mjs")
+if File.exist?(assets_catalog_path)
+  source = File.read(assets_catalog_path)
+  patched = source.sub('spawnSync("sips", args, { stdio: "inherit" });', 'spawnSync("sips", args, { stdio: "ignore" });')
+  File.write(assets_catalog_path, patched) if source != patched
+end
+exit if ARGV.include?("--prepare")
+
 project_path = File.join(example_dir, "node_modules", ".generated", "ios", "ReactTestApp.xcodeproj")
 project = Xcodeproj::Project.open(project_path)
 target = project.targets.find { |candidate| candidate.name == "ReactTestApp" }
 abort "ReactTestApp target not found" unless target
+
+generated_icon_set = File.join(example_dir, "node_modules", ".generated", "ios", "AppIcon.appiconset")
+assets_icon_set = File.join(example_dir, "node_modules", ".generated", "ios", "Assets.xcassets", "AppIcon.appiconset")
+if Dir.exist?(generated_icon_set)
+  FileUtils.mkdir_p(assets_icon_set)
+  FileUtils.cp_r(Dir.glob(File.join(generated_icon_set, "*")), assets_icon_set)
+  puts "[BunnyStream] Installed generated iOS app icons in Assets.xcassets"
+end
 
 phase_name = "[BunnyStream] Embed SwiftPM Frameworks"
 phase = target.shell_script_build_phases.find { |candidate| candidate.name == phase_name }
@@ -39,6 +56,14 @@ phase.shell_script = <<~'SH'
   if [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-NO}" = "YES" ]; then
     /usr/bin/codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${DESTINATION}/GoogleInteractiveMediaAds.framework"
   fi
+
+  # Workaround for long-standing Xcode 15+ SwiftPM binaryTarget archive bug:
+  # SPM emits "<fw>.xcframework-ios.signature" into CONFIGURATION_BUILD_DIR
+  # more than once, and Xcode's archive packaging then fails with
+  # "... couldn't be copied to Signatures because an item with the same name
+  # already exists". Deleting the duplicate before archive packaging fixes it.
+  # Idempotent and a no-op on non-archive builds.
+  rm -rf "${CONFIGURATION_BUILD_DIR}/GoogleInteractiveMediaAds.xcframework-ios.signature"
 SH
 
 # Patch react-native-host so third-party TurboModules registered in
@@ -91,6 +116,19 @@ if File.exist?(tna_path)
   end
 else
   puts "[BunnyStream] RNXTurboModuleAdapter.mm not found, cannot patch"
+end
+
+# Configure signing for App Store distribution on the ReactTestApp target
+# only (not SPM packages, which don't support provisioning profiles).
+release_config = target.build_configurations.find { |c| c.name == "Release" }
+if release_config
+  release_config.build_settings["CODE_SIGN_STYLE"] = "Manual"
+  release_config.build_settings["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+  release_config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = "Bunny StreamSDK ReactNative Demo"
+  release_config.build_settings["DEVELOPMENT_TEAM"] = "GX6PPA6X9F"
+  puts "[BunnyStream] Configured Release signing: Apple Distribution + Bunny StreamSDK ReactNative Demo"
+else
+  warn "[BunnyStream] Release configuration not found on ReactTestApp target — skipping signing config"
 end
 
 project.save

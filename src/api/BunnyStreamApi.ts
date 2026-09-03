@@ -278,6 +278,27 @@ export const BunnyStreamApi = {
     return NativeBunnyStreamApi.deleteLiveStream(libraryId, streamId) as Promise<BunnyResult<void>>;
   },
 
+  /**
+   * Marks the stream as started (PREVIEW → RUNNING). Call once the RTMP encoder
+   * is connected and the stream is in `PREVIEW`. Pure REST call — does not
+   * capture or publish video from the device camera.
+   */
+  async startLiveStream(libraryId: number, streamId: string): Promise<BunnyResult<LiveStream>> {
+    return NativeBunnyStreamApi.startLiveStream(libraryId, streamId) as Promise<
+      BunnyResult<LiveStream>
+    >;
+  },
+
+  /**
+   * Stops the stream (RUNNING → ENDED). The ingest server cuts the publish, and
+   * with `recordVod` enabled the stream is converted to a VOD. Cannot be undone.
+   */
+  async stopLiveStream(libraryId: number, streamId: string): Promise<BunnyResult<LiveStream>> {
+    return NativeBunnyStreamApi.stopLiveStream(libraryId, streamId) as Promise<
+      BunnyResult<LiveStream>
+    >;
+  },
+
   // endregion
 
   // region — Player settings —
