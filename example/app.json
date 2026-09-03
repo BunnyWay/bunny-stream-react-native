@@ -17,7 +17,7 @@
     "windows": ["dist/assets", "dist/main.windows.bundle"]
   },
   "ios": {
-    "bundleIdentifier": "com.bunnystreamexample"
+    "bundleIdentifier": "net.bunny.StreamSDKRNDemo"
   },
   "android": {
     "icons": "android/app/src/main/res"
