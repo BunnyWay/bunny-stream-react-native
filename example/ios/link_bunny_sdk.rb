@@ -39,6 +39,14 @@ phase.shell_script = <<~'SH'
   if [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-NO}" = "YES" ]; then
     /usr/bin/codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${DESTINATION}/GoogleInteractiveMediaAds.framework"
   fi
+
+  # Workaround for long-standing Xcode 15+ SwiftPM binaryTarget archive bug:
+  # SPM emits "<fw>.xcframework-ios.signature" into CONFIGURATION_BUILD_DIR
+  # more than once, and Xcode's archive packaging then fails with
+  # "... couldn't be copied to Signatures because an item with the same name
+  # already exists". Deleting the duplicate before archive packaging fixes it.
+  # Idempotent and a no-op on non-archive builds.
+  rm -rf "${CONFIGURATION_BUILD_DIR}/GoogleInteractiveMediaAds.xcframework-ios.signature"
 SH
 
 # Patch react-native-host so third-party TurboModules registered in
