@@ -5,7 +5,8 @@
   "scripts": {
     "android": "react-native run-android",
     "mkdist": "mkdir -p dist",
-    "build:android": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev true --bundle-output dist/main.android.jsbundle --assets-dest dist && react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
+    "build:android": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev true --bundle-output dist/main.android.jsbundle --assets-dest dist/res && react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
+    "build:android:apk": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev false --bundle-output dist/main.android.jsbundle --assets-dest dist/res && react-native build-android --tasks assembleRelease --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\" && echo \"APK gotowe: android/app/build/outputs/apk/release/app-release.apk\"",
     "build:ios": "npm run mkdist && react-native bundle --entry-file index.js --platform ios --dev true --bundle-output dist/main.ios.jsbundle --assets-dest dist && react-native build-ios --mode Debug",
     "ios": "pod install --project-directory=ios && ruby ios/link_bunny_sdk.rb && react-native run-ios --scheme BunnyStreamExample --extra-params \"-skipPackagePluginValidation\"",
     "start": "react-native start",
