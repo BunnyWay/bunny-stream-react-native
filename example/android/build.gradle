@@ -24,7 +24,7 @@ buildscript {
 
 // Local snapshot of the Bunny Stream Android SDK 4.0.0 (live-stream branch).
 // Published to mavenLocal() from bunny-stream-android-private @ fb86350.
-// Remove before npm publish — see PLAN.md §7 Faza 0 / Faza 9.
+// TODO(Android SDK): Replace with the public Maven artifact as the final Plan phase 0B step.
 allprojects {
     repositories {
         mavenLocal()

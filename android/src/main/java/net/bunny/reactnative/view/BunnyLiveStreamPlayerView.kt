@@ -208,6 +208,8 @@ class BunnyLiveStreamPlayerView(
           }
         }
         launch {
+          // TODO(Android SDK): Remove this polling after the public SDK guarantees that LIVE/EVENT
+          // playback cannot restore a VOD speed and exposes player replacement notifications.
           while (isActive) {
             if (livePlaybackActive) {
               DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->

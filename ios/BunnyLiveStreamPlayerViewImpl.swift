@@ -16,6 +16,8 @@ import BunnyStreamPlayer
 ///   (only when `(error as? BunnyLiveStreamError)?.isPermanent == true`).
 /// - `onVideoSizeChange` is **not emitted** because the SDK does not expose
 ///   this callback for live (Plan-iOS.md §12.2).
+/// - TODO(iOS SDK): Emit video size and full DVR/live metadata after the public
+///   live state callback exposes those values.
 /// - Recreates the hosted view only when the source identity changes.
 @MainActor
 @objc public final class BunnyLiveStreamPlayerViewImpl: UIView {
