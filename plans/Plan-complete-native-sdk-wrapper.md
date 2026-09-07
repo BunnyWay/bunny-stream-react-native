@@ -520,6 +520,51 @@ Ta część Fazy 0 jest wykonywana na początku. Nie zmienia sposobu pobierania 
 - JS contract tests dla identycznych payloadów Android/iOS.
 - E2E: VOD, live bez DVR, live DVR, countdown, trailer, offline, live → VOD.
 
+## Faza 1A — uporządkowanie struktury katalogów TypeScript
+
+Fazę wykonujemy po ustabilizowaniu istniejącego kontraktu playera w Fazie 1 i przed rozszerzaniem API w Fazie 2. Jest to refaktoryzacja bez zmiany zachowania natywnego i bez usuwania istniejących publicznych eksportów. Docelowa struktura i reguły zależności są opisane w sekcji 6.3.
+
+### Zakres
+
+1. Zmienić `src/index.tsx` w cienki `src/index.ts`, zawierający wyłącznie jawne publiczne eksporty.
+2. Przenieść inicjalizację i walidację do `src/config/`.
+3. Utworzyć feature `src/player/` i przenieść do niego:
+   - `BunnyStreamPlayer.tsx`;
+   - publiczne typy props/source/ref/event payloads;
+   - `sourceIdentityKey`;
+   - hook `useBunnyStreamPlayer`;
+   - reducer, domyślny stan i mapowanie eventów.
+4. Podzielić `src/api/types.ts` na małe modele domenowe w `src/api/models/` oraz przenieść `BunnyResult` i helpery do `src/api/result/`.
+5. Przenieść `useBunnyImage` i jego typy do `src/image/`.
+6. Umieścić adaptery i helpery niebędące publicznym API w `src/internal/`, bez re-eksportowania ich z głównego entry pointu.
+7. Pozostawić kontrakty React Native Codegen w `src/specs/` i zachować `codegenConfig.jsSrcsDir = "src/specs"`.
+8. Dodać lokalne feature barrels (`player/index.ts`, `api/index.ts`, `image/index.ts`) z jawnymi eksportami; kod wewnątrz feature importuje bezpośrednie pliki, a nie własny barrel.
+9. Zachować dotychczasowy root import `bunny-stream-react-native`. Subpath exports nie są częścią tej fazy.
+10. Zaktualizować ścieżki builder-bob, TypeScript, Jest, testów i example tylko tam, gdzie wymaga tego przeniesienie plików.
+
+### Reguły migracji
+
+- Nie zmieniać zachowania bridge'a Android/iOS ani kontraktów eventów podczas przenoszenia plików.
+- Nie łączyć refaktoryzacji struktury z dodawaniem nowych funkcji management API, uploadu lub broadcastera.
+- Zachować wszystkie istniejące runtime i type exports; test publicznego API ma wykrywać przypadkowe usunięcie lub dodanie eksportu.
+- Publiczne typy domenowe nie importują typów Codegen ani generated OpenAPI.
+- Dozwolony kierunek zależności: publiczny feature → `src/specs`/`src/internal`; `src/specs` nie importuje feature modules.
+- Nie używać `export *` w publicznych barrelach.
+- Cały przenoszony i nowy kod, nazwy plików, komentarze oraz JSDoc pozostają po angielsku.
+
+### Kryteria akceptacji
+
+- `src/index.ts` nie zawiera JSX, logiki komponentu, walidacji ani mapperów; jest wyłącznie stabilnym publicznym entry pointem.
+- Player, API i image mają niezależne katalogi feature oraz lokalne jawne barrele.
+- `useBunnyStreamPlayer` ma oddzielone typy, reducer/state i obsługę eventów bez zmiany publicznego wyniku hooka.
+- Monolityczny `src/api/types.ts` nie istnieje; modele są podzielone według domen bez zmian ich publicznych nazw.
+- Raw Codegen specs nie są przypadkowo importowane przez publiczne modele domenowe.
+- Fallow nie wykrywa circular dependencies ani boundary violations.
+- Test publicznych eksportów i compile-time contract tests przechodzą bez zmiany oczekiwanego API.
+- `yarn lint`, `yarn typecheck`, `yarn test`, `yarn codegen`, `yarn prepare` i `npm pack --dry-run` przechodzą.
+- Pełne buildy example Android/iOS przechodzą na przypiętych prywatnych SDK.
+- Prywatne repozytoria Android/iOS pozostają niezmodyfikowane.
+
 ## Faza 2 — brakujące read-only API i collections
 
 Najpierw operacje bezpieczne i łatwe do testowania.
@@ -804,13 +849,14 @@ Ta część Fazy 0 jest wykonywana **jako ostatni element całego planu**, dopie
 
 1. **Faza 0A** — baseline, przypięcie commitów prywatnych SDK, testy kontraktu i oznaczenie workaroundów.
 2. **Faza 1** — naprawa obiecanego już API playera i parytetu Android/iOS w samym wrapperze.
-3. **Faza 2** — collections i bezpieczne read-only API dostępne przez obecne publiczne interfejsy SDK.
-4. **Faza 3** — upload, ponieważ jest osobnym pełnym modułem obecnym w obu SDK i kluczową luką produktową.
-5. **Faza 4** — pozostałe management API możliwe bez zmian w prywatnych SDK.
-6. **Faza 5** — camera/live broadcaster.
-7. **Faza 6** — rozszerzone sterowanie playerem; elementy wymagające nowego native API pozostają odłożone.
-8. **Faza 7** — obrazy, TV i dodatkowe integracje platformowe.
-9. **Faza 0B** — po wydaniu Android/iOS: jako ostatni krok przepięcie na publiczne paczki, clean-consumer tests i release RN.
+3. **Faza 1A** — uporządkowanie struktury `src` według sekcji 6.3, bez zmiany publicznego API i zachowania natywnego.
+4. **Faza 2** — collections i bezpieczne read-only API dostępne przez obecne publiczne interfejsy SDK.
+5. **Faza 3** — upload, ponieważ jest osobnym pełnym modułem obecnym w obu SDK i kluczową luką produktową.
+6. **Faza 4** — pozostałe management API możliwe bez zmian w prywatnych SDK.
+7. **Faza 5** — camera/live broadcaster.
+8. **Faza 6** — rozszerzone sterowanie playerem; elementy wymagające nowego native API pozostają odłożone.
+9. **Faza 7** — obrazy, TV i dodatkowe integracje platformowe.
+10. **Faza 0B** — po wydaniu Android/iOS: jako ostatni krok przepięcie na publiczne paczki, clean-consumer tests i release RN.
 
 ## 9. Strategia PR-ów
 
@@ -819,17 +865,18 @@ Nie implementować całego planu w jednym PR. Zalecany podział:
 1. `test: pin private native SDK baselines and capability contract`;
 2. `fix(ios): complete VOD event contract`;
 3. `fix(live): align Android and iOS live state payloads`;
-4. `feat(api): add collections`;
-5. `feat(api): add video insights and live ingest status`;
-6. `feat(upload): add basic upload module`;
-7. `feat(upload): add resumable TUS controls`;
-8. `feat(api): add thumbnails and captions`;
-9. `feat(api): add encoding and AI operations`;
-10. `feat(broadcast): add native camera broadcaster`;
-11. `feat(player): add advanced VOD events and commands`;
-12. `feat(image): add cached Bunny image component`;
-13. opcjonalnie `feat(android-tv): add TV integration`;
-14. **ostatni PR po wydaniu SDK:** `build: switch to public Android and iOS SDK packages`.
+4. `refactor(src): organize public API by feature`;
+5. `feat(api): add collections`;
+6. `feat(api): add video insights and live ingest status`;
+7. `feat(upload): add basic upload module`;
+8. `feat(upload): add resumable TUS controls`;
+9. `feat(api): add thumbnails and captions`;
+10. `feat(api): add encoding and AI operations`;
+11. `feat(broadcast): add native camera broadcaster`;
+12. `feat(player): add advanced VOD events and commands`;
+13. `feat(image): add cached Bunny image component`;
+14. opcjonalnie `feat(android-tv): add TV integration`;
+15. **ostatni PR po wydaniu SDK:** `build: switch to public Android and iOS SDK packages`.
 
 Każdy PR powinien zawierać:
 
@@ -846,6 +893,7 @@ Każdy PR powinien zawierać:
 Wrapper można uznać za kompletny, gdy:
 
 - wszystkie wspólne publiczne funkcje natywnych SDK mają stabilny odpowiednik TypeScript;
+- struktura `src` jest feature-first, główny `index.ts` jest cienkim publicznym entry pointem, a publiczne modele są oddzielone od kontraktów Codegen i internal adapters;
 - różnice platformowe są jawne w typach i dokumentacji;
 - nie ma cichych no-op poza funkcjami oznaczonymi jako best-effort;
 - Android i iOS emitują zgodne event payloads;

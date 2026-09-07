@@ -62,12 +62,13 @@ using namespace facebook::react;
       });
     };
 
-    _impl.onError = ^(NSString *code, NSString *message) {
+    _impl.onError = ^(NSString *code, NSString *message, NSString *nativeCode) {
       __strong __typeof__(weakSelf) strongSelf = weakSelf;
       if (!strongSelf || !strongSelf->_eventEmitter) return;
       strongSelf->_eventEmitter->onError({
         .code = std::string([code UTF8String]),
-        .message = std::string([message UTF8String])
+        .message = std::string([message UTF8String]),
+        .nativeCode = nativeCode ? std::string([nativeCode UTF8String]) : ""
       });
     };
 
@@ -103,6 +104,40 @@ using namespace facebook::react;
       strongSelf->_eventEmitter->onEnd({
         .positionMs = positionMs,
         .durationMs = durationMs
+      });
+    };
+
+    _impl.onVolumeChange = ^(double volume, BOOL isMuted) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onVolumeChange({
+        .volume = volume,
+        .isMuted = (bool)isMuted
+      });
+    };
+
+    _impl.onPlaybackRateChange = ^(double rate) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onPlaybackRateChange({
+        .rate = rate
+      });
+    };
+
+    _impl.onVideoSizeChange = ^(int32_t width, int32_t height) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onVideoSizeChange({
+        .width = width,
+        .height = height
+      });
+    };
+
+    _impl.onPlaybackError = ^(NSString *message) {
+      __strong __typeof__(weakSelf) strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_eventEmitter) return;
+      strongSelf->_eventEmitter->onPlaybackError({
+        .message = std::string([message UTF8String])
       });
     };
 
