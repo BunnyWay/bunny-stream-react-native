@@ -15,7 +15,7 @@
 // fallow-ignore-file complexity -- idiomatic flat useReducer switch with 9 cases; splitting into per-action handlers adds indirection without reducing cyclomatic complexity. CRAP score is inflated by missing coverage data (20 unit tests cover every case).
 
 import type { PlayerPlaybackState } from '../specs/BunnyStreamPlayerNativeComponent';
-import type { BunnyStreamPlayerRef } from '../types';
+import type { BunnyVodPlayerRef } from '../types';
 
 import * as React from 'react';
 
@@ -67,6 +67,8 @@ export interface PlayerState {
     reason?: string;
     targetEpochMs?: number;
     title?: string;
+    videoId?: string;
+    message?: string;
     dvrEnabled?: boolean;
   } | null;
   /** Terminal live error from `onLiveError`. `null` for VOD or when no error. */
@@ -113,6 +115,8 @@ export interface UseBunnyStreamPlayerOptions {
     reason?: string;
     targetEpochMs?: number;
     title?: string;
+    videoId?: string;
+    message?: string;
     dvrEnabled?: boolean;
   }) => void;
   onLiveError?: (e: { message: string }) => void;
@@ -144,6 +148,8 @@ export type PlayerEventHandlers = {
       reason?: string;
       targetEpochMs?: number;
       title?: string;
+      videoId?: string;
+      message?: string;
       dvrEnabled?: boolean;
     };
   }) => void;
@@ -152,13 +158,13 @@ export type PlayerEventHandlers = {
 
 export interface UseBunnyStreamPlayerResult {
   /** Attach to `<BunnyStreamPlayer ref={player.ref} />`. */
-  ref: React.RefObject<BunnyStreamPlayerRef | null>;
+  ref: React.RefObject<BunnyVodPlayerRef | null>;
   /** Low-frequency aggregated state. */
   state: PlayerState;
   /** High-frequency progress (4×/s). */
   progress: PlayerProgress;
   /** Stable imperative API (proxies the ref). Safe to pass to memoised children. */
-  controls: BunnyStreamPlayerRef;
+  controls: BunnyVodPlayerRef;
   /** Spread onto `<BunnyStreamPlayer {...player.eventHandlers} />`. */
   eventHandlers: PlayerEventHandlers;
 }
@@ -331,7 +337,7 @@ export function useBunnyStreamPlayer(
   options?: UseBunnyStreamPlayerOptions,
   sourceKey?: string | number,
 ): UseBunnyStreamPlayerResult {
-  const ref = React.useRef<BunnyStreamPlayerRef | null>(null);
+  const ref = React.useRef<BunnyVodPlayerRef | null>(null);
 
   const [state, dispatch] = React.useReducer(playerReducer, DEFAULT_PLAYER_STATE);
   const [progress, setProgress] = React.useState<PlayerProgress>(DEFAULT_PROGRESS);
@@ -360,7 +366,7 @@ export function useBunnyStreamPlayer(
 
   // Stable imperative API — proxies the ref so consumers can call
   // `player.controls.play()` without touching the ref directly.
-  const controls = React.useMemo<BunnyStreamPlayerRef>(
+  const controls = React.useMemo<BunnyVodPlayerRef>(
     () => ({
       play: () => ref.current?.play(),
       pause: () => ref.current?.pause(),
@@ -444,6 +450,8 @@ export function useBunnyStreamPlayer(
           reason,
           targetEpochMs,
           title,
+          videoId,
+          message,
           dvrEnabled,
         } = e.nativeEvent;
         const payload = {
@@ -452,6 +460,8 @@ export function useBunnyStreamPlayer(
           ...(reason !== undefined && { reason }),
           ...(targetEpochMs !== undefined && { targetEpochMs }),
           ...(title !== undefined && { title }),
+          ...(videoId !== undefined && { videoId }),
+          ...(message !== undefined && { message }),
           ...(dvrEnabled !== undefined && { dvrEnabled }),
         };
         dispatch({ type: 'LIVE_STATE', liveState: payload });

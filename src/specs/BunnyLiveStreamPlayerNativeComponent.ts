@@ -32,6 +32,8 @@ export type LiveStateChangeEvent = Readonly<{
   reason?: string;
   targetEpochMs?: Double;
   title?: string;
+  videoId?: string;
+  message?: string;
   dvrEnabled?: boolean;
 }>;
 

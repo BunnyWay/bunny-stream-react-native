@@ -66,10 +66,10 @@
       "id": "player.vod-events",
       "area": "VOD event parity",
       "android": "supported",
-      "ios": "partial",
-      "reactNative": "partial",
-      "phase": "phase-1",
-      "notes": "The iOS bridge does not yet emit every event declared by the TypeScript contract."
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Both platforms emit ready, state, progress, errors, buffering, transport, volume, rate, and video-size events."
     },
     {
       "id": "player.live-events",
@@ -77,8 +77,8 @@
       "android": "supported",
       "ios": "partial",
       "reactNative": "partial",
-      "phase": "phase-1",
-      "notes": "The iOS public callback omits DVR and video-size metadata."
+      "phase": "current",
+      "notes": "All public iOS state metadata is mapped; the iOS SDK still omits DVR and video-size values."
     },
     {
       "id": "player.drm",

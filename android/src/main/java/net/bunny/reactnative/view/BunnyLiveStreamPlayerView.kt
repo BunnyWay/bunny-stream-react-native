@@ -34,6 +34,7 @@ import net.bunny.bunnystreamplayer.livestream.LiveStreamPlayerState
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.RnEvent
+import net.bunny.reactnative.state.requiresLiveSpeedReset
 
 /**
  * React Native Fabric wrapper that hosts the SDK's Compose
@@ -211,11 +212,9 @@ class BunnyLiveStreamPlayerView(
           // TODO(Android SDK): Remove this polling after the public SDK guarantees that LIVE/EVENT
           // playback cannot restore a VOD speed and exposes player replacement notifications.
           while (isActive) {
-            if (livePlaybackActive) {
-              DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->
-                if (player.playbackParameters.speed != 1.0f) {
-                  player.setPlaybackSpeed(1.0f)
-                }
+            DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->
+              if (requiresLiveSpeedReset(livePlaybackActive, player.playbackParameters.speed)) {
+                player.setPlaybackSpeed(1.0f)
               }
             }
             delay(LIVE_SPEED_CHECK_INTERVAL_MS)
