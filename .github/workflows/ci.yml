@@ -31,6 +31,9 @@ jobs:
       - name: Typecheck files
         run: yarn typecheck
 
+      - name: Check generated capability matrix
+        run: yarn capabilities:check
+
   test:
     runs-on: ubuntu-latest
 
@@ -90,8 +93,8 @@ jobs:
           sarif_file: fallow-results.sarif
 
   build-android:
-    # TODO: Re-enable once the 4.0.0 live-stream Android SDK is published to a
-    # resolvable Maven repository (currently a local-only SNAPSHOT).
+    # TODO(Android SDK): Re-enable this public CI job after the live-stream SDK is
+    # available from public Maven. The manual closed-test workflow builds the private snapshot.
     if: false
     runs-on: ubuntu-latest
 
@@ -146,11 +149,12 @@ jobs:
 
       - name: Build example for Android
         env:
-          JAVA_OPTS: "-XX:MaxHeapSize=6g"
+          JAVA_OPTS: '-XX:MaxHeapSize=6g'
         run: |
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
-  # TODO(ios): Re-enable once the iOS implementation is available.
+  # TODO(iOS SDK): Re-enable this public CI job after the SDK is available from
+  # public SwiftPM. The manual closed-test workflow builds the private checkout.
   # build-ios:
   #   runs-on: macos-latest
   #

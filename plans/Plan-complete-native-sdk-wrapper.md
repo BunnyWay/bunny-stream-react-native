@@ -251,6 +251,221 @@ Nie należy umieszczać uploadu, API management i player commands w jednym Turbo
 - Funkcja niedostępna na jednej platformie jest jawnie oznaczona jako platformowa; nie może być cichym no-op bez informacji.
 - Destrukcyjne API (`deleteVideo`, `deleteResolutions`, cancel z usunięciem częściowego video) jest wyraźnie opisane.
 - Token auth secret nie może być promowany jako funkcja produkcyjna klienta; `generateEmbedToken` pozostaje helperem demo/debug.
+- Cały kod projektu (wrapper React Native) jest pisany **po angielsku**: nazwy zmiennych, funkcji, typów, klas, plików, opisy JSDoc/TSDoc, komentarze, komunikaty błędów, nazwy branchy i commity. Plan jest dokumentem wewnętrznym pisanym po polsku, ale nie jest kodem i nie wpływa na konwencję kodu. Wszelkie komentarze `TODO(Android SDK)` / `TODO(iOS SDK)` oraz opisy workaroundów w kodzie również po angielsku.
+
+### 6.3. Struktura katalogów `src`
+
+Obecnie `src/index.tsx` łączy zbyt wiele odpowiedzialności: publiczne eksporty paczki, inicjalizację SDK i walidację, publiczne typy playera, wybór implementacji VOD/live, implementację komponentu i ref commands, identyfikację źródła, eksport hooków oraz eksport całego API REST. Ma 442 linie, a sam `BunnyStreamPlayer` około 135 linii. Fallow nie wykrywa cykli ani martwych plików, więc reorganizacja jest przygotowaniem biblioteki na kolejne moduły, a nie pilną naprawą.
+
+Dla tego projektu najlepszy jest podział **feature-first**, a nie ogólne katalogi typu `components/`, `services/`, `utils/`.
+
+#### Docelowa struktura
+
+```text
+src/
+├── index.ts
+│
+├── config/
+│   ├── initialize.ts
+│   ├── validation.ts
+│   └── types.ts
+│
+├── player/
+│   ├── index.ts
+│   ├── BunnyStreamPlayer.tsx
+│   ├── BunnyStreamPlayer.types.ts
+│   ├── sourceIdentity.ts
+│   │
+│   ├── hooks/
+│   │   ├── useBunnyStreamPlayer.ts
+│   │   ├── useBunnyStreamPlayer.types.ts
+│   │   └── index.ts
+│   │
+│   └── state/
+│       ├── playerState.ts
+│       ├── playerReducer.ts
+│       └── playerEventHandlers.ts
+│
+├── api/
+│   ├── index.ts
+│   ├── BunnyStreamApi.ts
+│   │
+│   ├── result/
+│   │   ├── BunnyResult.ts
+│   │   └── resultHelpers.ts
+│   │
+│   └── models/
+│       ├── common.ts
+│       ├── video.ts
+│       ├── liveStream.ts
+│       ├── playerSettings.ts
+│       ├── collections.ts
+│       ├── statistics.ts
+│       └── requests.ts
+│
+├── image/
+│   ├── index.ts
+│   ├── useBunnyImage.ts
+│   └── types.ts
+│
+├── upload/
+│   ├── index.ts
+│   ├── BunnyStreamUpload.ts
+│   ├── types.ts
+│   └── hooks/
+│       └── useBunnyUpload.ts
+│
+├── broadcaster/
+│   ├── index.ts
+│   ├── BunnyStreamBroadcaster.tsx
+│   ├── types.ts
+│   └── hooks/
+│       └── useBunnyBroadcast.ts
+│
+├── specs/
+│   ├── NativeBunnyStreamPlayer.ts
+│   ├── NativeBunnyStreamApi.ts
+│   ├── BunnyStreamPlayerNativeComponent.ts
+│   ├── BunnyLiveStreamPlayerNativeComponent.ts
+│   ├── NativeBunnyStreamUpload.ts
+│   └── BunnyStreamBroadcasterNativeComponent.ts
+│
+└── __tests__/
+    ├── public-api.test.ts
+    ├── codegen-contract.test.ts
+    └── ...
+```
+
+Katalogi `upload/` i `broadcaster/` powstałyby dopiero przy implementacji tych modułów (Fazy 3 i 5).
+
+#### Główny `index.ts`
+
+Główny entry point powinien być wyłącznie kontrolowanym publicznym API paczki:
+
+```ts
+export { initialize } from './config/initialize';
+
+export {
+  BunnyStreamPlayer,
+  sourceIdentityKey,
+  useBunnyStreamPlayer,
+} from './player';
+
+export type {
+  BunnyStreamPlayerProps,
+  BunnyStreamPlayerRef,
+  BunnyStreamSource,
+  PlayerState,
+  PlayerProgress,
+  UseBunnyStreamPlayerOptions,
+  UseBunnyStreamPlayerResult,
+} from './player';
+
+export {
+  BunnyStreamApi,
+  errorOrNull,
+  fold,
+  getOrNull,
+  map,
+} from './api';
+
+export type {
+  BunnyError,
+  BunnyResult,
+  Video,
+  VideoList,
+  LiveStream,
+  LiveStreamList,
+} from './api';
+
+export { useBunnyImage } from './image';
+export type { UseBunnyImageResult } from './image';
+```
+
+Po ekstrakcji JSX plik można zmienić z `index.tsx` na `index.ts`.
+
+#### Zasady eksportu
+
+Dla biblioteki npm eksport jest częścią publicznego kontraktu i semantic versioning. Należy używać explicit exports:
+
+```ts
+export { BunnyStreamPlayer } from './BunnyStreamPlayer';
+export type { BunnyStreamPlayerProps } from './BunnyStreamPlayer.types';
+```
+
+nie `export *`. To zapobiega przypadkowemu opublikowaniu helperów wewnętrznych.
+
+Raw TurboModules (`NativeBunnyStreamPlayer`, `NativeBunnyStreamApi`) traktujemy jako wewnętrzne. Jeśli są potrzebne do integracji lub mockowania, udostępniamy je przez osobny subpath:
+
+```ts
+import { NativeBunnyStreamApi } from 'bunny-stream-react-native/native';
+```
+
+Nie miesza się raw Codegen API ze standardowym API konsumenckim.
+
+#### Podział obecnego `index.tsx`
+
+1. **Komponent playera** → `src/player/BunnyStreamPlayer.tsx`: `NativeVodView`, `NativeLiveView`, `React.forwardRef`, wybór VOD/live, mapowanie props, ref commands, remount przez `hostKey`.
+2. **Publiczne typy playera** → `src/player/BunnyStreamPlayer.types.ts`: `BunnyStreamPlayerProps`, `BunnyStreamSource`, `BunnyStreamPlayerRef`, publiczne event payloads. Publiczne typy nie powinny być bezpośrednio zależne od speców Codegen, ponieważ spec jest kontraktem technicznym RN i może wymagać typów takich jak `Double`, `Int32` czy `WithDefault`.
+3. **Inicjalizacja** → `src/config/initialize.ts` i `src/config/validation.ts`: `initialize`, `validateAccessKey`, `validateLibraryId`. Nie tworzymy klasy `BunnyStreamClient` tylko po to, by opakować globalną inicjalizację; dopóki natywna architektura jest oparta na jednej domyślnej konfiguracji, zwykła funkcja pozostaje najbardziej naturalna.
+4. **Tożsamość źródła** → `src/player/sourceIdentity.ts`: `sourceIdentityKey`.
+5. **Hook playera** → podział na `player/hooks/useBunnyStreamPlayer.ts`, `player/state/playerState.ts`, `player/state/playerReducer.ts`, `player/state/playerEventHandlers.ts`. Nie dzielimy każdej akcji reduktora na osobny plik — byłoby to nadmierne rozdrobnienie.
+6. **API REST** → `src/api/` z podziałem `api/models/` według domen (video, liveStream, collections, statistics) i `api/result/` dla `BunnyResult` i helperów. Nie umieszczamy wszystkich typów SDK w globalnym `src/types.ts`; typ znajduje się obok domeny, do której należy.
+
+#### `src/specs`
+
+Specy Codegen pozostają w obecnym katalogu `src/specs/`. To wyraźna granica infrastrukturalna:
+
+- pliki są konsumowane przez React Native Codegen;
+- obowiązują w nich ograniczenia Codegen;
+- nie powinny być głównym publicznym API dla użytkownika npm;
+- komponenty i moduły domenowe mogą je importować, ale nie odwrotnie.
+
+Nie przenosimy ich do `player/native/`, ponieważ `package.json` ma `"jsSrcsDir": "src/specs"` i zmiana położenia nie daje istotnej wartości, a komplikuje Codegen.
+
+#### Feature barrels
+
+Każda domena ma lokalny `index.ts` (`player/index.ts`, `api/index.ts`, `image/index.ts`). Zasady:
+
+- główny `src/index.ts` importuje/re-eksportuje feature barrels;
+- kod wewnątrz `player/` używa bezpośrednich importów;
+- kod wewnątrz feature nie importuje własnego `index.ts`;
+- feature barrels nie re-eksportują się wzajemnie.
+
+To minimalizuje ryzyko cykli.
+
+#### Subpath exports
+
+Na ten moment zachowujemy jeden publiczny import:
+
+```ts
+import { BunnyStreamPlayer, BunnyStreamApi } from 'bunny-stream-react-native';
+```
+
+Gdy dojdą upload i broadcaster, można rozważyć subpath exports (`bunny-stream-react-native/api`, `bunny-stream-react-native/upload`). Wymaga to jednak zmian w `package.json.exports`, konfiguracji builder-bob, ścieżkach deklaracji TypeScript i testach `npm pack`. Nie wprowadzamy ich wyłącznie dla estetyki struktury katalogów — wewnętrzny podział nie wymaga zmiany publicznego sposobu importowania.
+
+#### Kolejność refaktoryzacji
+
+1. Utworzyć `player/BunnyStreamPlayer.types.ts` i przenieść typy.
+2. Przenieść `sourceIdentityKey`.
+3. Przenieść `initialize` i walidację do `config/`.
+4. Przenieść komponent do `player/BunnyStreamPlayer.tsx`.
+5. Zmienić główny entry point na cienki `src/index.ts`.
+6. Podzielić `useBunnyStreamPlayer` na hook, reducer i typy.
+7. Podzielić `api/types.ts` według domen.
+8. Dopiero potem dodawać `upload/` i `broadcaster/`.
+
+Każdy etap zachowuje dokładnie obecne publiczne eksporty i przechodzi:
+
+```bash
+yarn typecheck
+yarn lint
+yarn test
+yarn prepare
+npm pack --dry-run
+```
+
+Najważniejsza zasada: **katalogi według funkcji SDK, jeden cienki publiczny entry point i wyraźne oddzielenie publicznych typów od technicznych kontraktów Codegen**.
 
 ## 7. Plan implementacji
 
