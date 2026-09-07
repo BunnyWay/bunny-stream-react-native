@@ -1,6 +1,7 @@
 require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+# TODO(iOS SDK): Replace the local checkout with the public tagged SwiftPM package in Plan phase 0B.
 ios_sdk_path = ENV.fetch(
   "BUNNY_STREAM_IOS_SDK_PATH",
   File.expand_path("../bunny-stream-ios-private", __dir__)
