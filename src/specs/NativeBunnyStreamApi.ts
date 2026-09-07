@@ -19,7 +19,7 @@ import { TurboModuleRegistry } from 'react-native';
  *
  * Codegen limitation: sealed result types and nullable primitives are mapped to
  * plain `Object` here; the idiomatic TypeScript surface lives in
- * `src/api/types.ts` and `src/api/BunnyStreamApi.ts`.
+ * `src/api/models`, `src/api/result`, and `src/api/BunnyStreamApi.ts`.
  */
 export interface Spec extends TurboModule {
   // — SDK status —
