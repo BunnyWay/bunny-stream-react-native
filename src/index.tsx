@@ -16,11 +16,13 @@
  * remount of the native host (PLAN.md §5).
  */
 
-import type { BunnyStreamPlayerRef, BunnyStreamSource } from './types';
+import type { BunnyStreamSource, BunnyVodPlayerRef } from './types';
 import type { HostComponent, ViewProps } from 'react-native';
 
 import * as React from 'react';
+import { Platform } from 'react-native';
 
+import { normalizeLiveStateEvent } from './internal/liveStateEvent';
 import BunnyLiveStreamPlayerNativeComponent, {
   type NativeProps as LiveNativeProps,
 } from './specs/BunnyLiveStreamPlayerNativeComponent';
@@ -122,6 +124,8 @@ export interface BunnyStreamPlayerProps extends ViewProps {
       reason?: string;
       targetEpochMs?: number;
       title?: string;
+      videoId?: string;
+      message?: string;
       dvrEnabled?: boolean;
     };
   }) => void;
@@ -135,7 +139,7 @@ export interface BunnyStreamPlayerProps extends ViewProps {
 
 // --- Ref / commands ---
 
-export type { BunnyStreamPlayerRef } from './types';
+export type { BunnyStreamPlayerRef, BunnyVodPlayerRef } from './types';
 
 // --- initialize ---
 
@@ -215,7 +219,7 @@ const NativeLiveView =
  * />
  * ```
  */
-export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStreamPlayerProps>(
+export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStreamPlayerProps>(
   (props, ref) => {
     const { source, ...rest } = props;
     // Track the current source type so ref commands can no-op for live.
@@ -299,6 +303,15 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
     } = rest;
 
     if (source.type === 'live') {
+      const nativeOnLiveStateChange: LiveNativeProps['onLiveStateChange'] = onLiveStateChange
+        ? (event) => {
+            // TODO(iOS SDK): Preserve `dvrEnabled` on iOS after the public live callback
+            // exposes it. Codegen serialises a missing boolean as false on the iOS bridge.
+            const nativeEvent = normalizeLiveStateEvent(event.nativeEvent, Platform.OS);
+            onLiveStateChange({ nativeEvent });
+          }
+        : undefined;
+
       // onPlaybackError is NOT forwarded to the live host — the SDK's
       // BunnyLiveStreamPlayer composable handles playback errors internally
       // via its own overlay (terminalError state). JS consumers should use
@@ -316,7 +329,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyStreamPlayerRef, BunnyStr
           token={source.token}
           expires={source.expires}
           onVideoSizeChange={onVideoSizeChange}
-          onLiveStateChange={onLiveStateChange}
+          onLiveStateChange={nativeOnLiveStateChange}
           onLiveError={onLiveError}
           style={style}
           {...viewProps}

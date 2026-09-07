@@ -1,4 +1,10 @@
-import type { BunnyStreamApi, BunnyStreamPlayerProps, initialize } from '../index';
+import type {
+  BunnyStreamApi,
+  BunnyStreamPlayerProps,
+  BunnyStreamPlayerRef,
+  BunnyVodPlayerRef,
+  initialize,
+} from '../index';
 import type {
   LiveErrorEvent,
   LiveStateChangeEvent,
@@ -21,7 +27,6 @@ import type {
 } from '../specs/BunnyStreamPlayerNativeComponent';
 import type { Spec as ApiSpec } from '../specs/NativeBunnyStreamApi';
 import type { Spec as PlayerSpec } from '../specs/NativeBunnyStreamPlayer';
-import type { BunnyStreamPlayerRef } from '../types';
 import type { TurboModule } from 'react-native';
 
 import { describe, expect, it } from '@jest/globals';
@@ -45,6 +50,7 @@ export type ApiMethodContract = Assert<
   Exclude<NativeApiMethods, PublicApiMethods> extends never ? true : false
 >;
 export type PlayerCommandContract = Assert<Compatible<PublicCommandMethods, NativeCommandMethods>>;
+export type LegacyPlayerRefContract = Assert<Compatible<BunnyStreamPlayerRef, BunnyVodPlayerRef>>;
 export type ReadyEventContract = Assert<Compatible<EventPayload<'onReady'>, PlayerReadyEvent>>;
 export type StateEventContract = Assert<
   Compatible<EventPayload<'onPlaybackStateChange'>, PlayerStateChangeEvent>

@@ -43,19 +43,15 @@ export type BunnyStreamSource =
     };
 
 /**
- * Imperative commands available via a ref to {@link BunnyStreamPlayer}.
+ * Imperative commands available for VOD playback through
+ * {@link BunnyStreamPlayer}. Commands issued before `STATE_READY` are queued
+ * natively and drained when the VOD player becomes ready.
  *
- * These map 1:1 to the Codegen `NativeCommands`. Commands issued before
- * `STATE_READY` are queued on the native side and drained when the player
- * becomes ready.
- *
- * For `live` sources, commands other than `mute`/`unmute` are no-ops until
- * the Android SDK exposes a public live controller (PLAN.md §6 Faza 5).
- * `mute`/`unmute` are no-ops for live today as well — the live host does not
- * expose playback commands. This is documented rather than silently swallowed:
- * calling them on a live source is safe but has no effect.
+ * Do not call these commands for a `live` source. The native SDKs do not expose
+ * public live controllers yet, so the component ignores VOD commands while its
+ * active source is live.
  */
-export type BunnyStreamPlayerRef = {
+export type BunnyVodPlayerRef = {
   /** Resume playback. */
   play: () => void;
   /** Pause playback. */
@@ -71,3 +67,10 @@ export type BunnyStreamPlayerRef = {
   /** Unmute audio. */
   unmute: () => void;
 };
+
+/**
+ * Backward-compatible name for the VOD-only imperative player API.
+ * Prefer {@link BunnyVodPlayerRef} in new code so live command limitations are
+ * visible at the call site.
+ */
+export type BunnyStreamPlayerRef = BunnyVodPlayerRef;
