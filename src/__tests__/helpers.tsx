@@ -1,8 +1,8 @@
-import type { UseBunnyStreamPlayerOptions } from '../hooks/useBunnyStreamPlayer';
+import type { UseBunnyStreamPlayerOptions } from '../player/hooks/useBunnyStreamPlayer.types';
 
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useBunnyStreamPlayer } from '../hooks/useBunnyStreamPlayer';
+import { useBunnyStreamPlayer } from '../player/hooks/useBunnyStreamPlayer';
 
 // Convenience: fire a native-event-shaped payload at a handler.
 export async function fire<T>(
@@ -15,12 +15,8 @@ export async function fire<T>(
 }
 
 // Render the hook with optional initial options.
-export async function renderPlayerHook(
-  initialOptions?: UseBunnyStreamPlayerOptions,
-) {
-  return renderHook(
-    (opts: UseBunnyStreamPlayerOptions | undefined) =>
-      useBunnyStreamPlayer(opts),
-    { initialProps: initialOptions },
-  );
+export async function renderPlayerHook(initialOptions?: UseBunnyStreamPlayerOptions) {
+  return renderHook((opts: UseBunnyStreamPlayerOptions | undefined) => useBunnyStreamPlayer(opts), {
+    initialProps: initialOptions,
+  });
 }

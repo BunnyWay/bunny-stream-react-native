@@ -1,15 +1,10 @@
-import type { LiveStateChangeEvent } from '../specs/BunnyLiveStreamPlayerNativeComponent';
+import type { LiveStateChangeEvent } from '../player/BunnyStreamPlayer.types';
+import type { LiveStateChangeEvent as NativeLiveStateChangeEvent } from '../specs/BunnyLiveStreamPlayerNativeComponent';
 
-export type NormalizedLiveStateEvent = Pick<LiveStateChangeEvent, 'state' | 'isLive'> &
-  Partial<
-    Pick<
-      LiveStateChangeEvent,
-      'reason' | 'targetEpochMs' | 'title' | 'videoId' | 'message' | 'dvrEnabled'
-    >
-  >;
+export type NormalizedLiveStateEvent = LiveStateChangeEvent;
 
 export function normalizeLiveStateEvent(
-  event: LiveStateChangeEvent,
+  event: NativeLiveStateChangeEvent,
   platform: string,
 ): NormalizedLiveStateEvent {
   const { reason, targetEpochMs, title, videoId, message, dvrEnabled, ...required } = event;

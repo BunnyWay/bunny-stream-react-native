@@ -26,56 +26,50 @@
  * ```
  */
 
+import type { LiveStream, LiveStreamList, LiveStreamPlayData } from './models/liveStream';
+import type { PlayerSettings } from './models/playerSettings';
 import type {
-  BunnyResult,
   CreateVideoRequestInput,
-  LiveStream,
   LiveStreamCreateRequestInput,
-  LiveStreamList,
-  LiveStreamPlayData,
-  PlayerSettings,
   UpdateVideoRequestInput,
-  Video,
-  VideoList,
-  VideoPlayData,
-} from './types';
+} from './models/requests';
+import type { Video, VideoList, VideoPlayData } from './models/video';
+import type { BunnyResult } from './result/BunnyResult';
 
 import NativeBunnyStreamApi from '../specs/NativeBunnyStreamApi';
 
 // Re-export the helpers and types so consumers can import everything from here.
-export {
-  errorOrNull,
-  fold,
-  getOrNull,
-  liveStreamStatusLabel,
-  map,
-  videoStatusLabel,
-} from './types';
-
+export { liveStreamStatusLabel } from './models/liveStream';
 export type {
-  BunnyError,
-  BunnyErrorKind,
-  BunnyResult,
-  Caption,
-  Chapter,
-  CreateVideoRequestInput,
   LiveStream,
-  LiveStreamCreateRequestInput,
   LiveStreamList,
   LiveStreamPlayData,
   LiveStreamStatus,
-  MetaTag,
-  PlayerSettings,
-  Moment,
   RtmpOutput,
+} from './models/liveStream';
+export { LiveStreamStatusEnum } from './models/liveStream';
+
+export type { PlayerSettings } from './models/playerSettings';
+export type {
+  CreateVideoRequestInput,
+  LiveStreamCreateRequestInput,
   UpdateVideoRequestInput,
+} from './models/requests';
+
+export { TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum, videoStatusLabel } from './models/video';
+export type {
+  Caption,
+  Chapter,
+  MetaTag,
+  Moment,
   Video,
   VideoList,
   VideoPlayData,
   VideoStatus,
-} from './types';
+} from './models/video';
 
-export { LiveStreamStatusEnum, TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum } from './types';
+export type { BunnyError, BunnyErrorKind, BunnyResult } from './result/BunnyResult';
+export { errorOrNull, fold, getOrNull, map } from './result/resultHelpers';
 
 /**
  * Common listing options shared by `listVideos` and `listLiveStreams`.
