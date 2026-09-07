@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".nvmrc", ".yarnrc.yml"],
-  "globalEnv": ["NODE_ENV"],
+  "globalDependencies": [".nvmrc", ".yarnrc.yml", "native-sdk-baselines.json"],
+  "globalEnv": ["NODE_ENV", "BUNNY_STREAM_ANDROID_SDK_PATH", "BUNNY_STREAM_IOS_SDK_PATH"],
   "tasks": {
     "build:android": {
       "env": ["ANDROID_HOME", "ORG_GRADLE_PROJECT_newArchEnabled"],
@@ -9,8 +9,8 @@
         "package.json",
         "android",
         "!android/build",
-        "src/*.ts",
-        "src/*.tsx",
+        "src/**",
+        "native-sdk-baselines.json",
         "example/package.json",
         "example/android",
         "!example/android/.gradle",
@@ -30,8 +30,8 @@
         "package.json",
         "*.podspec",
         "ios",
-        "src/*.ts",
-        "src/*.tsx",
+        "src/**",
+        "native-sdk-baselines.json",
         "example/package.json",
         "example/ios",
         "!example/ios/build",

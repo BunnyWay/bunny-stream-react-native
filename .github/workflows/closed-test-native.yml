@@ -1,0 +1,91 @@
+name: Closed-test native SDKs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baselines:
+    runs-on: ubuntu-latest
+    outputs:
+      android_commit: ${{ steps.baselines.outputs.android_commit }}
+      ios_commit: ${{ steps.baselines.outputs.ios_commit }}
+    steps:
+      - name: Checkout wrapper
+        uses: actions/checkout@v5
+
+      - name: Read native SDK baselines
+        id: baselines
+        run: |
+          echo "android_commit=$(node -p "require('./native-sdk-baselines.json').android.commit")" >> "$GITHUB_OUTPUT"
+          echo "ios_commit=$(node -p "require('./native-sdk-baselines.json').ios.commit")" >> "$GITHUB_OUTPUT"
+
+  android:
+    needs: baselines
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout wrapper
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned Android SDK
+        uses: actions/checkout@v5
+        with:
+          repository: BunnyWay/bunny-stream-android-private
+          ref: ${{ needs.baselines.outputs.android_commit }}
+          token: ${{ secrets.BUNNY_NATIVE_SDKS_TOKEN }}
+          path: native/android
+
+      - name: Setup wrapper
+        uses: ./.github/actions/setup
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - name: Publish pinned Android SDK to Maven Local
+        env:
+          BUNNY_STREAM_ANDROID_SDK_PATH: ${{ github.workspace }}/native/android
+        run: yarn native-android:publish
+
+      - name: Verify native SDK baseline
+        env:
+          BUNNY_STREAM_ANDROID_SDK_PATH: ${{ github.workspace }}/native/android
+        run: yarn native-baselines:check android
+
+      - name: Build Android example
+        run: yarn turbo run build:android --cache-dir=.turbo/android
+
+  ios:
+    needs: baselines
+    runs-on: macos-latest
+    env:
+      BUNNY_STREAM_IOS_SDK_PATH: ${{ github.workspace }}/native/ios
+      RCT_USE_RN_DEP: 1
+      RCT_USE_PREBUILT_RNCORE: 1
+    steps:
+      - name: Checkout wrapper
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned iOS SDK
+        uses: actions/checkout@v5
+        with:
+          repository: BunnyWay/bunny-stream-ios-private
+          ref: ${{ needs.baselines.outputs.ios_commit }}
+          token: ${{ secrets.BUNNY_NATIVE_SDKS_TOKEN }}
+          path: native/ios
+
+      - name: Setup wrapper
+        uses: ./.github/actions/setup
+
+      - name: Verify native SDK baseline
+        run: yarn native-baselines:check ios
+
+      - name: Install iOS dependencies
+        run: yarn example setup:ios
+
+      - name: Build iOS example
+        run: yarn turbo run build:ios --cache-dir=.turbo/ios
