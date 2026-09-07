@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["jest"],
     "paths": {
-      "bunny-stream-react-native": ["../src/index.tsx"]
+      "bunny-stream-react-native": ["../src/index.ts"]
     },
     "customConditions": ["bunny-stream-react-native-source"]
   },

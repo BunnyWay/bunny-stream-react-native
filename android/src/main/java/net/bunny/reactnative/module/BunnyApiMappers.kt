@@ -29,7 +29,7 @@ import net.bunny.api.video.domain.model.VideoPlayData
  * returns a fresh [WritableNativeMap]/[WritableNativeArray], with no side effects.
  *
  * The JS side reads these as plain objects; the TypeScript surface in
- * `src/api/types.ts` is the contract the shapes conform to.
+ * `src/api/models` and `src/api/result` define the contract these shapes conform to.
  */
 internal object BunnyApiMappers {
 
@@ -65,7 +65,7 @@ internal object BunnyApiMappers {
   /**
    * Maps a [BunnyError] subclass to `{ kind, httpStatus, message, isTerminal }`.
    * The `kind` string is the JS discriminant — see `BunnyErrorKind` in
-   * `src/api/types.ts`.
+   * `src/api/result/BunnyResult.ts`.
    */
   fun BunnyError.toWritableMap(): WritableMap = WritableNativeMap().apply {
     putString("kind", kindName())
