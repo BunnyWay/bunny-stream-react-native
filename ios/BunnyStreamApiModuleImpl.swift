@@ -15,6 +15,9 @@ import React
 /// stored in `BunnyStreamConfiguration` by the `BunnyStreamPlayer` TurboModule's
 /// `initialize(accessKey, libraryId)`, and this module reads them to construct
 /// a `BunnyStreamAPI` instance lazily.
+///
+/// TODO(iOS SDK): Replace generated video API models with stable domain
+/// VideoRepository and CollectionRepository surfaces when they become public.
 @objc public final class BunnyStreamApiModuleImpl: NSObject {
 
   @objc public static let shared = BunnyStreamApiModuleImpl()

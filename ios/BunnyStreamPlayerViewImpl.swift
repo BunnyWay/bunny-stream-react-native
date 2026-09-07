@@ -20,8 +20,9 @@ import BunnyStreamPlayer
 ///   player is discovered are queued and replayed on attach.
 /// - Events (`onReady`, `onProgress`, etc.) are emitted by discovering the
 ///   SDK's internal `AVPlayer` through the `AVPlayerLayer` in the view
-///   hierarchy and observing it via KVO + periodic time observer. This
-///   bridges the gap until the SDK exposes public callbacks
+///   hierarchy and observing it via KVO + periodic time observer.
+/// - TODO(iOS SDK): Replace AVPlayerLayer discovery and KVO after the public SDK
+///   exposes a stable VOD controller and playback event callbacks.
 ///   (Plan-iOS.md §12.1).
 @MainActor
 @objc public final class BunnyStreamPlayerViewImpl: UIView {
