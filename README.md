@@ -20,18 +20,18 @@ Bunny Stream is a video platform that provides encoding, storage, delivery, and 
 
 ## System Requirements
 
-| Requirement | Minimum version |
-| ------------ | ---------------- |
-| Node.js | 18 (see `.nvmrc` for the version used in CI) |
-| React | 18.0.0 |
-| React Native | 0.71.0 |
-| Android API | 26 (required by the Bunny Stream Android SDK) |
+| Requirement  | Minimum version                               |
+| ------------ | --------------------------------------------- |
+| Node.js      | 18 (see `.nvmrc` for the version used in CI)  |
+| React        | 18.0.0                                        |
+| React Native | 0.71.0                                        |
+| Android API  | 26 (required by the Bunny Stream Android SDK) |
 
 These are the floors declared in `peerDependencies` / `engines` in `package.json` and may be raised as the native bridge is implemented. The native implementation targets the React Native **New Architecture** (TurboModules and Fabric components).
 
 ## Status
 
-This repository contains the TypeScript contract (Codegen specs), build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), the Android native bridge (in progress), and an example app for development. The iOS bridge is planned.
+This repository contains the TypeScript contract, Android and iOS native bridges, build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), and an example app for development. See the generated [capability matrix](./docs/CAPABILITIES.md) for current platform support and planned delivery phases.
 
 Planned roadmap:
 

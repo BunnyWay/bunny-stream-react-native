@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "statuses": {
+    "supported": "Available through a shared Android/iOS React Native contract.",
+    "partial": "Available with a reduced contract or platform differences.",
+    "unsupported": "Available in at least one native SDK but not exposed by the wrapper.",
+    "blocked": "A safe shared bridge requires additional public native SDK APIs.",
+    "platform-only": "Intentionally available on one applicable platform only."
+  },
+  "capabilities": [
+    {
+      "id": "initialization.single-library",
+      "area": "Initialization",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "One default library configuration."
+    },
+    {
+      "id": "initialization.multiple-clients",
+      "area": "Multiple client instances",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "backlog",
+      "notes": "The wrapper currently exposes global initialization."
+    },
+    {
+      "id": "player.vod",
+      "area": "VOD playback",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Fabric component with native controls."
+    },
+    {
+      "id": "player.live-dvr",
+      "area": "Live and DVR playback",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Native SDKs own polling, recovery, DVR, and live-to-VOD transitions."
+    },
+    {
+      "id": "player.vod-commands",
+      "area": "VOD commands",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Play, pause, seek, volume, rate, mute, and unmute."
+    },
+    {
+      "id": "player.live-commands",
+      "area": "Live commands",
+      "android": "blocked",
+      "ios": "blocked",
+      "reactNative": "blocked",
+      "phase": "phase-6",
+      "notes": "Public live controllers are required in both native SDKs."
+    },
+    {
+      "id": "player.vod-events",
+      "area": "VOD event parity",
+      "android": "supported",
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "phase-1",
+      "notes": "The iOS bridge does not yet emit every event declared by the TypeScript contract."
+    },
+    {
+      "id": "player.live-events",
+      "area": "Live state metadata parity",
+      "android": "supported",
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "phase-1",
+      "notes": "The iOS public callback omits DVR and video-size metadata."
+    },
+    {
+      "id": "player.drm",
+      "area": "DRM through native UI",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Widevine on Android and FairPlay on iOS."
+    },
+    {
+      "id": "player.ads",
+      "area": "VAST/IMA ads through native UI",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Server-driven native behavior."
+    },
+    {
+      "id": "player.captions-quality-audio",
+      "area": "Captions, quality, and audio through native UI",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Programmatic selection remains outside the current JS contract."
+    },
+    {
+      "id": "player.cast-pip-fullscreen",
+      "area": "Cast, AirPlay, PiP, and fullscreen",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "partial",
+      "phase": "phase-7",
+      "notes": "Native controls work; programmatic commands and events are not exposed."
+    },
+    {
+      "id": "player.watermark",
+      "area": "Watermark",
+      "android": "unsupported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-6",
+      "notes": "No equivalent shared public native API."
+    },
+    {
+      "id": "player.theme-icons",
+      "area": "Custom icons and theme",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-6",
+      "notes": "Not exposed as a programmatic React Native contract."
+    },
+    {
+      "id": "player.resume",
+      "area": "Resume position",
+      "android": "supported",
+      "ios": "unsupported",
+      "reactNative": "unsupported",
+      "phase": "phase-6",
+      "notes": "A shared public native API is required."
+    },
+    {
+      "id": "api.videos-basic",
+      "area": "Basic video management API",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "List, get, play data, create, update, and delete."
+    },
+    {
+      "id": "api.live-basic",
+      "area": "Basic live stream management API",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "List, get, play data, lifecycle, create, update, and delete."
+    },
+    {
+      "id": "api.collections",
+      "area": "Collections API",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-2",
+      "notes": "Planned after player contract parity."
+    },
+    {
+      "id": "api.video-insights",
+      "area": "Video statistics, heatmap, resolution, and storage API",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-2",
+      "notes": "Read-only operations are planned first."
+    },
+    {
+      "id": "api.live-operations",
+      "area": "Live thumbnails and ingest status",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-2",
+      "notes": "Stream-key regeneration lacks a shared Android domain API."
+    },
+    {
+      "id": "api.thumbnails-captions",
+      "area": "Video thumbnails and captions management",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-4",
+      "notes": "Requires native mappers and stable public TypeScript models."
+    },
+    {
+      "id": "api.encoding-ai",
+      "area": "Encoding, storage, and AI operations",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-4",
+      "notes": "Destructive operations require explicit API semantics."
+    },
+    {
+      "id": "upload.basic",
+      "area": "Basic upload",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-3",
+      "notes": "Must avoid moving file bytes through JavaScript."
+    },
+    {
+      "id": "upload.tus",
+      "area": "TUS resumable upload",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-3",
+      "notes": "Requires stable upload IDs and event subscriptions."
+    },
+    {
+      "id": "broadcaster.camera",
+      "area": "Camera live broadcaster",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "unsupported",
+      "phase": "phase-5",
+      "notes": "Planned as a Fabric component backed by native capture pipelines."
+    },
+    {
+      "id": "image.cached",
+      "area": "Cached Bunny image loading",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "partial",
+      "phase": "phase-7",
+      "notes": "The current hook converts images to data URIs and bypasses native caches."
+    },
+    {
+      "id": "platform.android-tv",
+      "area": "Android TV",
+      "android": "supported",
+      "ios": "platform-only",
+      "reactNative": "unsupported",
+      "phase": "phase-7",
+      "notes": "Product scope must decide whether the mobile package includes TV support."
+    },
+    {
+      "id": "distribution.public-native-packages",
+      "area": "Public native dependency distribution",
+      "android": "blocked",
+      "ios": "blocked",
+      "reactNative": "blocked",
+      "phase": "phase-0b",
+      "notes": "The final release step replaces local private SDK dependencies with public artifacts."
+    }
+  ]
+}
