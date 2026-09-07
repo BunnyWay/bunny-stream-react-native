@@ -1,18 +1,5 @@
-/**
- * Domain types for the Bunny Stream REST API surface.
- *
- * Mirror the Android SDK's domain models (`net.bunny:api`) so a change to the
- * OpenAPI spec cannot break a React Native consumer's build. Nullability follows
- * what the API actually guarantees rather than what the generators emit.
- *
- * The result envelope {@link BunnyResult} and the typed error taxonomy
- * {@link BunnyError} mirror the native `BunnyResult`/`BunnyError` sealed classes
- * — see `bunny-stream-api/.../error/BunnyResult.kt` and `BunnyError.kt`.
- *
- * @deprecated Prefer the domain modules under `models/` and `result/`, or the
- * explicit feature barrel at `api/index.ts`. This file remains as a compatibility
- * barrel for existing imports.
- */
+export { BunnyStreamApi } from './BunnyStreamApi';
+export type { ListOptions } from './BunnyStreamApi';
 
 export { TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum, videoStatusLabel } from './models/video';
 export type {

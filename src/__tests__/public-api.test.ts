@@ -54,4 +54,22 @@ describe('public package API', () => {
       ].sort(),
     );
   });
+
+  it('validates initialization before delegating to the native module', () => {
+    const publicApi = jest.requireActual<typeof PublicApi>('../index');
+    const nativePlayer = (
+      jest.requireMock('../specs/NativeBunnyStreamPlayer') as {
+        default: { initialize: jest.Mock };
+      }
+    ).default;
+    nativePlayer.initialize.mockClear();
+
+    publicApi.initialize('access-key', 123);
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123);
+    expect(() => publicApi.initialize('', 123)).toThrow('accessKey must be a non-empty string');
+    expect(() => publicApi.initialize('access-key', 0)).toThrow(
+      'libraryId must be a positive integer',
+    );
+    expect(nativePlayer.initialize).toHaveBeenCalledTimes(1);
+  });
 });

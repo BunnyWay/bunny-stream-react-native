@@ -16,7 +16,7 @@ import com.facebook.react.viewmanagers.BunnyLiveStreamPlayerViewManagerInterface
  *
  * This manager is registered in [net.bunny.reactnative.BunnyStreamPlayerPackage]
  * but the corresponding native component is NOT exported from the public npm
- * API — the public `BunnyStreamPlayer` (src/index.tsx) selects between the VOD
+ * API — the public `BunnyStreamPlayer` (src/player/BunnyStreamPlayer.tsx) selects between the VOD
  * host and this live host based on `source.type` (PLAN.md §5).
  *
  * Prop setters delegate to [BunnyLiveStreamPlayerView]'s accumulation fields;
