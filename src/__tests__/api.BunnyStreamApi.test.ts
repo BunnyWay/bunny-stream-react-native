@@ -14,16 +14,32 @@ jest.mock('../specs/NativeBunnyStreamApi', () => {
     listVideos: jest.fn(),
     getVideo: jest.fn(),
     fetchVideoPlayData: jest.fn(),
+    fetchVideoHeatmap: jest.fn(),
+    fetchVideoStatistics: jest.fn(),
+    fetchVideoResolutions: jest.fn(),
     createVideo: jest.fn(),
     updateVideo: jest.fn(),
     deleteVideo: jest.fn(),
+    listCollections: jest.fn(),
+    getCollection: jest.fn(),
+    createCollection: jest.fn(),
+    updateCollection: jest.fn(),
+    deleteCollection: jest.fn(),
     listLiveStreams: jest.fn(),
     getLiveStream: jest.fn(),
     fetchLiveStreamPlayData: jest.fn(),
     createLiveStream: jest.fn(),
     updateLiveStream: jest.fn(),
     deleteLiveStream: jest.fn(),
+    startLiveStream: jest.fn(),
+    stopLiveStream: jest.fn(),
+    getLiveStreamStatus: jest.fn(),
+    setLiveStreamThumbnail: jest.fn(),
+    uploadLiveStreamThumbnail: jest.fn(),
+    listLiveStreamThumbnails: jest.fn(),
+    deleteLiveStreamThumbnail: jest.fn(),
     fetchPlayerSettings: jest.fn(),
+    generateEmbedToken: jest.fn(),
   };
   return { __esModule: true, default: api };
 });
@@ -145,6 +161,82 @@ describe('BunnyStreamApi wrapper', () => {
     mockApi.deleteLiveStream.mockResolvedValue(okEnvelope(null));
     await BunnyStreamApi.deleteLiveStream(7, 's1');
     expect(mockApi.deleteLiveStream).toHaveBeenCalledWith(7, 's1');
+  });
+
+  it('delegates video insight reads with defaults and filters', async () => {
+    mockApi.fetchVideoHeatmap.mockResolvedValue(okEnvelope({ '0': 100 }));
+    mockApi.fetchVideoStatistics.mockResolvedValue(okEnvelope({ engagementScore: 80 }));
+    mockApi.fetchVideoResolutions.mockResolvedValue(okEnvelope({ videoId: 'v1' }));
+
+    await BunnyStreamApi.fetchVideoHeatmap(7, 'v1');
+    await BunnyStreamApi.fetchVideoStatistics(7, {
+      videoId: 'v1',
+      dateFrom: '2026-01-01',
+      dateTo: '2026-01-31',
+      hourly: true,
+    });
+    await BunnyStreamApi.fetchVideoResolutions(7, 'v1');
+
+    expect(mockApi.fetchVideoHeatmap).toHaveBeenCalledWith(7, 'v1');
+    expect(mockApi.fetchVideoStatistics).toHaveBeenCalledWith(
+      7,
+      'v1',
+      '2026-01-01',
+      '2026-01-31',
+      true,
+    );
+    expect(mockApi.fetchVideoResolutions).toHaveBeenCalledWith(7, 'v1');
+  });
+
+  it('uses collection defaults and delegates collection mutations', async () => {
+    mockApi.listCollections.mockResolvedValue(
+      okEnvelope({ items: [], totalItems: 0, currentPage: 1, itemsPerPage: 100 }),
+    );
+    mockApi.getCollection.mockResolvedValue(okEnvelope({ id: 'c1', name: 'News' }));
+    mockApi.createCollection.mockResolvedValue(okEnvelope({ id: 'c2', name: 'Sports' }));
+    mockApi.updateCollection.mockResolvedValue(okEnvelope(null));
+    mockApi.deleteCollection.mockResolvedValue(okEnvelope(null));
+
+    await BunnyStreamApi.listCollections(7);
+    await BunnyStreamApi.getCollection(7, 'c1', true);
+    await BunnyStreamApi.createCollection(7, 'Sports');
+    await BunnyStreamApi.updateCollection(7, 'c1', 'Updated');
+    await BunnyStreamApi.deleteCollection(7, 'c1');
+
+    expect(mockApi.listCollections).toHaveBeenCalledWith(7, 1, 100, null, 'date', false);
+    expect(mockApi.getCollection).toHaveBeenCalledWith(7, 'c1', true);
+    expect(mockApi.createCollection).toHaveBeenCalledWith(7, 'Sports');
+    expect(mockApi.updateCollection).toHaveBeenCalledWith(7, 'c1', 'Updated');
+    expect(mockApi.deleteCollection).toHaveBeenCalledWith(7, 'c1');
+  });
+
+  it('delegates live status and thumbnail operations', async () => {
+    mockApi.getLiveStreamStatus.mockResolvedValue(okEnvelope({ readyToStart: true }));
+    mockApi.setLiveStreamThumbnail.mockResolvedValue(okEnvelope(null));
+    mockApi.uploadLiveStreamThumbnail.mockResolvedValue(okEnvelope(null));
+    mockApi.listLiveStreamThumbnails.mockResolvedValue(okEnvelope([]));
+    mockApi.deleteLiveStreamThumbnail.mockResolvedValue(okEnvelope(null));
+
+    await BunnyStreamApi.getLiveStreamStatus(7, 's1');
+    await BunnyStreamApi.setLiveStreamThumbnail(7, 's1', 'https://example.com/thumb.jpg');
+    await BunnyStreamApi.uploadLiveStreamThumbnail(7, 's1', 'file:///thumb.png', 'image/png');
+    await BunnyStreamApi.listLiveStreamThumbnails(7, 's1');
+    await BunnyStreamApi.deleteLiveStreamThumbnail(7, 's1');
+
+    expect(mockApi.getLiveStreamStatus).toHaveBeenCalledWith(7, 's1');
+    expect(mockApi.setLiveStreamThumbnail).toHaveBeenCalledWith(
+      7,
+      's1',
+      'https://example.com/thumb.jpg',
+    );
+    expect(mockApi.uploadLiveStreamThumbnail).toHaveBeenCalledWith(
+      7,
+      's1',
+      'file:///thumb.png',
+      'image/png',
+    );
+    expect(mockApi.listLiveStreamThumbnails).toHaveBeenCalledWith(7, 's1', null, null, null);
+    expect(mockApi.deleteLiveStreamThumbnail).toHaveBeenCalledWith(7, 's1', false);
   });
 
   it('fetchPlayerSettings forwards libraryId, videoId, token, expires', async () => {

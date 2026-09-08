@@ -3,7 +3,15 @@ import type {
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
   BunnyVodPlayerRef,
+  CollectionListOptions,
   initialize,
+  LiveStreamIngestStatus,
+  LiveStreamThumbnail,
+  VideoCollection,
+  VideoCollectionList,
+  VideoHeatmap,
+  VideoResolutionsInfo,
+  VideoStatistics,
 } from '../index';
 import type {
   LiveErrorEvent,
@@ -49,6 +57,16 @@ export type InitializationContract = Assert<
 export type ApiMethodContract = Assert<
   Exclude<NativeApiMethods, PublicApiMethods> extends never ? true : false
 >;
+export type PhaseTwoPublicTypesContract = [
+  CollectionListOptions,
+  LiveStreamIngestStatus,
+  LiveStreamThumbnail,
+  VideoCollection,
+  VideoCollectionList,
+  VideoHeatmap,
+  VideoResolutionsInfo,
+  VideoStatistics,
+];
 export type PlayerCommandContract = Assert<Compatible<PublicCommandMethods, NativeCommandMethods>>;
 export type LegacyPlayerRefContract = Assert<Compatible<BunnyStreamPlayerRef, BunnyVodPlayerRef>>;
 export type ReadyEventContract = Assert<Compatible<EventPayload<'onReady'>, PlayerReadyEvent>>;
