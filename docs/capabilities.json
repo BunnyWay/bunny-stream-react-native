@@ -166,27 +166,27 @@
       "area": "Collections API",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-2",
-      "notes": "Planned after player contract parity."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "List, get, create, rename, and delete collections with optional preview images."
     },
     {
       "id": "api.video-insights",
       "area": "Video statistics, heatmap, resolution, and storage API",
       "android": "supported",
-      "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-2",
-      "notes": "Read-only operations are planned first."
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "current",
+      "notes": "Heatmap, statistics, and resolutions are shared. Heatmap play data and detailed storage size remain blocked by missing iOS SDK endpoints."
     },
     {
       "id": "api.live-operations",
       "area": "Live thumbnails and ingest status",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-2",
-      "notes": "Stream-key regeneration lacks a shared Android domain API."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Ingest status and remote, local, listed, and deleted thumbnails are supported."
     },
     {
       "id": "api.thumbnails-captions",

@@ -110,6 +110,30 @@ export interface LiveStreamList {
   items: LiveStream[];
 }
 
+export interface LiveStreamThumbnail {
+  url: string | null;
+  timestamp: string | null;
+}
+
+export interface LiveStreamIngestStatus {
+  readyToStart: boolean;
+  primaryLive: boolean | null;
+  backupLive: boolean | null;
+  isLive: boolean;
+  lastPingAgoMs: number | null;
+  durationSeconds: number | null;
+  statusTime: string | null;
+}
+
+export interface LiveStreamThumbnailListOptions {
+  limit?: number;
+  from?: string;
+  to?: string;
+}
+
+export type LiveStreamThumbnailContentType =
+  'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+
 /**
  * Playback data for a live stream, sourced from the Manage Live Streams
  * `/play` endpoint. Mirrors `LiveStreamPlayData`.
