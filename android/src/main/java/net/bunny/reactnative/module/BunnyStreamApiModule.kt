@@ -1,10 +1,13 @@
 package net.bunny.reactnative.module
 
+import android.net.Uri
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.module.annotations.ReactModule
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +95,37 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun fetchVideoHeatmap(libraryId: Double, videoId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.videoRepository
+        .fetchVideoHeatmap(libraryId.toLong(), videoId)
+        .let { mappers.run { it.toEnvelope { heatmap -> heatmapToWritableMap(heatmap) } } }
+    }
+  }
+
+  override fun fetchVideoStatistics(
+    libraryId: Double,
+    videoId: String?,
+    dateFrom: String?,
+    dateTo: String?,
+    hourly: Boolean,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.videoRepository
+        .fetchVideoStatistics(libraryId.toLong(), videoId, dateFrom, dateTo, hourly)
+        .let { mappers.run { it.toEnvelope { statistics -> statistics.toWritableMap() } } }
+    }
+  }
+
+  override fun fetchVideoResolutions(libraryId: Double, videoId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.videoRepository
+        .fetchVideoResolutions(libraryId.toLong(), videoId)
+        .let { mappers.run { it.toEnvelope { resolutions -> resolutions.toWritableMap() } } }
+    }
+  }
+
   // endregion
 
   // region — VideoRepository: creating and changing —
@@ -113,7 +147,7 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     launchApi(promise) { api ->
       api.videoRepository
         .updateVideo(libraryId.toLong(), videoId, parsed)
-        .let { mappers.run { it.toEnvelope { mappers.unitValue() } } }
+        .let { mappers.run { it.toUnitEnvelope() } }
     }
   }
 
@@ -121,7 +155,79 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     launchApi(promise) { api ->
       api.videoRepository
         .deleteVideo(libraryId.toLong(), videoId)
-        .let { mappers.run { it.toEnvelope { mappers.unitValue() } } }
+        .let { mappers.run { it.toUnitEnvelope() } }
+    }
+  }
+
+  // endregion
+
+  // region — CollectionRepository —
+
+  override fun listCollections(
+    libraryId: Double,
+    page: Double,
+    itemsPerPage: Double,
+    search: String?,
+    orderBy: String,
+    includeThumbnails: Boolean,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.collectionRepository
+        .listCollections(
+          libraryId.toLong(),
+          page.toInt(),
+          itemsPerPage.toInt(),
+          search,
+          orderBy,
+          includeThumbnails,
+        )
+        .let { mappers.run { it.toEnvelope { collections -> collections.toWritableMap() } } }
+    }
+  }
+
+  override fun getCollection(
+    libraryId: Double,
+    collectionId: String,
+    includeThumbnails: Boolean,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.collectionRepository
+        .getCollection(libraryId.toLong(), collectionId, includeThumbnails)
+        .let { mappers.run { it.toEnvelope { collection -> collection.toWritableMap() } } }
+    }
+  }
+
+  override fun createCollection(libraryId: Double, name: String, promise: Promise) {
+    if (name.isBlank()) {
+      promise.resolve(invalidState("createCollection: 'name' must not be blank"))
+      return
+    }
+    launchApi(promise) { api ->
+      api.collectionRepository
+        .createCollection(libraryId.toLong(), name)
+        .let { mappers.run { it.toEnvelope { collection -> collection.toWritableMap() } } }
+    }
+  }
+
+  override fun updateCollection(libraryId: Double, collectionId: String, name: String, promise: Promise) {
+    if (name.isBlank()) {
+      promise.resolve(invalidState("updateCollection: 'name' must not be blank"))
+      return
+    }
+    launchApi(promise) { api ->
+      api.collectionRepository
+        .updateCollection(libraryId.toLong(), collectionId, name)
+        .let { mappers.run { it.toUnitEnvelope() } }
+    }
+  }
+
+  override fun deleteCollection(libraryId: Double, collectionId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.collectionRepository
+        .deleteCollection(libraryId.toLong(), collectionId)
+        .let { mappers.run { it.toUnitEnvelope() } }
     }
   }
 
@@ -192,7 +298,7 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     launchApi(promise) { api ->
       api.liveStreamRepository
         .updateLiveStream(libraryId.toLong(), streamId, parsed)
-        .let { mappers.run { it.toEnvelope { mappers.unitValue() } } }
+        .let { mappers.run { it.toUnitEnvelope() } }
     }
   }
 
@@ -200,7 +306,7 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     launchApi(promise) { api ->
       api.liveStreamRepository
         .deleteLiveStream(libraryId.toLong(), streamId)
-        .let { mappers.run { it.toEnvelope { mappers.unitValue() } } }
+        .let { mappers.run { it.toUnitEnvelope() } }
     }
   }
 
@@ -217,6 +323,98 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
       api.liveStreamRepository
         .stopLiveStream(libraryId.toLong(), streamId)
         .let { mappers.run { it.toEnvelope { v -> v.toWritableMap() } } }
+    }
+  }
+
+  override fun getLiveStreamStatus(libraryId: Double, streamId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .getLiveStreamStatus(libraryId.toLong(), streamId)
+        .let { mappers.run { it.toEnvelope { status -> status.toWritableMap() } } }
+    }
+  }
+
+  override fun setLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    thumbnailUrl: String,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .setLiveStreamThumbnail(libraryId.toLong(), streamId, thumbnailUrl)
+        .let { mappers.run { it.toUnitEnvelope() } }
+    }
+  }
+
+  override fun uploadLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    uri: String,
+    contentType: String,
+    promise: Promise,
+  ) {
+    thumbnailUploadValidationError(uri, contentType)?.let { message ->
+      promise.resolve(invalidState(message))
+      return
+    }
+
+    launchApi(promise) { api ->
+      val imageBytes = try {
+        val schemeSeparator = uri.indexOf(':')
+        val parsedUri = Uri.parse(uri.replaceRange(0, schemeSeparator, uri.substring(0, schemeSeparator).lowercase()))
+        reactApplicationContext.contentResolver.openInputStream(parsedUri)?.use { input ->
+          readThumbnailBytes(input)
+        } ?: return@launchApi mappers.errEnvelope(
+          BunnyError.LocalFile("Unable to open live stream thumbnail URI"),
+        )
+      } catch (t: Throwable) {
+        return@launchApi mappers.errEnvelope(
+          BunnyError.LocalFile(t.message ?: "Unable to read live stream thumbnail URI", t),
+        )
+      }
+
+      if (imageBytes.isEmpty()) {
+        return@launchApi mappers.errEnvelope(
+          BunnyError.LocalFile("Live stream thumbnail file is empty"),
+        )
+      }
+
+      api.liveStreamRepository
+        .uploadLiveStreamThumbnail(libraryId.toLong(), streamId, imageBytes, contentType)
+        .let { mappers.run { it.toUnitEnvelope() } }
+    }
+  }
+
+  override fun listLiveStreamThumbnails(
+    libraryId: Double,
+    streamId: String,
+    limit: Double?,
+    from: String?,
+    to: String?,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .listLiveStreamThumbnails(libraryId.toLong(), streamId, limit?.toInt(), from, to)
+        .let {
+          mappers.run {
+            it.toArrayEnvelope { thumbnails -> liveStreamThumbnailsToWritableArray(thumbnails) }
+          }
+        }
+    }
+  }
+
+  override fun deleteLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    restoreLibraryDefault: Boolean,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .deleteLiveStreamThumbnail(libraryId.toLong(), streamId, restoreLibraryDefault)
+        .let { mappers.run { it.toUnitEnvelope() } }
     }
   }
 
@@ -350,6 +548,46 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
 
   companion object {
     const val NAME = "BunnyStreamApi"
+
+    private const val MAX_THUMBNAIL_BYTES = 20 * 1024 * 1024
+
+    private val THUMBNAIL_CONTENT_TYPES = setOf(
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    )
+
+    /** Pure validation shared by the bridge and focused JVM tests. */
+    internal fun thumbnailUploadValidationError(uri: String, contentType: String): String? {
+      if (contentType !in THUMBNAIL_CONTENT_TYPES) {
+        return "Unsupported live stream thumbnail content type: $contentType"
+      }
+      val scheme = uri.substringBefore(':', missingDelimiterValue = "").lowercase()
+      if (scheme != "file" && scheme != "content") {
+        return "Live stream thumbnail URI must use the file or content scheme"
+      }
+      return null
+    }
+
+    internal fun readThumbnailBytes(
+      input: InputStream,
+      maxBytes: Int = MAX_THUMBNAIL_BYTES,
+    ): ByteArray {
+      val output = ByteArrayOutputStream()
+      val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+      var total = 0
+      while (true) {
+        val count = input.read(buffer)
+        if (count < 0) break
+        total += count
+        if (total > maxBytes) {
+          throw IllegalArgumentException("Live stream thumbnail exceeds the $maxBytes byte limit")
+        }
+        output.write(buffer, 0, count)
+      }
+      return output.toByteArray()
+    }
 
     /** Builds an `InvalidState` envelope for the not-initialised guard. */
     internal fun invalidState(message: String): WritableMap =

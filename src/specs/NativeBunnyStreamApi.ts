@@ -44,12 +44,49 @@ export interface Spec extends TurboModule {
     expires: Double | null,
   ): Promise<Object>;
 
+  fetchVideoHeatmap(libraryId: Double, videoId: string): Promise<Object>;
+
+  fetchVideoStatistics(
+    libraryId: Double,
+    videoId: string | null,
+    dateFrom: string | null,
+    dateTo: string | null,
+    hourly: boolean,
+  ): Promise<Object>;
+
+  fetchVideoResolutions(libraryId: Double, videoId: string): Promise<Object>;
+
+  // TODO(iOS SDK): Add heatmap play data and detailed storage-size methods after
+  // both endpoints are exposed by the public generated or domain API.
+
   // — VideoRepository: creating and changing —
   createVideo(libraryId: Double, request: Object): Promise<Object>;
 
   updateVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
 
   deleteVideo(libraryId: Double, videoId: string): Promise<Object>;
+
+  // — CollectionRepository —
+  listCollections(
+    libraryId: Double,
+    page: Double,
+    itemsPerPage: Double,
+    search: string | null,
+    orderBy: string,
+    includeThumbnails: boolean,
+  ): Promise<Object>;
+
+  getCollection(
+    libraryId: Double,
+    collectionId: string,
+    includeThumbnails: boolean,
+  ): Promise<Object>;
+
+  createCollection(libraryId: Double, name: string): Promise<Object>;
+
+  updateCollection(libraryId: Double, collectionId: string, name: string): Promise<Object>;
+
+  deleteCollection(libraryId: Double, collectionId: string): Promise<Object>;
 
   // — LiveStreamRepository: reading —
   listLiveStreams(
@@ -85,6 +122,36 @@ export interface Spec extends TurboModule {
   // Stops the stream (RUNNING → ENDED). The ingest server cuts the publish, and
   // with `recordVod` the stream is converted to a VOD. Cannot be undone.
   stopLiveStream(libraryId: Double, streamId: string): Promise<Object>;
+
+  // — LiveStreamRepository: operational state and thumbnails —
+  getLiveStreamStatus(libraryId: Double, streamId: string): Promise<Object>;
+
+  setLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: string,
+    thumbnailUrl: string,
+  ): Promise<Object>;
+
+  uploadLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: string,
+    uri: string,
+    contentType: string,
+  ): Promise<Object>;
+
+  listLiveStreamThumbnails(
+    libraryId: Double,
+    streamId: string,
+    limit: Double | null,
+    from: string | null,
+    to: string | null,
+  ): Promise<Object>;
+
+  deleteLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: string,
+    restoreLibraryDefault: boolean,
+  ): Promise<Object>;
 
   // — Player settings (thumbnail enrichment) —
   fetchPlayerSettings(
