@@ -79,8 +79,20 @@ export type {
   VideoStorageSize,
 } from './api';
 
+export { BunnyStreamUpload } from './upload';
+export type {
+  ContinueUploadOptions,
+  StartUploadOptions,
+  UploadEvent,
+  UploadHandle,
+  UploadMode,
+  UploadPauseSupport,
+  UploadState,
+} from './upload';
+
 export { useBunnyImage } from './image';
 export type { UseBunnyImageResult } from './image';
 
 export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
 export { default as NativeBunnyStreamPlayer } from './specs/NativeBunnyStreamPlayer';
+export { default as NativeBunnyStreamUpload } from './specs/NativeBunnyStreamUpload';
