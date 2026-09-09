@@ -43,6 +43,6 @@ Pod::Spec.new do |s|
     s,
     url: ios_sdk_path,
     requirement: { kind: "exactVersion", version: ios_sdk_baseline.fetch("swiftPackageVersion") },
-    products: ["BunnyStreamPlayer", "BunnyStreamAPI"]
+    products: ["BunnyStreamPlayer", "BunnyStreamAPI", "BunnyStreamUploader"]
   )
 end
