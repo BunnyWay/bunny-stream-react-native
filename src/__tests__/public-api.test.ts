@@ -10,6 +10,10 @@ jest.mock('../specs/NativeBunnyStreamApi', () => ({
   __esModule: true,
   default: {},
 }));
+jest.mock('../specs/NativeBunnyStreamUpload', () => ({
+  __esModule: true,
+  default: {},
+}));
 jest.mock('../specs/BunnyStreamPlayerNativeComponent', () => ({
   __esModule: true,
   default: 'BunnyStreamPlayerView',
@@ -36,9 +40,11 @@ describe('public package API', () => {
       [
         'BunnyStreamApi',
         'BunnyStreamPlayer',
+        'BunnyStreamUpload',
         'LiveStreamStatusEnum',
         'NativeBunnyStreamApi',
         'NativeBunnyStreamPlayer',
+        'NativeBunnyStreamUpload',
         'TRANSITIONAL_VIDEO_STATUSES',
         'VideoStatusEnum',
         'errorOrNull',

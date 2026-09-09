@@ -2,11 +2,16 @@ import type {
   BunnyStreamApi,
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
+  BunnyStreamUpload,
   BunnyVodPlayerRef,
   CollectionListOptions,
   initialize,
   LiveStreamIngestStatus,
   LiveStreamThumbnail,
+  StartUploadOptions,
+  UploadEvent,
+  UploadHandle,
+  UploadState,
   VideoCollection,
   VideoCollectionList,
   VideoHeatmap,
@@ -35,6 +40,7 @@ import type {
 } from '../specs/BunnyStreamPlayerNativeComponent';
 import type { Spec as ApiSpec } from '../specs/NativeBunnyStreamApi';
 import type { Spec as PlayerSpec } from '../specs/NativeBunnyStreamPlayer';
+import type { Spec as UploadSpec } from '../specs/NativeBunnyStreamUpload';
 import type { TurboModule } from 'react-native';
 
 import { describe, expect, it } from '@jest/globals';
@@ -48,6 +54,14 @@ type EventPayload<K extends keyof BunnyStreamPlayerProps> =
 
 type PublicApiMethods = keyof typeof BunnyStreamApi;
 type NativeApiMethods = Exclude<keyof ApiSpec, keyof TurboModule>;
+type PublicUploadMethods = Exclude<
+  keyof typeof BunnyStreamUpload,
+  'addUploadListener' | 'restoreUploads'
+>;
+type NativeUploadMethods = Exclude<
+  keyof UploadSpec,
+  keyof TurboModule | 'addListener' | 'removeListeners'
+>;
 type PublicCommandMethods = keyof BunnyStreamPlayerRef;
 type NativeCommandMethods = keyof NativeCommands;
 
@@ -57,6 +71,15 @@ export type InitializationContract = Assert<
 export type ApiMethodContract = Assert<
   Exclude<NativeApiMethods, PublicApiMethods> extends never ? true : false
 >;
+export type UploadMethodContract = Assert<
+  Exclude<NativeUploadMethods, PublicUploadMethods> extends never ? true : false
+>;
+export type PhaseThreePublicTypesContract = [
+  StartUploadOptions,
+  UploadEvent,
+  UploadHandle,
+  UploadState,
+];
 export type PhaseTwoPublicTypesContract = [
   CollectionListOptions,
   LiveStreamIngestStatus,

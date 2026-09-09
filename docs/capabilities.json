@@ -211,18 +211,18 @@
       "area": "Basic upload",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-3",
-      "notes": "Must avoid moving file bytes through JavaScript."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Pause/resume works on iOS (URLSessionTask); no-op on Android basic uploader. Does not survive process death on either platform."
     },
     {
       "id": "upload.tus",
       "area": "TUS resumable upload",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-3",
-      "notes": "Requires stable upload IDs and event subscriptions."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Pause/resume/cancel work on both platforms. iOS TUS survives process death via background URLSession; Android TUS does not (no foreground service). continueUpload resumes on Android; iOS re-issues uploadVideo with the same videoId."
     },
     {
       "id": "broadcaster.camera",
