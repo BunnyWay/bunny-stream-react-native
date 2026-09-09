@@ -1,4 +1,21 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
+
+// `api/types.ts` re-exports `BunnyStreamUpload`, which imports the native
+// TurboModule. Mock it so the test can import the type-only barrel without
+// requiring the native binary.
+jest.mock('../specs/NativeBunnyStreamUpload', () => {
+  const upload = {
+    startUpload: jest.fn(),
+    continueUpload: jest.fn(),
+    pauseUpload: jest.fn(),
+    resumeUpload: jest.fn(),
+    cancelUpload: jest.fn(),
+    getUploadState: jest.fn(),
+    addListener: jest.fn(),
+    removeListeners: jest.fn(),
+  };
+  return { __esModule: true, default: upload };
+});
 
 import {
   LiveStreamStatusEnum,
