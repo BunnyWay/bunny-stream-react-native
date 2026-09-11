@@ -168,14 +168,29 @@ import React
     return basicUploader
   }
 
-  /// Finds the `UploadVideoInfo` for a given `uploadId` (UUID string) by
-  /// searching both uploaders' trackers.
+  /// Finds the `UploadVideoInfo` for a given `uploadId` (the `UploadVideoInfo.uuid`
+  /// string) by searching both uploaders' trackers.
   private func findUploadInfo(_ uploadId: String) -> UploadVideoInfo? {
     guard let uuid = UUID(uuidString: uploadId) else { return nil }
     for (info, _) in basicUploader.uploadTracker.uploads where info.uuid == uuid {
       return info
     }
     for (info, _) in tusUploader.uploadTracker.uploads where info.uuid == uuid {
+      return info
+    }
+    return nil
+  }
+
+  /// Finds the `UploadVideoInfo` for a given Bunny `videoId` (the `videoUUID`
+  /// string) by searching both uploaders' trackers. Used to resolve the
+  /// `uploadId` (the `UploadVideoInfo.uuid`) after `uploadVideo(with:)` adds
+  /// the entry to the tracker.
+  private func findUploadInfoByVideoId(_ videoId: String) -> UploadVideoInfo? {
+    guard let videoUUID = UUID(uuidString: videoId) else { return nil }
+    for (info, _) in basicUploader.uploadTracker.uploads where info.videoUUID == videoUUID {
+      return info
+    }
+    for (info, _) in tusUploader.uploadTracker.uploads where info.videoUUID == videoUUID {
       return info
     }
     return nil
@@ -239,17 +254,20 @@ import React
                              libraryId: library)
 
         // Start the upload — the uploader creates the UploadVideoInfo
-        // internally and adds it to the tracker. We'll discover the
-        // uploadId from the tracker via the Combine subscription.
+        // internally and adds it to the tracker synchronously inside
+        // `uploadVideos`. After `uploadVideo(with:)` returns, the entry is
+        // already in `uploadTracker.uploads`, so we can read the real
+        // `uploadId` (`UploadVideoInfo.uuid`) directly.
         try await uploader.uploadVideo(with: info)
 
-        // Map the videoId to a placeholder so we can resolve the promise
-        // with the uploadId once the tracker reports it. For now, resolve
-        // with the videoId as the handle — the JS side can use it to
-        // correlate events.
-        // The actual uploadId (UploadVideoInfo.uuid) will be emitted in
-        // the first event; the JS side should switch to using it.
-        resolve(okEnvelope(["uploadId": videoId, "videoId": videoId]))
+        guard let uploadInfo = findUploadInfoByVideoId(videoId) else {
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 0,
+                              message: "Upload was started but the tracker has no entry for videoId \(videoId).",
+                              isTerminal: true))
+          return
+        }
+        let uploadId = uploadInfo.uuid.uuidString
+        resolve(okEnvelope(["uploadId": uploadId] as [String: Any]))
       } catch {
         resolve(envelope(from: error))
       }
@@ -282,7 +300,14 @@ import React
 
         try await uploader.uploadVideo(with: info)
 
-        resolve(okEnvelope(["uploadId": videoId, "videoId": videoId]))
+        guard let uploadInfo = findUploadInfoByVideoId(videoId) else {
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 0,
+                              message: "Upload was started but the tracker has no entry for videoId \(videoId).",
+                              isTerminal: true))
+          return
+        }
+        let uploadId = uploadInfo.uuid.uuidString
+        resolve(okEnvelope(["uploadId": uploadId] as [String: Any]))
       } catch {
         resolve(envelope(from: error))
       }
