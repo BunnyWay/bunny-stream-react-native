@@ -45,7 +45,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           <HomeOption
             title="Live streams"
             subtitle={hasConfig ? 'Library live streams' : 'Not configured'}
-            onPress={() => navigation.navigate('LiveStreams')}
+            onPress={() => navigation.navigate('LiveStreams', {})}
           />
           <View style={styles.divider} />
           <HomeOption
@@ -57,7 +57,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         <Text style={styles.sectionTitle}>Upload</Text>
         <View style={styles.card}>
-          <HomeOption title="Video Upload" badge="Coming soon" disabled onPress={() => {}} />
+          <HomeOption
+            title="Video Upload"
+            subtitle={hasConfig ? 'Upload videos to the library' : 'Not configured'}
+            disabled={!hasConfig}
+            onPress={() => navigation.navigate('VideoUpload')}
+          />
           <View style={styles.divider} />
           <HomeOption title="Camera upload" badge="Coming soon" disabled onPress={() => {}} />
         </View>
