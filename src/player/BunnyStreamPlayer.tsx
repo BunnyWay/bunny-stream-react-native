@@ -34,6 +34,8 @@ const NativeLiveView =
  * <BunnyStreamPlayer source={{ type: 'live', streamId, libraryId }} />
  * ```
  */
+type VodView = React.ElementRef<HostComponent<VodNativeProps>> | null;
+
 export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStreamPlayerProps>(
   (props, ref) => {
     const { source, ...rest } = props;
@@ -45,42 +47,25 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
     // only when a command or host-specific prop is used.
     const nativeRef = React.useRef<unknown>(null);
 
+    // Guards a VOD-only command: no-op for live sources, then resolves the
+    // native view and invokes the Codegen command on it.
+    const runVodCommand = (fn: (view: NonNullable<VodView>) => void) => {
+      if (sourceTypeRef.current !== 'vod') return;
+      const view = nativeRef.current as VodView;
+      if (view) fn(view);
+    };
+
     React.useImperativeHandle(ref, () => ({
-      play: () => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.play(view);
-      },
-      pause: () => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.pause(view);
-      },
-      seekTo: (positionMs: number) => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.seekTo(view, positionMs);
-      },
-      setVolume: (volume: number) => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.setVolume(view, volume);
-      },
-      setPlaybackRate: (rate: number) => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.setPlaybackRate(view, rate);
-      },
-      mute: () => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.mute(view);
-      },
-      unmute: () => {
-        if (sourceTypeRef.current !== 'vod') return;
-        const view = nativeRef.current as React.ElementRef<HostComponent<VodNativeProps>> | null;
-        if (view) NativeCommands.unmute(view);
-      },
+      play: () => runVodCommand((view) => NativeCommands.play(view)),
+      pause: () => runVodCommand((view) => NativeCommands.pause(view)),
+      seekTo: (positionMs: number) =>
+        runVodCommand((view) => NativeCommands.seekTo(view, positionMs)),
+      setVolume: (volume: number) =>
+        runVodCommand((view) => NativeCommands.setVolume(view, volume)),
+      setPlaybackRate: (rate: number) =>
+        runVodCommand((view) => NativeCommands.setPlaybackRate(view, rate)),
+      mute: () => runVodCommand((view) => NativeCommands.mute(view)),
+      unmute: () => runVodCommand((view) => NativeCommands.unmute(view)),
     }));
 
     // A source identity change remounts the native host so the previous player

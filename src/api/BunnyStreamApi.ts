@@ -151,13 +151,20 @@ export const BunnyStreamApi = {
    * ```
    */
   async listVideos(libraryId: number, opts?: ListOptions): Promise<BunnyResult<VideoList>> {
+    const {
+      page = 1,
+      itemsPerPage = 100,
+      search = null,
+      orderBy = null,
+      collectionId = null,
+    } = opts ?? {};
     return NativeBunnyStreamApi.listVideos(
       libraryId,
-      opts?.page ?? 1,
-      opts?.itemsPerPage ?? 100,
-      opts?.search ?? null,
-      opts?.orderBy ?? null,
-      opts?.collectionId ?? null,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      collectionId,
     ) as Promise<BunnyResult<VideoList>>;
   },
 
@@ -258,13 +265,20 @@ export const BunnyStreamApi = {
     libraryId: number,
     options?: CollectionListOptions,
   ): Promise<BunnyResult<VideoCollectionList>> {
+    const {
+      page = 1,
+      itemsPerPage = 100,
+      search = null,
+      orderBy = 'date',
+      includeThumbnails = false,
+    } = options ?? {};
     return NativeBunnyStreamApi.listCollections(
       libraryId,
-      options?.page ?? 1,
-      options?.itemsPerPage ?? 100,
-      options?.search ?? null,
-      options?.orderBy ?? 'date',
-      options?.includeThumbnails ?? false,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      includeThumbnails,
     ) as Promise<BunnyResult<VideoCollectionList>>;
   },
 
@@ -314,13 +328,20 @@ export const BunnyStreamApi = {
     libraryId: number,
     opts?: ListOptions,
   ): Promise<BunnyResult<LiveStreamList>> {
+    const {
+      page = null,
+      itemsPerPage = null,
+      search = null,
+      orderBy = null,
+      collectionId = null,
+    } = opts ?? {};
     return NativeBunnyStreamApi.listLiveStreams(
       libraryId,
-      opts?.page ?? null,
-      opts?.itemsPerPage ?? null,
-      opts?.search ?? null,
-      opts?.orderBy ?? null,
-      opts?.collectionId ?? null,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      collectionId,
     ) as Promise<BunnyResult<LiveStreamList>>;
   },
 
