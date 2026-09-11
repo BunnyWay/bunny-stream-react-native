@@ -15,7 +15,10 @@ import { LivePlayerScreen } from './screens/LivePlayerScreen';
 import { LiveStreamsScreen } from './screens/LiveStreamsScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { ThumbnailPickerScreen } from './screens/ThumbnailPickerScreen';
+import { TrailerPickerScreen } from './screens/TrailerPickerScreen';
 import { VideoListScreen } from './screens/VideoListScreen';
+import { VideoUploadScreen } from './screens/VideoUploadScreen';
 import { loadSettings } from './storage/storage';
 import { styles } from './theme/styles';
 
@@ -52,7 +55,10 @@ export default function App() {
             <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="VideoList" component={VideoListScreen} />
+              <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
               <Stack.Screen name="LiveStreams" component={LiveStreamsScreen} />
+              <Stack.Screen name="TrailerPicker" component={TrailerPickerScreen} />
+              <Stack.Screen name="ThumbnailPicker" component={ThumbnailPickerScreen} />
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Player" component={PlayerScreen} />
               <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
