@@ -191,5 +191,23 @@ else
   warn "[BunnyStream] Release configuration not found on ReactTestApp target — skipping signing config"
 end
 
+# Patch the generated Info.plist to add camera and microphone usage
+# descriptions required for the broadcaster (BunnyStreamCameraUpload).
+# RNTA's template only declares NSCameraUsageDescription for QR bundle URL
+# scanning; we replace it with a broadcast-specific message and add
+# NSMicrophoneUsageDescription.
+generated_info_plist = File.join(example_dir, "node_modules", ".generated", "ios", "Info.plist")
+if File.exist?(generated_info_plist)
+  plist_doc = Xcodeproj::Plist.read_from_path(generated_info_plist)
+  plist_doc["NSCameraUsageDescription"] =
+    "This app uses the camera to record and broadcast video to Bunny Stream."
+  plist_doc["NSMicrophoneUsageDescription"] =
+    "This app uses the microphone to capture audio during recording and broadcasting."
+  Xcodeproj::Plist.write_to_path(plist_doc, generated_info_plist)
+  puts "[BunnyStream] Patched Info.plist with camera and microphone usage descriptions"
+else
+  warn "[BunnyStream] Generated Info.plist not found, skipping usage description patch"
+end
+
 project.save
 puts "[BunnyStream] Configured SwiftPM framework embedding in #{project_path}"
