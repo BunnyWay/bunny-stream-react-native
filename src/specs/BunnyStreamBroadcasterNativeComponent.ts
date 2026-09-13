@@ -1,7 +1,7 @@
 import type { HostComponent, ViewProps } from 'react-native';
 import type { DirectEventHandler, Int32 } from 'react-native/Libraries/Types/CodegenTypes';
 
-import { codegenNativeComponent } from 'react-native';
+import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 
 // Internal Codegen spec for the broadcaster host view.
 //
@@ -69,6 +69,18 @@ export interface NativeProps extends ViewProps {
   onFailover?: DirectEventHandler<BroadcasterFailoverEvent> | null;
   onError?: DirectEventHandler<BroadcasterErrorEvent> | null;
 }
+
+export interface NativeCommands {
+  startBroadcast: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  stopBroadcast: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  switchCamera: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  setMuted: (viewRef: React.ElementRef<HostComponent<NativeProps>>, muted: boolean) => void;
+  toggleMute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+}
+
+export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
+  supportedCommands: ['startBroadcast', 'stopBroadcast', 'switchCamera', 'setMuted', 'toggleMute'],
+});
 
 export default codegenNativeComponent<NativeProps>(
   'BunnyStreamBroadcasterView',
