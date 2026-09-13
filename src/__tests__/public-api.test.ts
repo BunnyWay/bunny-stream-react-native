@@ -31,6 +31,10 @@ jest.mock('../specs/BunnyLiveStreamPlayerNativeComponent', () => ({
   __esModule: true,
   default: 'BunnyLiveStreamPlayerView',
 }));
+jest.mock('../specs/BunnyStreamBroadcasterNativeComponent', () => ({
+  __esModule: true,
+  default: 'BunnyStreamBroadcasterView',
+}));
 
 describe('public package API', () => {
   it('exports the intentional runtime surface', () => {
@@ -39,6 +43,7 @@ describe('public package API', () => {
     expect(Object.keys(publicApi).sort()).toEqual(
       [
         'BunnyStreamApi',
+        'BunnyStreamBroadcaster',
         'BunnyStreamPlayer',
         'BunnyStreamUpload',
         'LiveStreamStatusEnum',

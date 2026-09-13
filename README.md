@@ -33,6 +33,35 @@ These are the floors declared in `peerDependencies` / `engines` in `package.json
 
 This repository contains the TypeScript contract, Android and iOS native bridges, build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), and an example app for development. See the generated [capability matrix](./docs/CAPABILITIES.md) for current platform support and planned delivery phases.
 
+### Camera broadcaster (Phase 5)
+
+`BunnyStreamBroadcaster` is a Fabric component that hosts the native Bunny Stream camera capture pipeline. It supports recording a new VOD or broadcasting to an existing live stream.
+
+```tsx
+import { BunnyStreamBroadcaster } from 'bunny-stream-react-native';
+
+<BunnyStreamBroadcaster
+  accessKey="access-key"
+  source={{ type: 'live', libraryId: 123, streamId: 'stream-id' }}
+  cameraPosition="back"
+  onStateChange={(e) => console.log('state:', e.state)}
+  onError={(e) => console.warn('error:', e.message)}
+/>
+```
+
+**Permissions:** Camera and microphone permissions must be requested by the host app before mounting the broadcaster. Neither native SDK requests these permissions itself.
+
+**Platform differences:**
+
+- **iOS:** `startBroadcast`, `stopBroadcast`, `switchCamera`, `setMuted`, and `toggleMute` are supported natively via `BunnyBroadcastController`. Quality is fully configurable through the `quality` prop (mapped to `BroadcastQuality`).
+- **Android:** `stopBroadcast`, `switchCamera`, `setMuted`, and `toggleMute` are supported. `startBroadcast` is **not** supported natively — the public SDK has no start method. The bridge simulates the built-in start button when `hideDefaultControls` is `false`; when controls are hidden, `startBroadcast` resolves with an `InvalidState` error. Quality is hard-coded by the SDK (1080p30, ~9.3 Mbps video, 64 kbps audio); the `quality` prop is accepted but ignored.
+
+**Reconnect and failover:** Both platforms retry with 1/2/4/8/8s backoff up to 5 attempts, alternating primary and backup ingest endpoints. Proactive failover occurs after two consecutive not-live polls. `dualPublish` publishes to both endpoints simultaneously with independent 5s reconnect on Android.
+
+**Background policy:** The broadcaster is foreground-only. Neither native SDK exposes a public background-broadcast or interruption-resume API. Host apps must stop the broadcast on app backgrounding.
+
+See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
+
 Planned roadmap:
 
 1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)
