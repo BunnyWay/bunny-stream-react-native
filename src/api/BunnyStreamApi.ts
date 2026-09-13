@@ -42,9 +42,16 @@ import type {
 } from './models/liveStream';
 import type { PlayerSettings } from './models/playerSettings';
 import type {
+  AddCaptionRequestInput,
   CreateVideoRequestInput,
+  DeleteResolutionsOptions,
+  FetchNewVideoOptions,
   LiveStreamCreateRequestInput,
+  RefetchVideoOptions,
+  SmartGenerateRequestInput,
+  TranscribeVideoOptions,
   UpdateVideoRequestInput,
+  VideoCodec,
 } from './models/requests';
 import type { Video, VideoList, VideoPlayData } from './models/video';
 import type {
@@ -79,9 +86,18 @@ export { LiveStreamStatusEnum } from './models/liveStream';
 
 export type { PlayerSettings } from './models/playerSettings';
 export type {
+  AddCaptionRequestInput,
   CreateVideoRequestInput,
+  DeleteResolutionsOptions,
+  FetchNewVideoOptions,
+  FetchVideoRequestInput,
   LiveStreamCreateRequestInput,
+  RefetchVideoOptions,
+  SmartGenerateRequestInput,
+  TranscribeVideoOptions,
+  TranscribeVideoRequestInput,
   UpdateVideoRequestInput,
+  VideoCodec,
 } from './models/requests';
 
 export { TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum, videoStatusLabel } from './models/video';
@@ -255,6 +271,186 @@ export const BunnyStreamApi = {
    */
   async deleteVideo(libraryId: number, videoId: string): Promise<BunnyResult<void>> {
     return NativeBunnyStreamApi.deleteVideo(libraryId, videoId) as Promise<BunnyResult<void>>;
+  },
+
+  /**
+   * Sets the video's thumbnail from a remote URL. Both platforms support this.
+   */
+  async setThumbnail(
+    libraryId: number,
+    videoId: string,
+    thumbnailUrl: string,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.setThumbnail(libraryId, videoId, thumbnailUrl) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  /**
+   * Uploads a thumbnail from a local file URI (`file://` or `content://`).
+   *
+   * **Platform note:** Android supports this natively (writes the URI to a
+   * temp file and calls `VideoRepository.uploadThumbnail`). iOS does not
+   * expose a VOD `uploadThumbnail` in the generated OpenAPI client — the
+   * bridge resolves with an `InvalidState` error on iOS. Use
+   * {@link setThumbnail} with a remote URL on iOS.
+   */
+  async uploadThumbnail(
+    libraryId: number,
+    videoId: string,
+    uri: string,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.uploadThumbnail(libraryId, videoId, uri) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  /**
+   * Imports a new video from a remote URL. The server starts an async fetch —
+   * the returned `BunnyResult<void>` only indicates acceptance, not
+   * completion. Poll {@link getVideo} for the resulting video's status.
+   */
+  async fetchNewVideo(options: FetchNewVideoOptions): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.fetchNewVideo(
+      options.libraryId,
+      options as unknown as Record<string, unknown>,
+    ) as Promise<BunnyResult<void>>;
+  },
+
+  /**
+   * Re-fetches an existing video's source from a remote URL.
+   *
+   * **Platform note:** Android supports this natively. iOS does not expose a
+   * `refetchVideo` operation — the bridge falls back to `getVideo`
+   * (metadata-only refresh). The `request`, `enabledResolutions`, and
+   * `lowPriority` fields are ignored on iOS.
+   */
+  async refetchVideo(options: RefetchVideoOptions): Promise<BunnyResult<Video>> {
+    return NativeBunnyStreamApi.refetchVideo(
+      options.libraryId,
+      options.videoId,
+      options as unknown as Record<string, unknown>,
+    ) as Promise<BunnyResult<Video>>;
+  },
+
+  // endregion
+
+  // region — VideoRepository: captions —
+
+  /**
+   * Adds a caption track to a video. The caption file must be base64-encoded
+   * SRT or VTT content.
+   */
+  async addCaption(
+    libraryId: number,
+    videoId: string,
+    request: AddCaptionRequestInput,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.addCaption(libraryId, videoId, request) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  /**
+   * Deletes a caption track by language code.
+   */
+  async deleteCaption(
+    libraryId: number,
+    videoId: string,
+    languageCode: string,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.deleteCaption(libraryId, videoId, languageCode) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  // endregion
+
+  // region — VideoRepository: encoding / storage —
+
+  /**
+   * Re-encodes a video using the default codec. Returns the updated video.
+   */
+  async reencodeVideo(libraryId: number, videoId: string): Promise<BunnyResult<Video>> {
+    return NativeBunnyStreamApi.reencodeVideo(libraryId, videoId) as Promise<BunnyResult<Video>>;
+  },
+
+  /**
+   * Re-encodes a video using a specific codec. Returns the updated video.
+   */
+  async reencodeUsingCodec(
+    libraryId: number,
+    videoId: string,
+    codec: VideoCodec,
+  ): Promise<BunnyResult<Video>> {
+    return NativeBunnyStreamApi.reencodeUsingCodec(libraryId, videoId, codec) as Promise<
+      BunnyResult<Video>
+    >;
+  },
+
+  /**
+   * Repackages a video. Returns the updated video.
+   */
+  async repackageVideo(
+    libraryId: number,
+    videoId: string,
+    keepOriginalFiles = true,
+  ): Promise<BunnyResult<Video>> {
+    return NativeBunnyStreamApi.repackageVideo(libraryId, videoId, keepOriginalFiles) as Promise<
+      BunnyResult<Video>
+    >;
+  },
+
+  /**
+   * Deletes resolutions from a video. **Destructive operation.**
+   *
+   * Callers should set `dryRun: true` on the first call to preview what would
+   * be deleted before committing.
+   */
+  async deleteResolutions(options: DeleteResolutionsOptions): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.deleteResolutions(
+      options.libraryId,
+      options.videoId,
+      options as unknown as Record<string, unknown>,
+    ) as Promise<BunnyResult<void>>;
+  },
+
+  // endregion
+
+  // region — VideoRepository: AI —
+
+  /**
+   * Triggers AI smart generation for a video.
+   *
+   * **Platform note:** Android supports this natively. iOS does not expose a
+   * `smartGenerate` operation — the bridge resolves with an `InvalidState`
+   * error on iOS.
+   */
+  async smartGenerate(
+    libraryId: number,
+    videoId: string,
+    request: SmartGenerateRequestInput,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.smartGenerate(
+      libraryId,
+      videoId,
+      request as unknown as Record<string, unknown>,
+    ) as Promise<BunnyResult<void>>;
+  },
+
+  /**
+   * Transcribes a video and optionally generates metadata (title, description,
+   * chapters, moments).
+   *
+   * **Platform note:** `generateChapters` and `generateMoments` are
+   * Android-only; they are silently ignored on iOS.
+   */
+  async transcribeVideo(options: TranscribeVideoOptions): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.transcribeVideo(
+      options.libraryId,
+      options.videoId,
+      options as unknown as Record<string, unknown>,
+    ) as Promise<BunnyResult<void>>;
   },
 
   // endregion

@@ -66,6 +66,54 @@ export interface Spec extends TurboModule {
 
   deleteVideo(libraryId: Double, videoId: string): Promise<Object>;
 
+  // — VideoRepository: thumbnails and import —
+  // Sets a thumbnail from a remote URL. Both platforms support this.
+  setThumbnail(libraryId: Double, videoId: string, thumbnailUrl: string): Promise<Object>;
+
+  // Uploads a thumbnail from a local file URI. Android supports this natively
+  // (writes the URI to a temp File and calls VideoRepository.uploadThumbnail).
+  // iOS does not expose a VOD uploadThumbnail in the generated OpenAPI client —
+  // the bridge resolves with an InvalidState error on iOS.
+  uploadThumbnail(libraryId: Double, videoId: string, uri: string): Promise<Object>;
+
+  // Imports a new video from a remote URL. Both platforms support this.
+  // Returns BunnyResult<void> — the server starts an async fetch; poll
+  // getVideo for the resulting video's status.
+  fetchNewVideo(libraryId: Double, request: Object): Promise<Object>;
+
+  // Re-fetches an existing video's source from a remote URL. Android supports
+  // this natively. iOS does not expose a refetchVideo operation — the bridge
+  // falls back to getVideo (metadata-only refresh).
+  refetchVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // — VideoRepository: captions —
+  // Adds a caption track. The request body contains languageCode, label, and
+  // a base64-encoded caption file.
+  addCaption(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // Deletes a caption track by language code.
+  deleteCaption(libraryId: Double, videoId: string, languageCode: string): Promise<Object>;
+
+  // — VideoRepository: encoding / storage —
+  // Re-encodes a video with the default codec. Returns the updated Video.
+  reencodeVideo(libraryId: Double, videoId: string): Promise<Object>;
+
+  // Re-encodes a video using a specific codec. Returns the updated Video.
+  reencodeUsingCodec(libraryId: Double, videoId: string, codec: string): Promise<Object>;
+
+  // Repackages a video. Returns the updated Video.
+  repackageVideo(libraryId: Double, videoId: string, keepOriginalFiles: boolean): Promise<Object>;
+
+  // Deletes resolutions. Destructive — dryRun should be true on first call.
+  deleteResolutions(libraryId: Double, videoId: string, options: Object): Promise<Object>;
+
+  // — VideoRepository: AI —
+  // Triggers AI smart generation. Android-only; iOS resolves with InvalidState.
+  smartGenerate(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // Transcribes a video and optionally generates metadata.
+  transcribeVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
   // — CollectionRepository —
   listCollections(
     libraryId: Double,
