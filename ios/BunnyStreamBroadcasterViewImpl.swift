@@ -1,3 +1,4 @@
+import BunnyStreamAPI
 import BunnyStreamCameraUpload
 import Combine
 import SwiftUI
@@ -10,31 +11,31 @@ import UIKit
 /// `UIHostingController` and forwards broadcast state, duration, camera,
 /// mute, ingest, reconnect, failover, and error events to the ObjC++ layer.
 @MainActor
-public final class BunnyStreamBroadcasterViewImpl: UIView {
+@objc public final class BunnyStreamBroadcasterViewImpl: UIView {
 
   // --- Event closures (set by the ObjC++ layer) ---
 
-  public var onStateChange: ((NSString) -> Void)?
-  public var onElapsedTime: ((Int, NSString) -> Void)?
-  public var onCameraChange: ((NSString) -> Void)?
-  public var onMuteChange: ((Bool) -> Void)?
-  public var onIngestStateChange: ((NSString, NSString) -> Void)?
-  public var onReconnecting: ((Int, Bool) -> Void)?
-  public var onReconnectFailed: (() -> Void)?
-  public var onFailover: ((Bool) -> Void)?
-  public var onError: ((NSString) -> Void)?
+  @objc public var onStateChange: ((NSString) -> Void)?
+  @objc public var onElapsedTime: ((Int, NSString) -> Void)?
+  @objc public var onCameraChange: ((NSString) -> Void)?
+  @objc public var onMuteChange: ((Bool) -> Void)?
+  @objc public var onIngestStateChange: ((NSString, NSString) -> Void)?
+  @objc public var onReconnecting: ((Int, Bool) -> Void)?
+  @objc public var onReconnectFailed: (() -> Void)?
+  @objc public var onFailover: ((Bool) -> Void)?
+  @objc public var onError: ((NSString) -> Void)?
 
   // --- Pending props (set from ObjC++ updateProps) ---
 
-  public var pendingAccessKey: String?
-  public var pendingLibraryId: Int = 0
-  public var pendingStreamId: String?
-  public var pendingIngestEndpoint: String?
-  public var pendingQualityJson: String?
-  public var pendingCameraPosition: String = "back"
-  public var pendingHideDefaultControls: Bool = false
-  public var pendingDualPublish: Bool = false
-  public var pendingAutoStart: Bool = false
+  @objc public var pendingAccessKey: String?
+  @objc public var pendingLibraryId: Int = 0
+  @objc public var pendingStreamId: String?
+  @objc public var pendingIngestEndpoint: String?
+  @objc public var pendingQualityJson: String?
+  @objc public var pendingCameraPosition: String = "back"
+  @objc public var pendingHideDefaultControls: Bool = false
+  @objc public var pendingDualPublish: Bool = false
+  @objc public var pendingAutoStart: Bool = false
 
   // --- SDK controller ---
 
@@ -43,7 +44,7 @@ public final class BunnyStreamBroadcasterViewImpl: UIView {
   private var cancellables: Set<AnyCancellable> = []
   private var isConfigured = false
 
-  public override init(frame: CGRect) {
+  @objc public override init(frame: CGRect) {
     super.init(frame: frame)
   }
 
@@ -52,7 +53,7 @@ public final class BunnyStreamBroadcasterViewImpl: UIView {
   }
 
   /// Applies all pending props. Called from `finalizeUpdates`.
-  public func commitProps() {
+  @objc public func commitProps() {
     guard let accessKey = pendingAccessKey, !accessKey.isEmpty else { return }
 
     if !isConfigured {
@@ -200,26 +201,26 @@ public final class BunnyStreamBroadcasterViewImpl: UIView {
 
   // --- Commands ---
 
-  public func startBroadcast() {
+  @objc public func startBroadcast() {
     controller.startBroadcast()
   }
 
-  public func stopBroadcast() {
+  @objc public func stopBroadcast() {
     controller.stopBroadcast()
   }
 
-  public func switchCamera() {
+  @objc public func switchCamera() {
     controller.rotateCamera()
   }
 
-  public func setMuted(_ muted: Bool) {
+  @objc public func setMuted(_ muted: Bool) {
     // The SDK only has toggleMute; track state internally.
     if controller.isMuted != muted {
       controller.toggleMute()
     }
   }
 
-  public func toggleMute() {
+  @objc public func toggleMute() {
     controller.toggleMute()
   }
 
@@ -255,7 +256,7 @@ public final class BunnyStreamBroadcasterViewImpl: UIView {
   }
 
   /// Called when the view is removed from the React Native tree.
-  public func cleanup() {
+  @objc public func cleanup() {
     controller.stopBroadcast()
     cancellables.removeAll()
     hostingController?.willMove(toParent: nil)
