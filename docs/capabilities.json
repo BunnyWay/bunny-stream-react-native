@@ -238,9 +238,54 @@
       "area": "Camera live broadcaster",
       "android": "supported",
       "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Fabric component backed by native capture pipelines. New VOD recording and existing live stream sources are supported. Camera and microphone permissions must be requested by the host app before mounting."
+    },
+    {
+      "id": "broadcaster.commands",
+      "area": "Broadcaster commands",
+      "android": "partial",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "stopBroadcast, switchCamera, setMuted, and toggleMute are shared. startBroadcast is supported natively on iOS. On Android the public SDK has no start method; the bridge simulates the built-in start button when hideDefaultControls is false, and resolves with an InvalidState error when controls are hidden (TODO(Android SDK): expose a public start method)."
+    },
+    {
+      "id": "broadcaster.quality",
+      "area": "Broadcast quality configuration",
+      "android": "unsupported",
+      "ios": "supported",
+      "reactNative": "partial",
+      "phase": "current",
+      "notes": "iOS maps the quality prop to BroadcastQuality (resolution, frameRate, videoBitrate, audioBitrate). Android hard-codes 1080p30 (~9.3 Mbps video, 64 kbps audio); the quality prop is accepted but ignored."
+    },
+    {
+      "id": "broadcaster.events",
+      "area": "Broadcaster state and ingest events",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "State (idle/preparing/live), elapsed time, camera position, mute state, ingest endpoint state (primary/backup, connecting/live/offline), reconnecting, reconnect failed, failover, and terminal error events are shared."
+    },
+    {
+      "id": "broadcaster.reconnect-failover",
+      "area": "Reconnect and failover",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Both platforms retry with 1/2/4/8/8s backoff up to 5 attempts, alternating primary and backup ingest. Proactive failover after two consecutive not-live polls. dualPublish publishes to both endpoints simultaneously with independent 5s reconnect on Android."
+    },
+    {
+      "id": "broadcaster.background",
+      "area": "Background and interruption policy",
+      "android": "unsupported",
+      "ios": "unsupported",
       "reactNative": "unsupported",
-      "phase": "phase-5",
-      "notes": "Planned as a Fabric component backed by native capture pipelines."
+      "phase": "backlog",
+      "notes": "Neither native SDK exposes a public background-broadcast or interruption-resume API. The broadcaster is foreground-only; host apps must stop the broadcast on app backgrounding."
     },
     {
       "id": "image.cached",

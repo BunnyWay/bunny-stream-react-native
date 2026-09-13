@@ -1,15 +1,31 @@
 import type {
   AddCaptionRequestInput,
+  BroadcastCameraChangeEvent,
+  BroadcastElapsedTimeEvent,
+  BroadcastErrorEvent,
+  BroadcastFailoverEvent,
+  BroadcastIngestStateEvent,
+  BroadcastMuteChangeEvent,
+  BroadcastQuality,
+  BroadcastReconnectingEvent,
+  BroadcastSource,
+  BroadcastState,
+  BroadcastStateChangeEvent,
   BunnyStreamApi,
+  BunnyStreamBroadcasterProps,
+  BunnyStreamBroadcasterRef,
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
   BunnyStreamUpload,
   BunnyVodPlayerRef,
+  CameraPosition,
   CollectionListOptions,
   DeleteResolutionsOptions,
   FetchNewVideoOptions,
   FetchVideoRequestInput,
   initialize,
+  IngestEndpoint,
+  IngestState,
   LiveStreamIngestStatus,
   LiveStreamThumbnail,
   RefetchVideoOptions,
@@ -33,6 +49,18 @@ import type {
   LiveVideoSizeChangeEvent,
   NativeProps as LiveNativeProps,
 } from '../specs/BunnyLiveStreamPlayerNativeComponent';
+import type {
+  BroadcasterCameraChangeEvent,
+  BroadcasterElapsedTimeEvent,
+  BroadcasterErrorEvent,
+  BroadcasterFailoverEvent,
+  BroadcasterIngestStateEvent,
+  BroadcasterMuteChangeEvent,
+  BroadcasterReconnectingEvent,
+  BroadcasterReconnectFailedEvent,
+  BroadcasterStateChangeEvent,
+  NativeProps as BroadcasterNativeProps,
+} from '../specs/BunnyStreamBroadcasterNativeComponent';
 import type {
   NativeCommands,
   NativeProps as VodNativeProps,
@@ -159,6 +187,72 @@ export type LiveSourceContract = Assert<
     { streamId: string; libraryId: number; token?: string; expires?: number }
   >
 >;
+
+// Phase 5 — broadcaster contracts.
+// Spec event types must be compatible with the public event types.
+export type BroadcasterStateSpecContract = Assert<
+  Compatible<BroadcasterStateChangeEvent, BroadcastStateChangeEvent>
+>;
+export type BroadcasterElapsedTimeSpecContract = Assert<
+  Compatible<BroadcasterElapsedTimeEvent, BroadcastElapsedTimeEvent>
+>;
+export type BroadcasterCameraSpecContract = Assert<
+  Compatible<BroadcasterCameraChangeEvent, BroadcastCameraChangeEvent>
+>;
+export type BroadcasterMuteSpecContract = Assert<
+  Compatible<BroadcasterMuteChangeEvent, BroadcastMuteChangeEvent>
+>;
+export type BroadcasterIngestStateSpecContract = Assert<
+  Compatible<BroadcasterIngestStateEvent, BroadcastIngestStateEvent>
+>;
+export type BroadcasterReconnectingSpecContract = Assert<
+  Compatible<BroadcasterReconnectingEvent, BroadcastReconnectingEvent>
+>;
+export type BroadcasterFailoverSpecContract = Assert<
+  Compatible<BroadcasterFailoverEvent, BroadcastFailoverEvent>
+>;
+export type BroadcasterErrorSpecContract = Assert<
+  Compatible<BroadcasterErrorEvent, BroadcastErrorEvent>
+>;
+export type BroadcasterReconnectFailedSpecContract = Assert<
+  Compatible<BroadcasterReconnectFailedEvent, { failed: boolean }>
+>;
+export type BroadcasterSourceContract = Assert<
+  Compatible<
+    Pick<BroadcasterNativeProps, 'libraryId' | 'streamId' | 'ingestEndpoint'>,
+    { libraryId: number; streamId?: string; ingestEndpoint?: string }
+  >
+>;
+export type BroadcasterRefContract = Assert<
+  Compatible<
+    BunnyStreamBroadcasterRef,
+    {
+      startBroadcast: () => void;
+      stopBroadcast: () => void;
+      switchCamera: () => void;
+      setMuted: (muted: boolean) => void;
+      toggleMute: () => void;
+    }
+  >
+>;
+export type PhaseFivePublicTypesContract = [
+  BroadcastCameraChangeEvent,
+  BroadcastElapsedTimeEvent,
+  BroadcastErrorEvent,
+  BroadcastFailoverEvent,
+  BroadcastIngestStateEvent,
+  BroadcastMuteChangeEvent,
+  BroadcastQuality,
+  BroadcastReconnectingEvent,
+  BroadcastSource,
+  BroadcastState,
+  BroadcastStateChangeEvent,
+  BunnyStreamBroadcasterProps,
+  BunnyStreamBroadcasterRef,
+  CameraPosition,
+  IngestEndpoint,
+  IngestState,
+];
 
 describe('Codegen contract type checks', () => {
   it('compiles all public and native contract assertions', () => {

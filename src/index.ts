@@ -102,6 +102,27 @@ export type {
 export { useBunnyImage } from './image';
 export type { UseBunnyImageResult } from './image';
 
+export { BunnyStreamBroadcaster } from './broadcaster';
+export type {
+  BroadcastCameraChangeEvent,
+  BroadcastElapsedTimeEvent,
+  BroadcastErrorEvent,
+  BroadcastFailoverEvent,
+  BroadcastIngestStateEvent,
+  BroadcastMuteChangeEvent,
+  BroadcastQuality,
+  BroadcastReconnectingEvent,
+  BroadcastResolution,
+  BroadcastSource,
+  BroadcastState,
+  BroadcastStateChangeEvent,
+  BunnyStreamBroadcasterProps,
+  BunnyStreamBroadcasterRef,
+  CameraPosition,
+  IngestEndpoint,
+  IngestState,
+} from './broadcaster';
+
 export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
 export { default as NativeBunnyStreamPlayer } from './specs/NativeBunnyStreamPlayer';
 export { default as NativeBunnyStreamUpload } from './specs/NativeBunnyStreamUpload';
