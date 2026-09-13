@@ -154,6 +154,11 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     navigation.navigate('Player', { videoId, libraryId });
   };
 
+  const handleManageVideo = (videoId: string) => {
+    if (libraryId == null) return;
+    navigation.navigate('VideoManagement', { videoId, libraryId });
+  };
+
   const videos = uiState.kind === 'loaded' ? uiState.videos : [];
   const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
 
@@ -169,6 +174,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
             video={video}
             thumbnailUrl={thumbnails[video.id]}
             onPress={() => handlePlayVideo(video.id)}
+            onManage={() => handleManageVideo(video.id)}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -212,10 +218,12 @@ function VideoCard({
   video,
   thumbnailUrl,
   onPress,
+  onManage,
 }: {
   video: Video;
   thumbnailUrl: string | undefined;
   onPress: () => void;
+  onManage: () => void;
 }) {
   const { uri } = useBunnyImage(thumbnailUrl);
 
@@ -229,9 +237,14 @@ function VideoCard({
         )}
       </View>
       <View style={videoCardStyles.info}>
-        <Text style={videoCardStyles.title} numberOfLines={1}>
-          {video.title || 'Untitled'}
-        </Text>
+        <View style={videoCardStyles.titleRow}>
+          <Text style={videoCardStyles.title} numberOfLines={1}>
+            {video.title || 'Untitled'}
+          </Text>
+          <TouchableOpacity onPress={onManage} style={videoCardStyles.manageButton}>
+            <Text style={videoCardStyles.manageButtonText}>Manage</Text>
+          </TouchableOpacity>
+        </View>
         <View style={videoCardStyles.pillRow}>
           <View style={videoCardStyles.pill}>
             <Text style={videoCardStyles.pillText}>
@@ -289,11 +302,30 @@ const videoCardStyles = StyleSheet.create({
   info: {
     padding: 12,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   title: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  manageButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  manageButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   pillRow: {
     flexDirection: 'row',

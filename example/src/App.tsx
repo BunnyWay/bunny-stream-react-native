@@ -10,6 +10,7 @@ import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-c
 import { initialize } from 'bunny-stream-react-native';
 
 import { ScreenWrapper } from './components/ScreenWrapper';
+import { CameraScreen } from './screens/CameraScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LivePlayerScreen } from './screens/LivePlayerScreen';
 import { LiveStreamsScreen } from './screens/LiveStreamsScreen';
@@ -18,6 +19,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { ThumbnailPickerScreen } from './screens/ThumbnailPickerScreen';
 import { TrailerPickerScreen } from './screens/TrailerPickerScreen';
 import { VideoListScreen } from './screens/VideoListScreen';
+import { VideoManagementScreen } from './screens/VideoManagementScreen';
 import { VideoUploadScreen } from './screens/VideoUploadScreen';
 import { loadSettings } from './storage/storage';
 import { styles } from './theme/styles';
@@ -62,6 +64,8 @@ export default function App() {
               <Stack.Screen name="Settings" component={SettingsScreen} />
               <Stack.Screen name="Player" component={PlayerScreen} />
               <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
+              <Stack.Screen name="Camera" component={CameraScreen} />
+              <Stack.Screen name="VideoManagement" component={VideoManagementScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         )}
