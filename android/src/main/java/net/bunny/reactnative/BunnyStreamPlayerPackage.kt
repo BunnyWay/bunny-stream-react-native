@@ -10,6 +10,7 @@ import net.bunny.reactnative.module.BunnyStreamApiModule
 import net.bunny.reactnative.module.BunnyStreamPlayerModule
 import net.bunny.reactnative.module.BunnyStreamUploadModule
 import net.bunny.reactnative.view.BunnyLiveStreamPlayerViewManager
+import net.bunny.reactnative.view.BunnyStreamBroadcasterViewManager
 import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
 
 /**
@@ -38,6 +39,7 @@ class BunnyStreamPlayerPackage : BaseReactPackage() {
     listOf(
       BunnyStreamPlayerViewManager(),
       BunnyLiveStreamPlayerViewManager(),
+      BunnyStreamBroadcasterViewManager(),
     )
 
   override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider {
