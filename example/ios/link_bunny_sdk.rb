@@ -10,6 +10,66 @@ if File.exist?(assets_catalog_path)
   patched = source.sub('spawnSync("sips", args, { stdio: "inherit" });', 'spawnSync("sips", args, { stdio: "ignore" });')
   File.write(assets_catalog_path, patched) if source != patched
 end
+
+# Patch React Native's CocoaPods SPM helper to prevent a UUID collision that
+# corrupts Pods.xcodeproj on Xcode 16+/26 when a podspec uses `spm_dependency`.
+#
+# `spm_dependency` injects `XCRemoteSwiftPackageReference` /
+# `XCSwiftPackageProductDependency` objects via `project.new(...)`, which uses
+# `Pod::Project`'s deterministic counter-based UUID scheme. That scheme skips
+# collision checks, so when the counter is out of sync with the loaded object
+# graph (e.g. after an incremental `pod install`), the first generated UUID
+# collides with the root `PBXProject` UUID (`<prefix>00000000`), overwriting it.
+# Xcode then refuses to load Pods.xcodeproj:
+#   -[XCSwiftPackageProductDependency _setSavedArchiveVersion:]: unrecognized selector
+#
+# The upstream fix (react-native commit 1cdf784, shipped in 0.88) routes object
+# creation through a `new_object` helper that probes `generate_uuid` forward
+# past any UUID already present in `objects_by_uuid`. We backport that helper
+# here so RN 0.86.2 works on Xcode 26. Remove this patch after upgrading to a
+# React Native version that includes commit 1cdf784.
+# TODO(iOS SDK): Remove this spm.rb patch after upgrading to React Native >= 0.88.
+spm_path = File.join(example_dir, "node_modules", "react-native", "scripts", "cocoapods", "spm.rb")
+if File.exist?(spm_path)
+  spm_src = File.read(spm_path)
+  if spm_src.include?("def new_object(project, klass)")
+    puts "[BunnyStream] spm.rb UUID collision fix already applied, skipping"
+  else
+    # Insert the new_object helper right after the `private` keyword.
+    new_object_helper = <<~'RUBY'
+
+      # Creates a new object in the project with a UUID guaranteed not to collide
+      # with any UUID already present in the project.
+      #
+      # `Pod::Project` overrides `generate_available_uuid_list` with a fast,
+      # counter-based scheme (`<sha prefix><counter>0`) that deliberately skips
+      # collision checks, on the assumption that the whole Pods project is generated
+      # in a single pass. That assumption does not hold here: we run in a
+      # `post_install` hook, and the generator's counter can be out of sync with the
+      # UUIDs already assigned to existing objects (e.g. when the project has been
+      # reloaded from disk during an incremental install, the counter restarts at 0
+      # while the root object still occupies `<prefix>00000000`). Using `project.new`
+      # directly can therefore hand back a UUID that is already in use and overwrite
+      # an existing object (notably the root `PBXProject`), producing a Pods project
+      # Xcode refuses to load. We keep the deterministic scheme but probe forward
+      # until we find a UUID that is actually free.
+      def new_object(project, klass)
+        uuid = project.generate_uuid
+        uuid = project.generate_uuid while project.objects_by_uuid.key?(uuid)
+        object = klass.new(project, uuid)
+        object.initialize_defaults
+        object
+      end
+    RUBY
+    spm_src = spm_src.sub(/^(\s*private\s*)$/m, "\\1\n#{new_object_helper}")
+    # Route all `project.new(...)` calls in add_spm_to_target through new_object.
+    spm_src = spm_src.gsub('pkg = project.new(pkg_class)', 'pkg = new_object(project, pkg_class)')
+    spm_src = spm_src.gsub('ref = project.new(ref_class)', 'ref = new_object(project, ref_class)')
+    File.write(spm_path, spm_src)
+    puts "[BunnyStream] Patched spm.rb to prevent Pods.xcodeproj UUID collision (Xcode 16+/26 fix)"
+  end
+end
+
 exit if ARGV.include?("--prepare")
 
 project_path = File.join(example_dir, "node_modules", ".generated", "ios", "ReactTestApp.xcodeproj")
