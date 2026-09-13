@@ -192,6 +192,41 @@ using namespace facebook::react;
   [super prepareForRecycle];
 }
 
+// MARK: - Commands (RCTBunnyStreamBroadcasterViewViewProtocol)
+
+// Fabric dispatches view commands through `handleCommand:args:`. Without this
+// override the Codegen-generated dispatcher is never invoked and every command
+// sent from JS is silently dropped.
+- (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args
+{
+  RCTBunnyStreamBroadcasterViewHandleCommand(self, commandName, args);
+}
+
+- (void)startBroadcast
+{
+  [_impl startBroadcast];
+}
+
+- (void)stopBroadcast
+{
+  [_impl stopBroadcast];
+}
+
+- (void)switchCamera
+{
+  [_impl switchCamera];
+}
+
+- (void)setMuted:(BOOL)muted
+{
+  [_impl setMuted:muted];
+}
+
+- (void)toggleMute
+{
+  [_impl toggleMute];
+}
+
 @end
 
 // Register the component view with the Fabric plugin registry.
