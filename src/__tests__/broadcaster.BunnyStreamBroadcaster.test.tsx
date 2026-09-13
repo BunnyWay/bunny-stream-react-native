@@ -5,32 +5,34 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { act, render } from '@testing-library/react-native';
 
 import { BunnyStreamBroadcaster } from '../broadcaster/BunnyStreamBroadcaster';
+import { Commands as mockCommands } from '../specs/BunnyStreamBroadcasterNativeComponent';
 
 // The native component is mocked so we can assert the props the public wrapper
 // forwards and the imperative commands it dispatches.
 const mockNativeViewHost = jest.fn();
-const mockStartBroadcast = jest.fn();
-const mockStopBroadcast = jest.fn();
-const mockSwitchCamera = jest.fn();
-const mockSetMuted = jest.fn();
-const mockToggleMute = jest.fn();
 
 jest.mock('../specs/BunnyStreamBroadcasterNativeComponent', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react') as typeof ReactTypes;
   const Mock = React.forwardRef<unknown, Record<string, unknown>>((props, ref) => {
     mockNativeViewHost(props);
-    React.useImperativeHandle(ref, () => ({
-      _startBroadcast: mockStartBroadcast,
-      _stopBroadcast: mockStopBroadcast,
-      _switchCamera: mockSwitchCamera,
-      _setMuted: mockSetMuted,
-      _toggleMute: mockToggleMute,
-    }));
+    // Set the ref to a dummy object so the wrapper's `if (view)` guard passes
+    // and the Codegen command is actually dispatched.
+    React.useImperativeHandle(ref, () => ({}));
     return null;
   });
   Mock.displayName = 'BunnyStreamBroadcasterView';
-  return { __esModule: true, default: Mock };
+  return {
+    __esModule: true,
+    default: Mock,
+    Commands: {
+      startBroadcast: jest.fn(),
+      stopBroadcast: jest.fn(),
+      switchCamera: jest.fn(),
+      setMuted: jest.fn(),
+      toggleMute: jest.fn(),
+    },
+  };
 });
 
 function lastProps(): Record<string, unknown> {
@@ -187,11 +189,11 @@ describe('BunnyStreamBroadcaster', () => {
       ref.current?.toggleMute();
     });
 
-    expect(mockStartBroadcast).toHaveBeenCalledTimes(1);
-    expect(mockStopBroadcast).toHaveBeenCalledTimes(1);
-    expect(mockSwitchCamera).toHaveBeenCalledTimes(1);
-    expect(mockSetMuted).toHaveBeenCalledWith(true);
-    expect(mockToggleMute).toHaveBeenCalledTimes(1);
+    expect(mockCommands.startBroadcast).toHaveBeenCalledTimes(1);
+    expect(mockCommands.stopBroadcast).toHaveBeenCalledTimes(1);
+    expect(mockCommands.switchCamera).toHaveBeenCalledTimes(1);
+    expect(mockCommands.setMuted).toHaveBeenCalledWith(expect.anything(), true);
+    expect(mockCommands.toggleMute).toHaveBeenCalledTimes(1);
   });
 
   it('does not crash when commands are invoked on a detached ref', () => {
