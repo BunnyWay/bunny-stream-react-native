@@ -4,11 +4,11 @@ import type { HostComponent } from 'react-native';
 import * as React from 'react';
 
 import BunnyStreamBroadcasterNativeComponent, {
+  Commands as NativeCommands,
   type NativeProps,
 } from '../specs/BunnyStreamBroadcasterNativeComponent';
 
-const NativeView =
-  BunnyStreamBroadcasterNativeComponent as unknown as HostComponent<NativeProps>;
+const NativeView = BunnyStreamBroadcasterNativeComponent as unknown as HostComponent<NativeProps>;
 
 type NativeViewRef = React.ElementRef<HostComponent<NativeProps>> | null;
 
@@ -46,35 +46,23 @@ export const BunnyStreamBroadcaster = React.forwardRef<
   React.useImperativeHandle(ref, () => ({
     startBroadcast: () => {
       const view = nativeRef.current as NativeViewRef;
-      if (view) {
-        // Commands are dispatched via the native view's command mechanism.
-        // The actual command implementation lives in the platform ViewManager.
-        (view as unknown as { _startBroadcast?: () => void })._startBroadcast?.();
-      }
+      if (view) NativeCommands.startBroadcast(view);
     },
     stopBroadcast: () => {
       const view = nativeRef.current as NativeViewRef;
-      if (view) {
-        (view as unknown as { _stopBroadcast?: () => void })._stopBroadcast?.();
-      }
+      if (view) NativeCommands.stopBroadcast(view);
     },
     switchCamera: () => {
       const view = nativeRef.current as NativeViewRef;
-      if (view) {
-        (view as unknown as { _switchCamera?: () => void })._switchCamera?.();
-      }
+      if (view) NativeCommands.switchCamera(view);
     },
     setMuted: (muted: boolean) => {
       const view = nativeRef.current as NativeViewRef;
-      if (view) {
-        (view as unknown as { _setMuted?: (muted: boolean) => void })._setMuted?.(muted);
-      }
+      if (view) NativeCommands.setMuted(view, muted);
     },
     toggleMute: () => {
       const view = nativeRef.current as NativeViewRef;
-      if (view) {
-        (view as unknown as { _toggleMute?: () => void })._toggleMute?.();
-      }
+      if (view) NativeCommands.toggleMute(view);
     },
   }));
 
@@ -119,7 +107,9 @@ export const BunnyStreamBroadcaster = React.forwardRef<
       onElapsedTime={onElapsedTime ? (e) => onElapsedTime(e.nativeEvent) : undefined}
       onCameraChange={onCameraChange ? (e) => onCameraChange(e.nativeEvent) : undefined}
       onMuteChange={onMuteChange ? (e) => onMuteChange(e.nativeEvent) : undefined}
-      onIngestStateChange={onIngestStateChange ? (e) => onIngestStateChange(e.nativeEvent) : undefined}
+      onIngestStateChange={
+        onIngestStateChange ? (e) => onIngestStateChange(e.nativeEvent) : undefined
+      }
       onReconnecting={onReconnecting ? (e) => onReconnecting(e.nativeEvent) : undefined}
       onReconnectFailed={onReconnectFailed ? () => onReconnectFailed() : undefined}
       onFailover={onFailover ? (e) => onFailover(e.nativeEvent) : undefined}

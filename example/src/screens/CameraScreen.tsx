@@ -118,12 +118,9 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
     [addLog],
   );
 
-  const handleElapsedTime = React.useCallback(
-    (event: { elapsedMs: number; formatted: string }) => {
-      setElapsed(event.formatted);
-    },
-    [],
-  );
+  const handleElapsedTime = React.useCallback((event: { elapsedMs: number; formatted: string }) => {
+    setElapsed(event.formatted);
+  }, []);
 
   const handleCameraChange = React.useCallback(
     (event: { position: CameraPosition }) => {
@@ -206,8 +203,8 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
         <View style={cameraStyles.permissionContainer}>
           <Text style={cameraStyles.permissionTitle}>Permissions required</Text>
           <Text style={cameraStyles.permissionText}>
-            Camera and microphone permissions are required to record and broadcast. Grant
-            them in Settings and reopen this screen.
+            Camera and microphone permissions are required to record and broadcast. Grant them in
+            Settings and reopen this screen.
           </Text>
         </View>
       </>
@@ -275,7 +272,11 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
             ]}
           >
             <Text style={cameraStyles.stateBadgeText}>
-              {broadcastState === 'live' ? 'LIVE' : broadcastState === 'preparing' ? 'PREPARING' : 'IDLE'}
+              {broadcastState === 'live'
+                ? 'LIVE'
+                : broadcastState === 'preparing'
+                  ? 'PREPARING'
+                  : 'IDLE'}
             </Text>
           </View>
           {elapsed ? <Text style={cameraStyles.elapsedText}>{elapsed}</Text> : null}
@@ -289,7 +290,10 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
       </View>
 
       {/* Controls */}
-      <ScrollView style={cameraStyles.controls} contentContainerStyle={cameraStyles.controlsContent}>
+      <ScrollView
+        style={cameraStyles.controls}
+        contentContainerStyle={cameraStyles.controlsContent}
+      >
         {errorMsg ? (
           <View style={cameraStyles.errorBox}>
             <Text style={cameraStyles.errorText}>{errorMsg}</Text>
@@ -333,13 +337,12 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
           <View style={cameraStyles.toggleRow}>
             <Text style={cameraStyles.toggleLabel}>Dual publish (primary + backup)</Text>
             <TouchableOpacity
-              style={[
-                cameraStyles.toggleButton,
-                dualPublish && cameraStyles.toggleButtonActive,
-              ]}
+              style={[cameraStyles.toggleButton, dualPublish && cameraStyles.toggleButtonActive]}
               onPress={() => setDualPublish((v) => !v)}
             >
-              <Text style={cameraStyles.toggleText}>{dualPublish ? 'ON' : 'OFF'}</Text>
+              <Text style={[cameraStyles.toggleText, dualPublish && cameraStyles.toggleTextActive]}>
+                {dualPublish ? 'ON' : 'OFF'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -392,8 +395,7 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
 }
 
 function IngestBadge({ label, state }: { label: string; state: IngestState | null }) {
-  const color =
-    state === 'live' ? '#2e7d32' : state === 'connecting' ? '#f9a825' : '#999';
+  const color = state === 'live' ? '#2e7d32' : state === 'connecting' ? '#f9a825' : '#999';
   return (
     <View style={[cameraStyles.ingestBadge, { backgroundColor: color }]}>
       <Text style={cameraStyles.ingestBadgeText}>{label}</Text>
@@ -563,6 +565,9 @@ const cameraStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
+  },
+  toggleTextActive: {
+    color: colors.onPrimary,
   },
   actionsRow: {
     flexDirection: 'row',
