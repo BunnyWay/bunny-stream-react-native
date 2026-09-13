@@ -112,6 +112,94 @@ import React
     deleteVideo(libraryId: libraryId, videoId: videoId, resolve: resolve)
   }
 
+  @objc public func setThumbnailWithLibraryId(_ libraryId: Double,
+                                              videoId: String,
+                                              thumbnailUrl: String,
+                                              resolve: @escaping RCTPromiseResolveBlock) {
+    setThumbnail(libraryId: libraryId, videoId: videoId, thumbnailUrl: thumbnailUrl, resolve: resolve)
+  }
+
+  @objc public func uploadThumbnailWithLibraryId(_ libraryId: Double,
+                                                  videoId: String,
+                                                  uri: String,
+                                                  resolve: @escaping RCTPromiseResolveBlock) {
+    uploadThumbnail(libraryId: libraryId, videoId: videoId, uri: uri, resolve: resolve)
+  }
+
+  @objc public func fetchNewVideoWithLibraryId(_ libraryId: Double,
+                                                request: NSDictionary,
+                                                resolve: @escaping RCTPromiseResolveBlock) {
+    fetchNewVideo(libraryId: libraryId, request: request, resolve: resolve)
+  }
+
+  @objc public func refetchVideoWithLibraryId(_ libraryId: Double,
+                                               videoId: String,
+                                               request: NSDictionary,
+                                               resolve: @escaping RCTPromiseResolveBlock) {
+    refetchVideo(libraryId: libraryId, videoId: videoId, request: request, resolve: resolve)
+  }
+
+  // MARK: - Captions
+
+  @objc public func addCaptionWithLibraryId(_ libraryId: Double,
+                                            videoId: String,
+                                            request: NSDictionary,
+                                            resolve: @escaping RCTPromiseResolveBlock) {
+    addCaption(libraryId: libraryId, videoId: videoId, request: request, resolve: resolve)
+  }
+
+  @objc public func deleteCaptionWithLibraryId(_ libraryId: Double,
+                                               videoId: String,
+                                               languageCode: String,
+                                               resolve: @escaping RCTPromiseResolveBlock) {
+    deleteCaption(libraryId: libraryId, videoId: videoId, languageCode: languageCode, resolve: resolve)
+  }
+
+  // MARK: - Encoding / Storage
+
+  @objc public func reencodeVideoWithLibraryId(_ libraryId: Double,
+                                               videoId: String,
+                                               resolve: @escaping RCTPromiseResolveBlock) {
+    reencodeVideo(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
+  @objc public func reencodeUsingCodecWithLibraryId(_ libraryId: Double,
+                                                    videoId: String,
+                                                    codec: String,
+                                                    resolve: @escaping RCTPromiseResolveBlock) {
+    reencodeUsingCodec(libraryId: libraryId, videoId: videoId, codec: codec, resolve: resolve)
+  }
+
+  @objc public func repackageVideoWithLibraryId(_ libraryId: Double,
+                                                videoId: String,
+                                                keepOriginalFiles: Bool,
+                                                resolve: @escaping RCTPromiseResolveBlock) {
+    repackageVideo(libraryId: libraryId, videoId: videoId, keepOriginalFiles: keepOriginalFiles, resolve: resolve)
+  }
+
+  @objc public func deleteResolutionsWithLibraryId(_ libraryId: Double,
+                                                    videoId: String,
+                                                    options: NSDictionary,
+                                                    resolve: @escaping RCTPromiseResolveBlock) {
+    deleteResolutions(libraryId: libraryId, videoId: videoId, options: options, resolve: resolve)
+  }
+
+  // MARK: - AI
+
+  @objc public func smartGenerateWithLibraryId(_ libraryId: Double,
+                                                videoId: String,
+                                                request: NSDictionary,
+                                                resolve: @escaping RCTPromiseResolveBlock) {
+    smartGenerate(libraryId: libraryId, videoId: videoId, request: request, resolve: resolve)
+  }
+
+  @objc public func transcribeVideoWithLibraryId(_ libraryId: Double,
+                                                  videoId: String,
+                                                  request: NSDictionary,
+                                                  resolve: @escaping RCTPromiseResolveBlock) {
+    transcribeVideo(libraryId: libraryId, videoId: videoId, request: request, resolve: resolve)
+  }
+
   @objc public func listCollectionsWithLibraryId(_ libraryId: Double,
                                                  page: Double,
                                                  itemsPerPage: Double,
@@ -266,6 +354,18 @@ import React
   }
 
   // MARK: - Helpers
+
+  /// Parses a codec string into the iOS SDK's `EncoderOutputCodec` enum.
+  /// Returns `nil` for unknown values.
+  private static func parseEncoderOutputCodec(_ codec: String) -> Components.Schemas.EncoderOutputCodec? {
+    switch codec.lowercased() {
+    case "h264": return ._0
+    case "vp9": return ._1
+    case "hevc": return ._2
+    case "av1": return ._3
+    default: return nil
+    }
+  }
 
   /// Builds the InvalidState envelope for the not-initialised guard.
   private func invalidState(_ message: String) -> [String: Any] {
@@ -646,6 +746,467 @@ import React
           resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
         case .undocumented(let code, _):
           resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)", isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  // MARK: - Thumbnail and import operations
+
+  /// Sets a thumbnail from a remote URL. Both platforms support this.
+  func setThumbnail(libraryId: Double, videoId: String, thumbnailUrl: String,
+                    resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.setThumbnail(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId),
+          query: .init(thumbnailUrl: thumbnailUrl)
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Set thumbnail failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Uploads a thumbnail from a local file URI.
+  ///
+  /// TODO(iOS SDK): The generated OpenAPI client does not expose a VOD
+  /// `uploadThumbnail` operation — `Video_SetThumbnail` only accepts a
+  /// `thumbnailUrl` query param, not a file body. This method resolves with
+  /// an `InvalidState` error until the iOS SDK exposes a file-upload
+  /// endpoint. Use `setThumbnail` with a remote URL on iOS.
+  func uploadThumbnail(libraryId: Double, videoId: String, uri: String,
+                       resolve: @escaping RCTPromiseResolveBlock) {
+    resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
+                        message: "uploadThumbnail is not supported on iOS. The generated OpenAPI client does not expose a VOD file-upload endpoint. Use setThumbnail with a remote URL instead.",
+                        isTerminal: true))
+  }
+
+  /// Imports a new video from a remote URL. The server starts an async fetch.
+  func fetchNewVideo(libraryId: Double, request: NSDictionary,
+                     resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard let url = request["url"] as? String, !url.isEmpty else {
+      resolve(invalidState("fetchNewVideo: missing required field 'url'"))
+      return
+    }
+    let title = request["title"] as? String
+    let collectionId = request["collectionId"] as? String
+    let thumbnailTime = (request["thumbnailTime"] as? Double).map(Int32.init)
+
+    Task {
+      do {
+        let output = try await api.client.fetchVideo(.init(
+          path: .init(libraryId: Int64(libraryId)),
+          query: .init(collectionId: collectionId, thumbnailTime: thumbnailTime),
+          body: .json(.FetchVideoRequest(.init(
+            url: url,
+            title: title
+          )))
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Fetch video failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Re-fetches an existing video's source from a remote URL.
+  ///
+  /// TODO(iOS SDK): The generated OpenAPI client does not expose a
+  /// `refetchVideo` operation. This method falls back to `getVideo`
+  /// (metadata-only refresh) — the `request`, `enabledResolutions`, and
+  /// `lowPriority` fields are ignored.
+  func refetchVideo(libraryId: Double, videoId: String, request: NSDictionary,
+                    resolve: @escaping RCTPromiseResolveBlock) {
+    // Fallback: iOS does not expose a refetchVideo operation. Refresh
+    // metadata via getVideo instead.
+    getVideo(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
+  // MARK: - Caption operations
+
+  /// Adds a caption track. The iOS OpenAPI client takes `srclang` as a path
+  /// parameter and the caption data in the body as `CaptionModelAdd`.
+  func addCaption(libraryId: Double, videoId: String, request: NSDictionary,
+                  resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard let languageCode = request["languageCode"] as? String, !languageCode.isEmpty else {
+      resolve(invalidState("addCaption: missing required field 'languageCode'"))
+      return
+    }
+    guard let label = request["label"] as? String, !label.isEmpty else {
+      resolve(invalidState("addCaption: missing required field 'label'"))
+      return
+    }
+    guard let captionsFileBase64 = request["captionsFileBase64"] as? String, !captionsFileBase64.isEmpty else {
+      resolve(invalidState("addCaption: missing required field 'captionsFileBase64'"))
+      return
+    }
+
+    Task {
+      do {
+        let output = try await api.client.addCaption(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId, srclang: languageCode),
+          body: .json(.CaptionModelAdd(.init(srclang: languageCode, label: label, captionsFile: captionsFileBase64)))
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Add caption failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Deletes a caption track by language code.
+  func deleteCaption(libraryId: Double, videoId: String, languageCode: String,
+                     resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.deleteCaption(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId, srclang: languageCode)
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Delete caption failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  // MARK: - Encoding / Storage operations
+
+  /// Re-encodes a video with the default codec.
+  func reencodeVideo(libraryId: Double, videoId: String,
+                     resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.reencodeVideo(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId)
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let model) = resp.body {
+            resolve(okEnvelope(Self.videoDict(from: model)))
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Re-encodes a video using a specific codec.
+  func reencodeUsingCodec(libraryId: Double, videoId: String, codec: String,
+                           resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard let codecEnum = Self.parseEncoderOutputCodec(codec) else {
+      resolve(invalidState("reencodeUsingCodec: unknown codec '\(codec)'. Expected: h264, vp9, hevc, av1."))
+      return
+    }
+    Task {
+      do {
+        let output = try await api.client.reencodeUsingCodec(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId, outputCodecId: codecEnum)
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let model) = resp.body {
+            resolve(okEnvelope(Self.videoDict(from: model)))
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Repackages a video.
+  func repackageVideo(libraryId: Double, videoId: String, keepOriginalFiles: Bool,
+                      resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.repackageVideo(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId),
+          query: .init(keepOriginalFiles: keepOriginalFiles)
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let model) = resp.body {
+            resolve(okEnvelope(Self.videoDict(from: model)))
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  /// Deletes resolutions from a video. Destructive — `dryRun` should be true
+  /// on the first call to preview.
+  func deleteResolutions(libraryId: Double, videoId: String, options: NSDictionary,
+                          resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+
+    let resolutionsArray = options["resolutions"] as? [String]
+    let resolutionsToDelete = resolutionsArray?.joined(separator: ",")
+    let deleteNonConfigured = options["deleteNonConfiguredResolutions"] as? Bool
+    let deleteMp4Files = options["deleteMp4Files"] as? Bool
+    let deleteOriginal = options["deleteOriginal"] as? Bool
+    let dryRun = options["dryRun"] as? Bool
+
+    Task {
+      do {
+        let output = try await api.client.deleteResolutions(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId),
+          query: .init(
+            resolutionsToDelete: resolutionsToDelete,
+            deleteNonConfiguredResolutions: deleteNonConfigured,
+            deleteOriginal: deleteOriginal,
+            deleteMp4Files: deleteMp4Files,
+            dryRun: dryRun
+          )
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Delete resolutions failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  // MARK: - AI operations
+
+  /// Triggers AI smart generation.
+  ///
+  /// TODO(iOS SDK): The generated OpenAPI client does not expose a
+  /// `smartGenerate` operation. This method resolves with an `InvalidState`
+  /// error until the iOS SDK exposes this endpoint.
+  func smartGenerate(libraryId: Double, videoId: String, request: NSDictionary,
+                     resolve: @escaping RCTPromiseResolveBlock) {
+    resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
+                        message: "smartGenerate is not supported on iOS. The generated OpenAPI client does not expose this operation.",
+                        isTerminal: true))
+  }
+
+  /// Transcribes a video and optionally generates metadata.
+  func transcribeVideo(libraryId: Double, videoId: String, request: NSDictionary,
+                       resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+
+    let innerRequest = request["request"] as? NSDictionary
+    let force = request["force"] as? Bool
+    let sourceLanguage = innerRequest?["sourceLanguage"] as? String
+    let targetLanguages = innerRequest?["targetLanguages"] as? [String]
+    let generateTitle = innerRequest?["generateTitle"] as? Bool
+    let generateDescription = innerRequest?["generateDescription"] as? Bool
+
+    let settings = Components.Schemas.TranscribeSettings(
+      targetLanguages: targetLanguages,
+      generateTitle: generateTitle,
+      generateDescription: generateDescription,
+      sourceLanguage: sourceLanguage
+    )
+
+    Task {
+      do {
+        let output = try await api.client.transcribeVideo(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId),
+          query: .init(language: sourceLanguage, force: force),
+          body: .json(.TranscribeSettings(settings))
+        ))
+        switch output {
+        case .ok(let resp):
+          if case .json(let status) = resp.body {
+            if status.success == true {
+              resolve(okEnvelope(NSNull()))
+            } else {
+              resolve(errEnvelope(kind: "Http", httpStatus: Int(status.statusCode ?? 0),
+                                  message: status.message ?? "Transcribe video failed",
+                                  isTerminal: false))
+            }
+          } else {
+            resolve(errEnvelope(kind: "Decode", httpStatus: 0,
+                                message: "Unexpected response body", isTerminal: true))
+          }
+        case .badRequest:
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .unauthorized:
+          resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
+        case .notFound:
+          resolve(errEnvelope(kind: "NotFound", httpStatus: 404, message: "Not found", isTerminal: true))
+        case .internalServerError:
+          resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
+        case .undocumented(let code, _):
+          resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)",
+                              isTerminal: !(500...599).contains(code)))
         }
       } catch {
         resolve(envelope(from: error))
