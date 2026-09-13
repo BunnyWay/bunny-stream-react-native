@@ -23,4 +23,7 @@ export type RootStackParamList = {
     libraryId: number;
     streamId: string;
   };
+  Camera:
+    { mode: 'new'; libraryId: number } | { mode: 'live'; libraryId: number; streamId: string };
+  VideoManagement: { videoId: string; libraryId: number };
 };
