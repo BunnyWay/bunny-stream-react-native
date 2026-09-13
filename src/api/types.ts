@@ -56,9 +56,18 @@ export type {
 
 export type { PlayerSettings } from './models/playerSettings';
 export type {
+  AddCaptionRequestInput,
   CreateVideoRequestInput,
+  DeleteResolutionsOptions,
+  FetchNewVideoOptions,
+  FetchVideoRequestInput,
   LiveStreamCreateRequestInput,
+  RefetchVideoOptions,
+  SmartGenerateRequestInput,
+  TranscribeVideoOptions,
+  TranscribeVideoRequestInput,
   UpdateVideoRequestInput,
+  VideoCodec,
 } from './models/requests';
 
 export type { BunnyError, BunnyErrorKind, BunnyResult } from './result/BunnyResult';
