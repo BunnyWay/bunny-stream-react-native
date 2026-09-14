@@ -82,6 +82,10 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.setControls(value)
   }
 
+  override fun setResumeConfig(view: BunnyStreamPlayerView, value: String?) {
+    view.setResumeConfig(value)
+  }
+
   // --- Commands (dispatched by delegate.receiveCommand) ---
 
   @ReactMethod
@@ -147,6 +151,15 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
       "topVideoSizeChange" to mapOf("registrationName" to "onVideoSizeChange"),
       "playbackError" to mapOf("registrationName" to "onPlaybackError"),
       "topPlaybackError" to mapOf("registrationName" to "onPlaybackError"),
+      // Phase 6 — Android-only player events.
+      "chaptersUpdated" to mapOf("registrationName" to "onChaptersUpdated"),
+      "topChaptersUpdated" to mapOf("registrationName" to "onChaptersUpdated"),
+      "momentsUpdated" to mapOf("registrationName" to "onMomentsUpdated"),
+      "topMomentsUpdated" to mapOf("registrationName" to "onMomentsUpdated"),
+      "retentionGraphUpdated" to mapOf("registrationName" to "onRetentionGraphUpdated"),
+      "topRetentionGraphUpdated" to mapOf("registrationName" to "onRetentionGraphUpdated"),
+      "resumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
+      "topResumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
     )
   }
 }

@@ -85,6 +85,8 @@ export function useBunnyStreamPlayer(
       play: () => ref.current?.play(),
       pause: () => ref.current?.pause(),
       seekTo: (positionMs: number) => ref.current?.seekTo(positionMs),
+      skipForward: (offsetMs?: number) => ref.current?.skipForward(offsetMs),
+      skipBackward: (offsetMs?: number) => ref.current?.skipBackward(offsetMs),
       setVolume: (volume: number) => ref.current?.setVolume(volume),
       setPlaybackRate: (rate: number) => ref.current?.setPlaybackRate(rate),
       mute: () => ref.current?.mute(),

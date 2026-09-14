@@ -52,6 +52,60 @@ export type PlayerPlaybackErrorEvent = Readonly<{
   message: string;
 }>;
 
+// --- Phase 6: chapters, moments, retention graph ---
+
+export type Chapter = Readonly<{
+  startTimeMs: number;
+  endTimeMs: number;
+  title: string;
+}>;
+
+export type Moment = Readonly<{
+  label: string;
+  timestampMs: number;
+}>;
+
+export type RetentionGraphEntry = Readonly<{
+  x: number;
+  y: number;
+}>;
+
+export type ChaptersUpdatedEvent = Readonly<{
+  chapters: Chapter[];
+}>;
+
+export type MomentsUpdatedEvent = Readonly<{
+  moments: Moment[];
+}>;
+
+export type RetentionGraphUpdatedEvent = Readonly<{
+  points: RetentionGraphEntry[];
+}>;
+
+// --- Phase 6: resume position ---
+
+export type PlaybackPosition = Readonly<{
+  videoId: string;
+  positionMs: number;
+  durationMs: number;
+  watchPercentage: number;
+  timestamp: number;
+  videoTitle?: string;
+}>;
+
+export type ResumeConfig = Readonly<{
+  retentionDays?: number;
+  minimumWatchMs?: number;
+  resumeThreshold?: number;
+  nearEndThreshold?: number;
+  enableAutoSave?: boolean;
+  saveIntervalMs?: number;
+}>;
+
+export type ResumePositionAvailableEvent = Readonly<{
+  position: PlaybackPosition;
+}>;
+
 export type LiveVideoSizeChangeEvent = PlayerVideoSizeChangeEvent;
 
 export type LiveStateChangeEvent = Readonly<{
@@ -114,6 +168,10 @@ export type BunnyVodPlayerRef = {
   pause: () => void;
   /** Seek to [positionMs] (milliseconds, non-negative). */
   seekTo: (positionMs: number) => void;
+  /** Skip forward by [offsetMs] milliseconds (default 10000). */
+  skipForward: (offsetMs?: number) => void;
+  /** Skip backward by [offsetMs] milliseconds (default 10000). */
+  skipBackward: (offsetMs?: number) => void;
   /** Set volume (0.0–1.0). */
   setVolume: (volume: number) => void;
   /** Set playback rate (must be > 0). */
@@ -156,4 +214,15 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   onPlaybackError?: (event: NativeEvent<PlayerPlaybackErrorEvent>) => void;
   onLiveStateChange?: (event: NativeEvent<LiveStateChangeEvent>) => void;
   onLiveError?: (event: NativeEvent<LiveErrorEvent>) => void;
+  // Phase 6 — Android-only player events (iOS does not expose these).
+  onChaptersUpdated?: (event: NativeEvent<ChaptersUpdatedEvent>) => void;
+  onMomentsUpdated?: (event: NativeEvent<MomentsUpdatedEvent>) => void;
+  onRetentionGraphUpdated?: (event: NativeEvent<RetentionGraphUpdatedEvent>) => void;
+  onResumePositionAvailable?: (event: NativeEvent<ResumePositionAvailableEvent>) => void;
+  /**
+   * Resume position configuration. Android-only — enables the native SDK's
+   * `PlaybackPositionManager` with auto-save. iOS uses a JS-side fallback
+   * (`useResumePosition` hook) backed by AsyncStorage.
+   */
+  resumeConfig?: ResumeConfig;
 }
