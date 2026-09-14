@@ -30,6 +30,8 @@ describe('useBunnyStreamPlayer stable identities', () => {
       play: jest.fn(),
       pause: jest.fn(),
       seekTo: jest.fn(),
+      skipForward: jest.fn(),
+      skipBackward: jest.fn(),
       setVolume: jest.fn(),
       setPlaybackRate: jest.fn(),
       mute: jest.fn(),
@@ -39,6 +41,8 @@ describe('useBunnyStreamPlayer stable identities', () => {
     result.current.controls.play();
     result.current.controls.pause();
     result.current.controls.seekTo(5000);
+    result.current.controls.skipForward();
+    result.current.controls.skipBackward();
     result.current.controls.setVolume(0.3);
     result.current.controls.setPlaybackRate(1.5);
     result.current.controls.mute();
@@ -46,6 +50,8 @@ describe('useBunnyStreamPlayer stable identities', () => {
     expect(fakeRef.play).toHaveBeenCalledTimes(1);
     expect(fakeRef.pause).toHaveBeenCalledTimes(1);
     expect(fakeRef.seekTo).toHaveBeenCalledWith(5000);
+    expect(fakeRef.skipForward).toHaveBeenCalledTimes(1);
+    expect(fakeRef.skipBackward).toHaveBeenCalledTimes(1);
     expect(fakeRef.setVolume).toHaveBeenCalledWith(0.3);
     expect(fakeRef.setPlaybackRate).toHaveBeenCalledWith(1.5);
     expect(fakeRef.mute).toHaveBeenCalledTimes(1);
