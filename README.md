@@ -60,6 +60,48 @@ import { BunnyStreamBroadcaster } from 'bunny-stream-react-native';
 
 **Background policy:** The broadcaster is foreground-only. Neither native SDK exposes a public background-broadcast or interruption-resume API. Host apps must stop the broadcast on app backgrounding.
 
+### Extended player controls (Phase 6)
+
+Phase 6 adds skip, chapters/moments/retention events, and resume position.
+
+**Skip forward/backward** (both platforms, JS-side):
+
+```tsx
+playerRef.current?.skipForward();    // +10s (configurable)
+playerRef.current?.skipBackward();   // -10s (configurable)
+```
+
+**Chapters, moments, retention graph** (Android-only player events):
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId }}
+  onChaptersUpdated={(e) => setChapters(e.nativeEvent.chapters)}
+  onMomentsUpdated={(e) => setMoments(e.nativeEvent.moments)}
+  onRetentionGraphUpdated={(e) => setRetention(e.nativeEvent.points)}
+/>
+```
+
+> **iOS:** The native player view does not expose these events. Fetch chapters/moments via `BunnyStreamApi.getVideo` and the retention/heatmap via `BunnyStreamApi.getVideoHeatmap`.
+
+**Resume position:**
+
+- **Android:** Native SDK `PlaybackPositionManager` via the `resumeConfig` prop. The `onResumePositionAvailable` event fires when a saved position is available; the host decides whether to seek.
+- **iOS:** JS-side fallback via the `useResumePosition` hook with `AsyncStorage`. Tracks progress, persists positions, and restores on player readiness.
+
+```tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useResumePosition } from 'bunny-stream-react-native';
+
+const { restoredPosition, savePosition, clearPosition, getAllPositions } = useResumePosition({
+  playerRef,
+  videoId: 'video-id',
+  videoTitle: 'My Video',
+  storage: AsyncStorage,
+  config: { retentionDays: 7, minimumWatchMs: 30_000 },
+});
+```
+
 See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
 
 Planned roadmap:

@@ -17,6 +17,12 @@ import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
 import net.bunny.bunnystreamplayer.ui.widget.BunnyPlayerView
+import net.bunny.api.playback.PlaybackPosition
+import net.bunny.api.playback.ResumeConfig
+import net.bunny.api.playback.ResumePositionListener
+import net.bunny.bunnystreamplayer.model.Chapter
+import net.bunny.bunnystreamplayer.model.Moment
+import net.bunny.bunnystreamplayer.model.RetentionGraphEntry
 import net.bunny.reactnative.R
 import net.bunny.reactnative.adapter.PlayerEventListener
 import net.bunny.reactnative.commands.CommandQueue
@@ -25,6 +31,8 @@ import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.ceil
 
 /**
@@ -232,6 +240,37 @@ class BunnyStreamPlayerView(
         )
       }
     }
+
+    // Phase 6 — chapters, moments, retention graph (Android-only events).
+    // Codegen does not support arrays in event payloads, so the lists are
+    // serialized as JSON strings and deserialized on the JS side.
+    player.onChaptersUpdated = { chapters ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onChaptersUpdated") {
+            mapOf("chapters" to chapters.chaptersToJson())
+          },
+        )
+      }
+    }
+    player.onMomentsUpdated = { moments ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onMomentsUpdated") {
+            mapOf("moments" to moments.momentsToJson())
+          },
+        )
+      }
+    }
+    player.onRetentionGraphUpdated = { points ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onRetentionGraphUpdated") {
+            mapOf("points" to points.retentionToJson())
+          },
+        )
+      }
+    }
   }
 
   /** Generation captured when the current source started loading. */
@@ -256,6 +295,8 @@ class BunnyStreamPlayerView(
   private var pendingExpires: Long? = null
   private var pendingAutoPlay: Boolean = true
   private var pendingControls: Boolean = true
+  private var pendingResumeConfig: String? = null
+  private var resumeConfigEnabled: Boolean = false
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
@@ -292,6 +333,10 @@ class BunnyStreamPlayerView(
 
   fun setControls(value: Boolean) {
     pendingControls = value
+  }
+
+  fun setResumeConfig(value: String?) {
+    pendingResumeConfig = value
   }
 
   // --- Prop application (called from ViewManager.onAfterUpdatedTransaction) ---
@@ -334,6 +379,10 @@ class BunnyStreamPlayerView(
     if (!sourceChanged && oldProps.controls != newProps.controls) {
       applyControls(newProps.controls)
     }
+
+    // Phase 6 — resume position: enable/disable the native SDK's
+    // PlaybackPositionManager based on the resumeConfig prop.
+    applyResumeConfig()
   }
 
   /**
@@ -395,6 +444,57 @@ class BunnyStreamPlayerView(
   /** Applies controller visibility through the public SDK 4.0.0 property. */
   private fun applyControls(showControls: Boolean) {
     player.controlsEnabled = showControls
+  }
+
+  /**
+   * Enables or disables the native SDK resume position manager based on the
+   * `resumeConfig` prop. When the prop is a JSON string, parses it into a
+   * [ResumeConfig] and calls [BunnyStreamPlayer.enableResumePosition]. When
+   * null/empty, disables resume position if it was previously enabled.
+   */
+  private fun applyResumeConfig() {
+    val json = pendingResumeConfig
+    if (json.isNullOrBlank()) {
+      if (resumeConfigEnabled) {
+        player.disableResumePosition()
+        resumeConfigEnabled = false
+      }
+      return
+    }
+    if (resumeConfigEnabled) {
+      // Already enabled — SDK does not support updating config on the fly.
+      return
+    }
+    val config = parseResumeConfig(json) ?: ResumeConfig()
+    val em = emitter
+    player.enableResumePosition(config) { position, confirmResume ->
+      if (em != null && generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onResumePositionAvailable") {
+            mapOf("position" to position.toJsonString())
+          },
+        )
+      }
+      // Auto-confirm: the JS side decides whether to seek via seekTo.
+      confirmResume(false)
+    }
+    resumeConfigEnabled = true
+  }
+
+  private fun parseResumeConfig(json: String): ResumeConfig? {
+    return try {
+      val obj = JSONObject(json)
+      ResumeConfig(
+        retentionDays = obj.optInt("retentionDays", 7),
+        minimumWatchTime = obj.optLong("minimumWatchMs", 30_000L),
+        resumeThreshold = obj.optDouble("resumeThreshold", 0.05).toFloat(),
+        nearEndThreshold = obj.optDouble("nearEndThreshold", 0.95).toFloat(),
+        enableAutoSave = obj.optBoolean("enableAutoSave", true),
+        saveInterval = obj.optLong("saveIntervalMs", 10_000L),
+      )
+    } catch (_: Exception) {
+      null
+    }
   }
 
   /**
@@ -665,9 +765,66 @@ class BunnyStreamPlayerView(
     player.onPlaybackSpeedChanged = null
     player.onVideoSizeChanged = null
     player.onPlaybackError = null
+    // Phase 6 — detach chapters/moments/retention/resume callbacks.
+    player.onChaptersUpdated = null
+    player.onMomentsUpdated = null
+    player.onRetentionGraphUpdated = null
+    if (resumeConfigEnabled) {
+      player.disableResumePosition()
+      resumeConfigEnabled = false
+    }
   }
 
   companion object {
     private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
   }
+}
+
+// --- Phase 6: model → JSON serializers for Fabric events ---
+// Codegen does not support arrays in event payloads, so lists are serialized
+// as JSON strings and deserialized on the JS side.
+
+private fun List<Chapter>.chaptersToJson(): String {
+  val arr = JSONArray()
+  for (chapter in this) {
+    arr.put(JSONObject().apply {
+      put("startTimeMs", chapter.startTimeMs)
+      put("endTimeMs", chapter.endTimeMs)
+      put("title", chapter.title)
+    })
+  }
+  return arr.toString()
+}
+
+private fun List<Moment>.momentsToJson(): String {
+  val arr = JSONArray()
+  for (moment in this) {
+    arr.put(JSONObject().apply {
+      put("label", moment.label)
+      put("timestampMs", moment.timestamp)
+    })
+  }
+  return arr.toString()
+}
+
+private fun List<RetentionGraphEntry>.retentionToJson(): String {
+  val arr = JSONArray()
+  for (entry in this) {
+    arr.put(JSONObject().apply {
+      put("x", entry.x)
+      put("y", entry.y)
+    })
+  }
+  return arr.toString()
+}
+
+private fun PlaybackPosition.toJsonString(): String {
+  return JSONObject().apply {
+    put("videoId", videoId)
+    put("positionMs", position)
+    put("durationMs", duration)
+    put("watchPercentage", watchPercentage)
+    put("timestamp", timestamp)
+    if (videoTitle.isNotEmpty()) put("videoTitle", videoTitle)
+  }.toString()
 }

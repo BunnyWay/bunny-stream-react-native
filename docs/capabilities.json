@@ -138,10 +138,37 @@
       "id": "player.resume",
       "area": "Resume position",
       "android": "supported",
-      "ios": "unsupported",
-      "reactNative": "unsupported",
+      "ios": "supported",
+      "reactNative": "supported",
       "phase": "phase-6",
-      "notes": "A shared public native API is required."
+      "notes": "Android uses the native SDK PlaybackPositionManager (resumeConfig prop + onResumePositionAvailable event). iOS uses a JS-side fallback (useResumePosition hook with AsyncStorage). Platform persistence differs."
+    },
+    {
+      "id": "player.skip",
+      "area": "Skip forward/backward",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "phase-6",
+      "notes": "JS-side implementation via seekTo + position tracking. Configurable offset (default 10s)."
+    },
+    {
+      "id": "player.chapters-moments",
+      "area": "Chapters and moments events",
+      "android": "supported",
+      "ios": "unsupported",
+      "reactNative": "partial",
+      "phase": "phase-6",
+      "notes": "Android: onChaptersUpdated/onMomentsUpdated events from native player. iOS: fetch via API client (getVideo). Player-view events not available."
+    },
+    {
+      "id": "player.retention-graph",
+      "area": "Retention graph events",
+      "android": "supported",
+      "ios": "unsupported",
+      "reactNative": "partial",
+      "phase": "phase-6",
+      "notes": "Android: onRetentionGraphUpdated event from native player. iOS: fetch via API client (getVideoHeatmap). Player-view event not available."
     },
     {
       "id": "api.videos-basic",

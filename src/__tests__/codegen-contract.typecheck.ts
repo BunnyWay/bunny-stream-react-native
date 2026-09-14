@@ -101,6 +101,11 @@ type NativeUploadMethods = Exclude<
 >;
 type PublicCommandMethods = keyof BunnyStreamPlayerRef;
 type NativeCommandMethods = keyof NativeCommands;
+// skipForward/skipBackward are JS-side (implemented via seekTo + position
+// tracking), so the native command set is a subset of the public ref.
+export type PlayerCommandContract = Assert<
+  [NativeCommandMethods] extends [PublicCommandMethods] ? true : false
+>;
 
 export type InitializationContract = Assert<
   Compatible<Parameters<typeof initialize>, Parameters<PlayerSpec['initialize']>>
@@ -138,7 +143,6 @@ export type PhaseTwoPublicTypesContract = [
   VideoResolutionsInfo,
   VideoStatistics,
 ];
-export type PlayerCommandContract = Assert<Compatible<PublicCommandMethods, NativeCommandMethods>>;
 export type LegacyPlayerRefContract = Assert<Compatible<BunnyStreamPlayerRef, BunnyVodPlayerRef>>;
 export type ReadyEventContract = Assert<Compatible<EventPayload<'onReady'>, PlayerReadyEvent>>;
 export type StateEventContract = Assert<

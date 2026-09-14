@@ -2,14 +2,18 @@
 
 export { initialize } from './config/initialize';
 export { BunnyStreamPlayer, sourceIdentityKey, useBunnyStreamPlayer } from './player';
+export { useResumePosition } from './player/hooks/useResumePosition';
 export type {
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
   BunnyStreamSource,
   BunnyVodPlayerRef,
+  ChaptersUpdatedEvent,
   LiveErrorEvent,
   LiveStateChangeEvent,
   LiveVideoSizeChangeEvent,
+  MomentsUpdatedEvent,
+  PlaybackPosition,
   PlayerBufferingEvent,
   PlayerErrorEvent,
   PlayerEventHandlers,
@@ -24,8 +28,15 @@ export type {
   PlayerStateChangeEvent,
   PlayerVideoSizeChangeEvent,
   PlayerVolumeChangeEvent,
+  ResumeConfig,
+  ResumePositionAvailableEvent,
+  RetentionGraphEntry,
+  RetentionGraphUpdatedEvent,
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
+  UseResumePositionOptions,
+  UseResumePositionResult,
+  ResumePositionStorage,
 } from './player';
 
 export {
