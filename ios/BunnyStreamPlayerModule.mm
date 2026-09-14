@@ -30,6 +30,12 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
   });
 }
 
+// Phase 7 — iOS does not support tvOS; always NO.
+- (NSNumber *)isRunningOnTV
+{
+  return @NO;
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {

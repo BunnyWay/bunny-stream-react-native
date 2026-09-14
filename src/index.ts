@@ -1,7 +1,12 @@
 /** Bunny Stream React Native public API. */
 
 export { initialize } from './config/initialize';
-export { BunnyStreamPlayer, sourceIdentityKey, useBunnyStreamPlayer } from './player';
+export {
+  BunnyStreamPlayer,
+  isRunningOnTV,
+  sourceIdentityKey,
+  useBunnyStreamPlayer,
+} from './player';
 export { useResumePosition } from './player/hooks/useResumePosition';
 export type {
   BunnyStreamPlayerProps,
@@ -26,6 +31,8 @@ export type {
   PlayerReadyEvent,
   PlayerState,
   PlayerStateChangeEvent,
+  PlayerType,
+  PlayerTypeChangeEvent,
   PlayerVideoSizeChangeEvent,
   PlayerVolumeChangeEvent,
   ResumeConfig,
@@ -110,7 +117,7 @@ export type {
   UploadState,
 } from './upload';
 
-export { useBunnyImage } from './image';
+export { BUNNY_REFERER, BunnyImage, bunnyImageSource, isBunnyCdnUrl, useBunnyImage } from './image';
 export type { UseBunnyImageResult } from './image';
 
 export { BunnyStreamBroadcaster } from './broadcaster';

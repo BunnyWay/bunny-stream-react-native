@@ -4,7 +4,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
   __esModule: true,
-  default: { initialize: jest.fn() },
+  default: { initialize: jest.fn(), isRunningOnTV: jest.fn(() => false) },
 }));
 jest.mock('../specs/NativeBunnyStreamApi', () => ({
   __esModule: true,
@@ -42,6 +42,8 @@ describe('public package API', () => {
 
     expect(Object.keys(publicApi).sort()).toEqual(
       [
+        'BUNNY_REFERER',
+        'BunnyImage',
         'BunnyStreamApi',
         'BunnyStreamBroadcaster',
         'BunnyStreamPlayer',
@@ -52,10 +54,13 @@ describe('public package API', () => {
         'NativeBunnyStreamUpload',
         'TRANSITIONAL_VIDEO_STATUSES',
         'VideoStatusEnum',
+        'bunnyImageSource',
         'errorOrNull',
         'fold',
         'getOrNull',
         'initialize',
+        'isBunnyCdnUrl',
+        'isRunningOnTV',
         'liveStreamStatusLabel',
         'map',
         'sourceIdentityKey',

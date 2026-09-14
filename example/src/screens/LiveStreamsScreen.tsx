@@ -24,12 +24,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  BunnyImage,
   BunnyStreamApi,
   BunnyStreamUpload,
   LiveStreamStatusEnum,
   fold,
   liveStreamStatusLabel,
-  useBunnyImage,
   type LiveStream,
   type LiveStreamStatus,
   type UploadEvent,
@@ -1311,13 +1311,11 @@ function LiveStreamEditorModal({
   );
 }
 
-/** Renders a remote thumbnail URL through the cached Bunny image hook. */
+/** Renders a remote thumbnail URL through BunnyImage (Referer + native cache). */
 function ThumbnailPreview({ url }: { url: string }) {
-  const { uri } = useBunnyImage(url);
-  if (!uri) return null;
   return (
     <View style={createStyles.thumbnailPreviewBox}>
-      <Image source={{ uri }} style={createStyles.thumbnailPreview} resizeMode="cover" />
+      <BunnyImage source={url} style={createStyles.thumbnailPreview} resizeMode="cover" />
       <Text style={createStyles.thumbnailPreviewHint}>Remote image URL</Text>
     </View>
   );

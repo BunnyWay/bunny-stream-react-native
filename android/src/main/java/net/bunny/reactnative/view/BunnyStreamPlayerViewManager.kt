@@ -86,6 +86,10 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.setResumeConfig(value)
   }
 
+  override fun setUseNativeTvPlayer(view: BunnyStreamPlayerView, value: Boolean) {
+    view.setUseNativeTvPlayer(value)
+  }
+
   // --- Commands (dispatched by delegate.receiveCommand) ---
 
   @ReactMethod
@@ -121,6 +125,11 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
   @ReactMethod
   override fun unmute(view: BunnyStreamPlayerView) {
     view.unmute()
+  }
+
+  @ReactMethod
+  override fun enterPiP(view: BunnyStreamPlayerView) {
+    view.enterPiP()
   }
 
   companion object {
@@ -160,6 +169,9 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
       "topRetentionGraphUpdated" to mapOf("registrationName" to "onRetentionGraphUpdated"),
       "resumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
       "topResumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
+      // Phase 7 — Android-only cast handover event.
+      "playerTypeChange" to mapOf("registrationName" to "onPlayerTypeChange"),
+      "topPlayerTypeChange" to mapOf("registrationName" to "onPlayerTypeChange"),
     )
   }
 }

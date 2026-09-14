@@ -3,22 +3,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
-import {
-  FlatList,
-  Image,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
+  BunnyImage,
   BunnyStreamApi,
   TRANSITIONAL_VIDEO_STATUSES,
   fold,
   getOrNull,
-  useBunnyImage,
   videoStatusLabel,
   type Video,
   type VideoStatus,
@@ -211,9 +203,9 @@ function formatDuration(seconds: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-/** Renders a single video card. Uses `useBunnyImage` to resolve the Bunny
- * CDN thumbnail URL (with Referer header) to a data: URI the plain `Image`
- * can render. */
+/** Renders a single video card. `BunnyImage` injects the Referer header the
+ * Bunny CDN requires and renders through the native image pipeline (no base64
+ * data URIs), which keeps the list cheap. */
 function VideoCard({
   video,
   thumbnailUrl,
@@ -225,13 +217,11 @@ function VideoCard({
   onPress: () => void;
   onManage: () => void;
 }) {
-  const { uri } = useBunnyImage(thumbnailUrl);
-
   return (
     <TouchableOpacity style={videoCardStyles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={videoCardStyles.thumbnailContainer}>
-        {uri ? (
-          <Image source={{ uri }} style={videoCardStyles.thumbnail} resizeMode="cover" />
+        {thumbnailUrl ? (
+          <BunnyImage source={thumbnailUrl} style={videoCardStyles.thumbnail} resizeMode="cover" />
         ) : (
           <View style={videoCardStyles.thumbnailPlaceholder} />
         )}
