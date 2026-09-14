@@ -80,6 +80,12 @@ export type ResumePositionAvailableEvent = Readonly<{
   position: string;
 }>;
 
+// Phase 7 — cast handover (Android-only event). `playerType` is
+// 'default' or 'cast'; iOS never emits this event.
+export type PlayerTypeChangeEvent = Readonly<{
+  playerType: string;
+}>;
+
 export interface NativeProps extends ViewProps {
   videoId: string;
   libraryId?: Double;
@@ -105,6 +111,11 @@ export interface NativeProps extends ViewProps {
   onMomentsUpdated?: DirectEventHandler<MomentsUpdatedEvent> | null;
   onRetentionGraphUpdated?: DirectEventHandler<RetentionGraphUpdatedEvent> | null;
   onResumePositionAvailable?: DirectEventHandler<ResumePositionAvailableEvent> | null;
+  // Phase 7 — Android-only: route video through `playVideoWithTVDetection`,
+  // which launches the `net.bunny:tv` activity when the device is a TV and the
+  // artifact is on the classpath, otherwise falls back to `playVideo`.
+  useNativeTvPlayer?: WithDefault<boolean, false>;
+  onPlayerTypeChange?: DirectEventHandler<PlayerTypeChangeEvent> | null;
 }
 
 export interface NativeCommands {
@@ -115,10 +126,22 @@ export interface NativeCommands {
   setPlaybackRate: (viewRef: React.ElementRef<HostComponent<NativeProps>>, rate: Double) => void;
   mute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
   unmute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  // Phase 7 — Android-only: enters picture-in-picture on the host activity.
+  // No-op on iOS (the SDK exposes no public PiP API).
+  enterPiP: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
-  supportedCommands: ['play', 'pause', 'seekTo', 'setVolume', 'setPlaybackRate', 'mute', 'unmute'],
+  supportedCommands: [
+    'play',
+    'pause',
+    'seekTo',
+    'setVolume',
+    'setPlaybackRate',
+    'mute',
+    'unmute',
+    'enterPiP',
+  ],
 });
 
 export default codegenNativeComponent<NativeProps>(

@@ -1,8 +1,16 @@
 package net.bunny.reactnative.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.PictureInPictureParams
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Rect
+import android.os.Build
+import android.util.Log
+import android.util.Rational
 import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +22,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.PlayerView
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
+import net.bunny.bunnystreamplayer.PlayerType
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
 import net.bunny.bunnystreamplayer.ui.widget.BunnyPlayerView
@@ -271,6 +280,24 @@ class BunnyStreamPlayerView(
         )
       }
     }
+
+    // Phase 7 — cast handover. The SDK fires this when playback moves between
+    // the local engine and a Chromecast CastPlayer (Android-only; iOS never
+    // surfaces AirPlay/external-playback state).
+    player.onPlayerTypeChanged = { playerType ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onPlayerTypeChange") {
+            mapOf(
+              "playerType" to when (playerType) {
+                PlayerType.CAST_PLAYER -> "cast"
+                else -> "default"
+              },
+            )
+          },
+        )
+      }
+    }
   }
 
   /** Generation captured when the current source started loading. */
@@ -297,6 +324,7 @@ class BunnyStreamPlayerView(
   private var pendingControls: Boolean = true
   private var pendingResumeConfig: String? = null
   private var resumeConfigEnabled: Boolean = false
+  private var pendingUseNativeTvPlayer: Boolean = false
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
@@ -339,6 +367,10 @@ class BunnyStreamPlayerView(
     pendingResumeConfig = value
   }
 
+  fun setUseNativeTvPlayer(value: Boolean) {
+    pendingUseNativeTvPlayer = value
+  }
+
   // --- Prop application (called from ViewManager.onAfterUpdatedTransaction) ---
 
   /**
@@ -358,6 +390,7 @@ class BunnyStreamPlayerView(
       expires = pendingExpires,
       autoPlay = pendingAutoPlay,
       controls = pendingControls,
+      useNativeTvPlayer = pendingUseNativeTvPlayer,
     )
 
     val oldProps = committedProps
@@ -397,13 +430,25 @@ class BunnyStreamPlayerView(
     commandQueue.reset()
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
-    player.playVideo(
-      videoId = props.videoId,
-      libraryId = props.libraryId,
-      videoTitle = "",
-      token = props.token,
-      expires = props.expires,
-    )
+    if (props.useNativeTvPlayer) {
+      // Phase 7 — Android TV: `playVideoWithTVDetection` launches the
+      // `net.bunny:tv` activity via reflection on leanback devices when the
+      // artifact is on the classpath; falls back to `playVideo` otherwise.
+      player.playVideoWithTVDetection(
+        videoId = props.videoId,
+        libraryId = props.libraryId,
+        token = props.token,
+        expires = props.expires,
+      )
+    } else {
+      player.playVideo(
+        videoId = props.videoId,
+        libraryId = props.libraryId,
+        videoTitle = "",
+        token = props.token,
+        expires = props.expires,
+      )
+    }
     if (!props.autoPlay) {
       commandQueue.enqueue(PlayerCommand.Pause)
     }
@@ -621,13 +666,16 @@ class BunnyStreamPlayerView(
    * `autoPlay` is excluded — it controls playback state, not source.
    */
   private fun sourceRelevantProps(props: BunnyStreamPlayerProps) =
-    SourceKey(props.videoId, props.libraryId, props.token, props.expires)
+    SourceKey(props.videoId, props.libraryId, props.token, props.expires, props.useNativeTvPlayer)
 
   private data class SourceKey(
     val videoId: String,
     val libraryId: Long?,
     val token: String?,
     val expires: Long?,
+    // Toggling TV detection must reload so the routing takes effect for the
+    // current source.
+    val useNativeTvPlayer: Boolean,
   )
 
   // --- Commands (called by ViewManager, dispatched to player) ---
@@ -692,6 +740,45 @@ class BunnyStreamPlayerView(
   /** Unmutes the engine via the public SDK view API. */
   fun unmute() {
     player.unmute()
+  }
+
+  /**
+   * Enters picture-in-picture on the host activity (Phase 7 — Android-only).
+   *
+   * The SDK view keeps its own PiP button private, but entering PiP is an
+   * `Activity` API — the SDK's lifecycle observer keeps playback alive in PiP
+   * regardless of who triggered the transition. Requires API 26+ and the host
+   * activity to declare `android:supportsPictureInPicture="true"`. No-op when
+   * unsupported or no host activity is reachable.
+   */
+  fun enterPiP() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    val activity = findHostActivity() ?: run {
+      Log.w(TAG, "Cannot enter PiP — no host Activity")
+      return
+    }
+    if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+    try {
+      val params = PictureInPictureParams.Builder()
+        .setAspectRatio(Rational(16, 9))
+        // The system animates the shrink from this rect instead of the whole
+        // activity (same hint the SDK's private enterPip uses).
+        .setSourceRectHint(Rect().also(::getGlobalVisibleRect))
+        .build()
+      activity.enterPictureInPictureMode(params)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to enter PiP: ${e.message}")
+    }
+  }
+
+  /** Walks the context chain to find the hosting [Activity], or null. */
+  private fun findHostActivity(): Activity? {
+    var ctx: Context? = context
+    while (ctx is ContextWrapper) {
+      if (ctx is Activity) return ctx
+      ctx = ctx.baseContext
+    }
+    return null
   }
 
   /**
@@ -769,6 +856,8 @@ class BunnyStreamPlayerView(
     player.onChaptersUpdated = null
     player.onMomentsUpdated = null
     player.onRetentionGraphUpdated = null
+    // Phase 7 — detach the cast handover callback.
+    player.onPlayerTypeChanged = null
     if (resumeConfigEnabled) {
       player.disableResumePosition()
       resumeConfigEnabled = false
@@ -776,6 +865,7 @@ class BunnyStreamPlayerView(
   }
 
   companion object {
+    private const val TAG = "BunnyStreamPlayerView"
     private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
   }
 }

@@ -5,6 +5,7 @@ import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -109,11 +110,6 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     controls.setPlaybackRate(speed);
   };
 
-  const handleSeek = (deltaMs: number) => {
-    const target = Math.max(0, Math.min(progress.positionMs + deltaMs, state.durationMs));
-    controls.seekTo(target);
-  };
-
   const seekProgress =
     state.durationMs > 0 ? progress.positionMs / state.durationMs : progress.progress;
 
@@ -194,7 +190,10 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             </Text>
 
             <View style={styles.controlsRow}>
-              <TouchableOpacity style={styles.controlButton} onPress={() => handleSeek(-SEEK_MS)}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => controls.skipBackward(SEEK_MS)}
+              >
                 <Text style={styles.controlButtonLabel}>-10s</Text>
               </TouchableOpacity>
 
@@ -208,9 +207,18 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={styles.controlButton} onPress={() => handleSeek(SEEK_MS)}>
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => controls.skipForward(SEEK_MS)}
+              >
                 <Text style={styles.controlButtonLabel}>+10s</Text>
               </TouchableOpacity>
+
+              {Platform.OS === 'android' ? (
+                <TouchableOpacity style={styles.controlButton} onPress={controls.enterPiP}>
+                  <Text style={styles.controlButtonLabel}>PiP</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
             {/* Speed picker — visible alongside custom controls */}
