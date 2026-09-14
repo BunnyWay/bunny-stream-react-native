@@ -61,6 +61,7 @@ describe('public package API', () => {
         'sourceIdentityKey',
         'useBunnyImage',
         'useBunnyStreamPlayer',
+        'useResumePosition',
         'videoStatusLabel',
       ].sort(),
     );

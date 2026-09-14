@@ -1,4 +1,11 @@
-import type { BunnyStreamPlayerProps, BunnyVodPlayerRef } from './BunnyStreamPlayer.types';
+import type {
+  BunnyStreamPlayerProps,
+  BunnyVodPlayerRef,
+  Chapter,
+  Moment,
+  PlaybackPosition,
+  RetentionGraphEntry,
+} from './BunnyStreamPlayer.types';
 import type { HostComponent } from 'react-native';
 
 import * as React from 'react';
@@ -47,6 +54,10 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
     // only when a command or host-specific prop is used.
     const nativeRef = React.useRef<unknown>(null);
 
+    // Tracks the last known VOD position so skipForward/skipBackward can seek
+    // relative to it without a round-trip to the native side.
+    const lastPositionRef = React.useRef(0);
+
     // Guards a VOD-only command: no-op for live sources, then resolves the
     // native view and invokes the Codegen command on it.
     const runVodCommand = (fn: (view: NonNullable<VodView>) => void) => {
@@ -60,6 +71,12 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       pause: () => runVodCommand((view) => NativeCommands.pause(view)),
       seekTo: (positionMs: number) =>
         runVodCommand((view) => NativeCommands.seekTo(view, positionMs)),
+      skipForward: (offsetMs = 10_000) =>
+        runVodCommand((view) => NativeCommands.seekTo(view, lastPositionRef.current + offsetMs)),
+      skipBackward: (offsetMs = 10_000) =>
+        runVodCommand((view) =>
+          NativeCommands.seekTo(view, Math.max(0, lastPositionRef.current - offsetMs)),
+        ),
       setVolume: (volume: number) =>
         runVodCommand((view) => NativeCommands.setVolume(view, volume)),
       setPlaybackRate: (rate: number) =>
@@ -90,9 +107,22 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       onPlaybackError,
       onLiveStateChange,
       onLiveError,
+      onChaptersUpdated,
+      onMomentsUpdated,
+      onRetentionGraphUpdated,
+      onResumePositionAvailable,
+      resumeConfig,
       style,
       ...viewProps
     } = rest;
+
+    // Track the last known VOD position for skipForward/skipBackward.
+    const trackedOnProgress = onProgress
+      ? (event: { nativeEvent: { positionMs: number; durationMs: number; progress: number } }) => {
+          lastPositionRef.current = event.nativeEvent.positionMs;
+          onProgress(event);
+        }
+      : undefined;
 
     if (source.type === 'live') {
       const nativeOnLiveStateChange: LiveNativeProps['onLiveStateChange'] = onLiveStateChange
@@ -138,7 +168,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         controls={controls}
         onReady={onReady}
         onPlaybackStateChange={onPlaybackStateChange}
-        onProgress={onProgress}
+        onProgress={trackedOnProgress}
         onError={onError}
         onBuffering={onBuffering}
         onPlay={onPlay}
@@ -148,6 +178,55 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         onPlaybackRateChange={onPlaybackRateChange}
         onVideoSizeChange={onVideoSizeChange}
         onPlaybackError={onPlaybackError}
+        resumeConfig={resumeConfig ? JSON.stringify(resumeConfig) : undefined}
+        onChaptersUpdated={
+          onChaptersUpdated
+            ? (e) => {
+                try {
+                  const chapters = JSON.parse(e.nativeEvent.chapters) as Chapter[];
+                  onChaptersUpdated({ nativeEvent: { chapters } });
+                } catch {
+                  /* ignore malformed payload */
+                }
+              }
+            : undefined
+        }
+        onMomentsUpdated={
+          onMomentsUpdated
+            ? (e) => {
+                try {
+                  const moments = JSON.parse(e.nativeEvent.moments) as Moment[];
+                  onMomentsUpdated({ nativeEvent: { moments } });
+                } catch {
+                  /* ignore malformed payload */
+                }
+              }
+            : undefined
+        }
+        onRetentionGraphUpdated={
+          onRetentionGraphUpdated
+            ? (e) => {
+                try {
+                  const points = JSON.parse(e.nativeEvent.points) as RetentionGraphEntry[];
+                  onRetentionGraphUpdated({ nativeEvent: { points } });
+                } catch {
+                  /* ignore malformed payload */
+                }
+              }
+            : undefined
+        }
+        onResumePositionAvailable={
+          onResumePositionAvailable
+            ? (e) => {
+                try {
+                  const position = JSON.parse(e.nativeEvent.position) as PlaybackPosition;
+                  onResumePositionAvailable({ nativeEvent: { position } });
+                } catch {
+                  /* ignore malformed payload */
+                }
+              }
+            : undefined
+        }
         style={style}
         {...viewProps}
       />

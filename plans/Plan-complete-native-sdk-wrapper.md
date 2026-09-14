@@ -761,9 +761,48 @@ Eventy:
 
 - live play/pause/seek/jump-to-live;
 - live current position, seekable window i `isAtLiveEdge`;
-- wspólne resume-position API;
 - programowy wybór jakości/napisów/audio;
 - jednolity watermark i custom icon model.
+
+### Resume position — hybrydowe podejście (Android natywnie + iOS JS fallback)
+
+Android SDK ma kompletne publiczne resume position API (`enableResumePosition`,
+`disableResumePosition`, `clearSavedPosition`, `clearAllSavedPositions`,
+`getAllSavedPositions`, `PlaybackPositionManager`, `ResumeConfig`,
+`ResumePositionListener`). iOS SDK nie ma resume position API.
+
+Podejście: wystawić wspólny TS kontrakt z dwiema implementacjami:
+
+- **Android**: bridge wywołuje natywne `enableResumePosition(config, callback)`,
+  `ResumePositionListener` emituje `onResumePositionAvailable`, auto-save przez
+  `ResumeConfig.enableAutoSave`, storage w `SharedPreferences`.
+- **iOS**: hook `useResumePosition` nasłuchuje `onProgress`/`onPosition`, zapisuje
+  pozycje do `AsyncStorage` (klucz `bunny:resume:{videoId}`), przy `onReady`
+  sprawdza storage i wywołuje `seekTo(position)`. Ta sama konfiguracja `ResumeConfig`.
+
+Wspólny kontrakt TS:
+
+```ts
+interface ResumePosition {
+  videoId: string;
+  positionMs: number;
+  durationMs: number;
+  watchPercentage: number;
+  timestamp: number;
+  videoTitle?: string;
+}
+
+interface ResumeConfig {
+  retentionDays?: number;
+  minimumWatchMs?: number;
+  resumeThreshold?: number;
+  nearEndThreshold?: number;
+  enableAutoSave?: boolean;
+  saveIntervalMs?: number;
+}
+```
+
+Example app odblokuje sekcję "Resume Positions" na obu platformach.
 
 Dopóki oba SDK nie mają stabilnych publicznych controllerów, nie należy opierać produkcyjnego bridge'a na internal `MediaPlayer`, reflection ani wyszukiwaniu prywatnych widoków.
 

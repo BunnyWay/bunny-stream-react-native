@@ -1,7 +1,7 @@
 import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_LIBRARY_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -84,17 +84,33 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         <Text style={styles.sectionTitle}>Resume Positions</Text>
         <View style={styles.card}>
           <HomeOption
-            title="Resume Position Settings"
-            badge="Coming soon"
-            disabled
-            onPress={() => {}}
+            title="Resume Position Demo"
+            badge="Phase 6"
+            onPress={() => {
+              const libId = parseInt(BUNNY_LIBRARY_ID ?? '', 10);
+              const firstVideoId = BUNNY_VIDEO_IDS?.split(',')[0]?.trim();
+              if (!isNaN(libId) && firstVideoId) {
+                navigation.navigate('ResumePositions', {
+                  videoId: firstVideoId,
+                  libraryId: libId,
+                });
+              }
+            }}
           />
           <View style={styles.divider} />
           <HomeOption
-            title="Manage Resume Positions"
-            badge="Coming soon"
-            disabled
-            onPress={() => {}}
+            title="About Resume Positions"
+            badge="Phase 6"
+            onPress={() => {
+              const libId = parseInt(BUNNY_LIBRARY_ID ?? '', 10);
+              const firstVideoId = BUNNY_VIDEO_IDS?.split(',')[0]?.trim();
+              if (!isNaN(libId) && firstVideoId) {
+                navigation.navigate('ResumePositions', {
+                  videoId: firstVideoId,
+                  libraryId: libId,
+                });
+              }
+            }}
           />
         </View>
 

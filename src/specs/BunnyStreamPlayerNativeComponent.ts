@@ -60,6 +60,26 @@ export type PlayerPlaybackErrorEvent = Readonly<{
   message: string;
 }>;
 
+// Phase 6 — chapters, moments, retention graph (Android-only events).
+// Codegen does not support arrays in event payloads, so the lists are
+// serialized as JSON strings and deserialized on the JS side.
+export type ChaptersUpdatedEvent = Readonly<{
+  chapters: string;
+}>;
+
+export type MomentsUpdatedEvent = Readonly<{
+  moments: string;
+}>;
+
+export type RetentionGraphUpdatedEvent = Readonly<{
+  points: string;
+}>;
+
+// Phase 6 — resume position (Android-only event).
+export type ResumePositionAvailableEvent = Readonly<{
+  position: string;
+}>;
+
 export interface NativeProps extends ViewProps {
   videoId: string;
   libraryId?: Double;
@@ -79,6 +99,12 @@ export interface NativeProps extends ViewProps {
   onPlaybackRateChange?: DirectEventHandler<PlayerPlaybackRateChangeEvent> | null;
   onVideoSizeChange?: DirectEventHandler<PlayerVideoSizeChangeEvent> | null;
   onPlaybackError?: DirectEventHandler<PlayerPlaybackErrorEvent> | null;
+  // Phase 6 — Android-only player events (iOS does not expose these).
+  resumeConfig?: string; // JSON-serialized ResumeConfig (Android-only).
+  onChaptersUpdated?: DirectEventHandler<ChaptersUpdatedEvent> | null;
+  onMomentsUpdated?: DirectEventHandler<MomentsUpdatedEvent> | null;
+  onRetentionGraphUpdated?: DirectEventHandler<RetentionGraphUpdatedEvent> | null;
+  onResumePositionAvailable?: DirectEventHandler<ResumePositionAvailableEvent> | null;
 }
 
 export interface NativeCommands {
