@@ -91,6 +91,7 @@ export function useBunnyStreamPlayer(
       setPlaybackRate: (rate: number) => ref.current?.setPlaybackRate(rate),
       mute: () => ref.current?.mute(),
       unmute: () => ref.current?.unmute(),
+      enterPiP: () => ref.current?.enterPiP(),
     }),
     [],
   );

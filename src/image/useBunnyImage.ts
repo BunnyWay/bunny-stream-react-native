@@ -2,12 +2,7 @@ import type { UseBunnyImageResult } from './types';
 
 import * as React from 'react';
 
-/** Referer header value the Bunny CDN hotlink protection expects. */
-const BUNNY_REFERER = 'https://iframe.mediadelivery.net/';
-
-function isBunnyCdnUrl(url: string): boolean {
-  return url.includes('b-cdn.net') || url.includes('mediadelivery');
-}
+import { BUNNY_REFERER, isBunnyCdnUrl } from './bunnyImageSource';
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -22,6 +17,10 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * Resolves a Bunny CDN image URL to a `data:` URI with the required `Referer`
  * header so any React Native image component can render it. Non-Bunny URLs pass
  * through unchanged.
+ *
+ * @deprecated Prefer {@link BunnyImage} or {@link bunnyImageSource} — they use
+ * the native image cache and avoid base64 data URIs in lists. This hook fetches
+ * through JS and encodes the payload as a `data:` URI.
  *
  * @example
  * const { uri, loading } = useBunnyImage(thumbnailUrl);

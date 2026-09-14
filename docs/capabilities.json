@@ -114,7 +114,7 @@
       "ios": "supported",
       "reactNative": "partial",
       "phase": "phase-7",
-      "notes": "Native controls work; programmatic commands and events are not exposed."
+      "notes": "Native controls work. RN adds: onPlayerTypeChange event (Android-only cast handover, 'default'/'cast') and enterPiP() command (Android-only; requires android:supportsPictureInPicture=\"true\" on the host activity). Programmatic cast start/stop, AirPlay state, and fullscreen commands are not exposed by either SDK's public API."
     },
     {
       "id": "player.watermark",
@@ -319,18 +319,18 @@
       "area": "Cached Bunny image loading",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "partial",
+      "reactNative": "supported",
       "phase": "phase-7",
-      "notes": "The current hook converts images to data URIs and bypasses native caches."
+      "notes": "BunnyImage component and bunnyImageSource() helper inject the Referer header into the platform image pipeline (Fresco/RCTImageLoader) — native cache, no base64. The deprecated useBunnyImage hook remains for compatibility."
     },
     {
       "id": "platform.android-tv",
       "area": "Android TV",
       "android": "supported",
       "ios": "platform-only",
-      "reactNative": "unsupported",
+      "reactNative": "partial",
       "phase": "phase-7",
-      "notes": "Product scope must decide whether the mobile package includes TV support."
+      "notes": "useNativeTvPlayer prop (Android-only) routes through the SDK's playVideoWithTVDetection — launches the TV activity when the consumer app also depends on the net.bunny:tv artifact, falls back to the embedded player otherwise. isRunningOnTV() reports leanback support. The iOS SDK does not support tvOS."
     },
     {
       "id": "distribution.public-native-packages",

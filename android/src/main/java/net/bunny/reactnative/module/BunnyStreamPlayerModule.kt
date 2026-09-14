@@ -1,5 +1,6 @@
 package net.bunny.reactnative.module
 
+import android.content.pm.PackageManager
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.annotations.ReactModule
 import net.bunny.api.BunnyStreamApi
@@ -29,6 +30,15 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
       accessKey = accessKey,
       libraryId = libraryIdLong,
     )
+  }
+
+  /**
+   * Phase 7 — Android TV detection via the leanback system feature, the same
+   * check the SDK's `BunnyStreamPlayer.isRunningOnTV` performs.
+   */
+  override fun isRunningOnTV(): Boolean {
+    return reactApplicationContext.packageManager
+      .hasSystemFeature(PackageManager.FEATURE_LEANBACK)
   }
 
   companion object {
