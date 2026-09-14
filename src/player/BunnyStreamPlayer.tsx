@@ -83,6 +83,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         runVodCommand((view) => NativeCommands.setPlaybackRate(view, rate)),
       mute: () => runVodCommand((view) => NativeCommands.mute(view)),
       unmute: () => runVodCommand((view) => NativeCommands.unmute(view)),
+      enterPiP: () => runVodCommand((view) => NativeCommands.enterPiP(view)),
     }));
 
     // A source identity change remounts the native host so the previous player
@@ -112,6 +113,8 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       onRetentionGraphUpdated,
       onResumePositionAvailable,
       resumeConfig,
+      useNativeTvPlayer,
+      onPlayerTypeChange,
       style,
       ...viewProps
     } = rest;
@@ -224,6 +227,15 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
                 } catch {
                   /* ignore malformed payload */
                 }
+              }
+            : undefined
+        }
+        useNativeTvPlayer={useNativeTvPlayer}
+        onPlayerTypeChange={
+          onPlayerTypeChange
+            ? (e) => {
+                const playerType = e.nativeEvent.playerType === 'cast' ? 'cast' : 'default';
+                onPlayerTypeChange({ nativeEvent: { playerType } });
               }
             : undefined
         }

@@ -36,6 +36,7 @@ describe('useBunnyStreamPlayer stable identities', () => {
       setPlaybackRate: jest.fn(),
       mute: jest.fn(),
       unmute: jest.fn(),
+      enterPiP: jest.fn(),
     };
     result.current.ref.current = fakeRef;
     result.current.controls.play();
@@ -47,6 +48,7 @@ describe('useBunnyStreamPlayer stable identities', () => {
     result.current.controls.setPlaybackRate(1.5);
     result.current.controls.mute();
     result.current.controls.unmute();
+    result.current.controls.enterPiP();
     expect(fakeRef.play).toHaveBeenCalledTimes(1);
     expect(fakeRef.pause).toHaveBeenCalledTimes(1);
     expect(fakeRef.seekTo).toHaveBeenCalledWith(5000);
@@ -56,6 +58,7 @@ describe('useBunnyStreamPlayer stable identities', () => {
     expect(fakeRef.setPlaybackRate).toHaveBeenCalledWith(1.5);
     expect(fakeRef.mute).toHaveBeenCalledTimes(1);
     expect(fakeRef.unmute).toHaveBeenCalledTimes(1);
+    expect(fakeRef.enterPiP).toHaveBeenCalledTimes(1);
     await unmount();
   });
 });

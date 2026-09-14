@@ -104,6 +104,42 @@ const { restoredPosition, savePosition, clearPosition, getAllPositions } = useRe
 
 See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
 
+### Images, TV, and cast/PiP (Phase 7)
+
+**BunnyImage** — image component that renders Bunny CDN thumbnails through the native image pipeline (Fresco on Android, `RCTImageLoader` on iOS). Injects the `Referer` header that CDN hotlink protection requires; no JS `fetch` + base64, so lists stay cheap.
+
+```tsx
+import { BunnyImage, bunnyImageSource } from 'bunny-stream-react-native';
+
+<BunnyImage source={video.thumbnailUrl} style={{ width: 160, height: 90 }} />
+<Image source={bunnyImageSource(video.thumbnailUrl)} /> // or with plain Image
+```
+
+`useBunnyImage` is deprecated — it converts images to `data:` URIs in JS and bypasses native caches.
+
+**Android TV** — opt-in via the `useNativeTvPlayer` prop (Android-only). Routes through the SDK's `playVideoWithTVDetection`: on leanback devices it launches the dedicated TV player activity when the consumer app also depends on the `net.bunny:tv` artifact (published separately); otherwise it falls back to the embedded player.
+
+```tsx
+<BunnyStreamPlayer source={{ type: 'vod', videoId }} useNativeTvPlayer />
+```
+
+`isRunningOnTV()` reports the leanback system feature (always `false` on iOS — the iOS SDK does not support tvOS).
+
+**Cast handover** — `onPlayerTypeChange` (Android-only) fires when playback moves between the device and a Chromecast receiver:
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId }}
+  onPlayerTypeChange={(e) => setIsCasting(e.nativeEvent.playerType === 'cast')}
+/>
+```
+
+> **iOS:** AirPlay state is internal to the SDK — this event never fires.
+
+**PiP** — `playerRef.current?.enterPiP()` enters picture-in-picture on Android (API 26+, requires `android:supportsPictureInPicture="true"` on the host activity). No-op on iOS — the SDK exposes no public PiP API.
+
+> Programmatic cast start/stop and fullscreen commands are not exposed by either SDK's public API; the native buttons inside the player controls already work.
+
 Planned roadmap:
 
 1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)

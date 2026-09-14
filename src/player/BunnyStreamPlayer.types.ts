@@ -106,6 +106,15 @@ export type ResumePositionAvailableEvent = Readonly<{
   position: PlaybackPosition;
 }>;
 
+// --- Phase 7: cast handover ---
+
+/** Which engine is in charge of playback. Reported by `onPlayerTypeChange`. */
+export type PlayerType = 'default' | 'cast';
+
+export type PlayerTypeChangeEvent = Readonly<{
+  playerType: PlayerType;
+}>;
+
 export type LiveVideoSizeChangeEvent = PlayerVideoSizeChangeEvent;
 
 export type LiveStateChangeEvent = Readonly<{
@@ -180,6 +189,13 @@ export type BunnyVodPlayerRef = {
   mute: () => void;
   /** Unmute audio. */
   unmute: () => void;
+  /**
+   * Enter picture-in-picture. Android-only — calls
+   * `Activity.enterPictureInPictureMode` on the host activity. No-op on iOS
+   * (the SDK exposes no public PiP API) and when the activity does not support
+   * PiP. The activity must declare `android:supportsPictureInPicture="true"`.
+   */
+  enterPiP: () => void;
 };
 
 /**
@@ -225,4 +241,20 @@ export interface BunnyStreamPlayerProps extends ViewProps {
    * (`useResumePosition` hook) backed by AsyncStorage.
    */
   resumeConfig?: ResumeConfig;
+  // Phase 7 — Android TV + cast.
+  /**
+   * Android-only. When `true`, the player routes through the SDK's
+   * `playVideoWithTVDetection`, which launches the dedicated TV player
+   * activity on Android TV devices when the `net.bunny:tv` artifact is on
+   * the consumer app's classpath, and falls back to the embedded player
+   * otherwise. Ignored on iOS (the iOS SDK does not support tvOS).
+   * Default: `false`.
+   */
+  useNativeTvPlayer?: boolean;
+  /**
+   * Android-only. Fires when playback moves between this device and a
+   * connected Chromecast receiver. iOS never emits this event (AirPlay state
+   * is internal to the SDK).
+   */
+  onPlayerTypeChange?: (event: NativeEvent<PlayerTypeChangeEvent>) => void;
 }

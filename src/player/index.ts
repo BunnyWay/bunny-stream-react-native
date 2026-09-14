@@ -21,6 +21,8 @@ export type {
   PlayerProgressEvent,
   PlayerReadyEvent,
   PlayerStateChangeEvent,
+  PlayerType,
+  PlayerTypeChangeEvent,
   PlayerVideoSizeChangeEvent,
   PlayerVolumeChangeEvent,
   ResumeConfig,
@@ -42,4 +44,5 @@ export type {
   UseResumePositionOptions,
   UseResumePositionResult,
 } from './hooks/useResumePosition';
+export { isRunningOnTV } from './isRunningOnTV';
 export { sourceIdentityKey } from './sourceIdentity';

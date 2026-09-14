@@ -182,6 +182,8 @@ using namespace facebook::react;
   // ignored here to keep the Codegen contract stable across platforms.
   // Chapters/moments/retention/resume events are also Android-only; iOS
   // consumers fetch chapters/moments via the API client.
+  // Phase 7 — useNativeTvPlayer (no tvOS support) and onPlayerTypeChange
+  // (no public AirPlay state) are Android-only; accepted but ignored here.
 
   [super updateProps:props oldProps:oldProps];
 }
@@ -257,6 +259,11 @@ using namespace facebook::react;
 - (void)unmute
 {
   [_impl unmute];
+}
+
+// Phase 7 — no-op: the iOS SDK exposes no public PiP API.
+- (void)enterPiP
+{
 }
 
 @end

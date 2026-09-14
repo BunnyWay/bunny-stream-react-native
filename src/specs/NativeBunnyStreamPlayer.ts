@@ -8,6 +8,9 @@ export interface Spec extends TurboModule {
   // longer accepts null). The public `initialize` wrapper validates and rejects
   // empty strings before calling native, so the bridge never receives null.
   initialize(accessKey: string, libraryId: Double): void;
+  // Phase 7 — Android TV detection (leanback system feature). Always returns
+  // false on iOS — the iOS SDK does not support tvOS.
+  isRunningOnTV(): boolean;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('BunnyStreamPlayer');
