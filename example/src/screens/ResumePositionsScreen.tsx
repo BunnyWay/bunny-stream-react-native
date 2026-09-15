@@ -2,33 +2,37 @@ import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { PlaybackPosition } from 'bunny-stream-react-native';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 
 import {
-  BunnyStreamApi,
-  BunnyStreamPlayer,
-  fold,
-  sourceIdentityKey,
-  useBunnyStreamPlayer,
-  useResumePosition,
-  type Video,
+  cleanupExpiredResumePositions,
+  clearAllResumePositions,
+  clearResumePosition,
+  exportResumePositions,
+  getAllResumePositions,
+  importResumePositions,
 } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
+import { loadResumeSettings } from '../storage/resumeSettings';
 import { colors } from '../theme/colors';
 
 type ResumePositionsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumePositions'>;
+
+/** AsyncStorage satisfies the library's ResumePositionStorage contract. */
+const iosStorage = Platform.OS === 'ios' ? AsyncStorage : undefined;
 
 function formatTime(ms: number): string {
   if (!ms || ms < 0) return '0:00';
@@ -42,158 +46,118 @@ function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleString();
 }
 
+/**
+ * Manage Resume Positions — list-only screen matching the Android demo's
+ * ResumePositionManagementScreen. Tapping a position opens the Player, which
+ * shows the resume confirmation dialog.
+ */
 export function ResumePositionsScreen({ navigation, route }: ResumePositionsScreenProps) {
-  const { videoId, libraryId } = route.params;
-  const sourceKey = sourceIdentityKey({ type: 'vod', videoId, libraryId });
-  const player = useBunnyStreamPlayer(undefined, sourceKey);
-  const { state, progress, controls } = player;
+  const { libraryId } = route.params;
 
-  const [videoMeta, setVideoMeta] = React.useState<Video | null>(null);
   const [allPositions, setAllPositions] = React.useState<PlaybackPosition[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [retentionDays, setRetentionDays] = React.useState(7);
+  const [exportedJson, setExportedJson] = React.useState<string | null>(null);
+  const [importVisible, setImportVisible] = React.useState(false);
+  const [importText, setImportText] = React.useState('');
+  const [actionMessage, setActionMessage] = React.useState<string | null>(null);
 
-  // Android uses the native SDK; iOS uses the JS fallback.
-  const resumeConfig = Platform.OS === 'android' ? {} : undefined;
-  const resume = useResumePosition({
-    playerRef: player.ref,
-    videoId,
-    videoTitle: videoMeta?.title,
-    storage: Platform.OS === 'ios' ? AsyncStorage : undefined,
-  });
-
-  // Fetch video metadata.
-  const loadMetadata = React.useCallback(async () => {
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(BUNNY_ACCESS_KEY, videoId);
-    const result = await BunnyStreamApi.fetchVideoPlayData(libraryId, videoId, token, expires);
-    fold(
-      result,
-      (playData) => setVideoMeta(playData.video ?? null),
-      () => {},
-    );
-  }, [libraryId, videoId]);
+  const isAndroid = Platform.OS === 'android';
 
   const refreshAllPositions = React.useCallback(async () => {
-    if (Platform.OS === 'android') {
-      // Android: positions are managed by the native SDK. The JS fallback
-      // hook is a no-op, so we show an informational message instead.
-      setAllPositions([]);
-      return;
-    }
-    const positions = await resume.getAllPositions();
-    setAllPositions(positions);
-  }, [resume]);
+    setAllPositions(await getAllResumePositions(iosStorage));
+  }, []);
 
   React.useEffect(() => {
+    let cancelled = false;
     void (async () => {
-      await loadMetadata();
-      await refreshAllPositions();
+      const settings = await loadResumeSettings();
+      const positions = await getAllResumePositions(iosStorage);
+      if (cancelled) return;
+      setRetentionDays(settings.retentionDays);
+      setAllPositions(positions);
       setLoading(false);
     })();
-  }, [loadMetadata, refreshAllPositions]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  // Auto-save on iOS when progress changes (throttled by the hook).
-  React.useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    if (state.durationMs <= 0) return;
-    if (state.playbackState !== 'playing' && state.playbackState !== 'paused') return;
-    void resume.savePosition(progress.positionMs, state.durationMs);
-  }, [progress.positionMs, state.durationMs, state.playbackState, resume]);
+  // Refresh when returning from the Player (positions may have changed).
+  React.useEffect(
+    () => navigation.addListener('focus', () => void refreshAllPositions()),
+    [navigation, refreshAllPositions],
+  );
 
-  const handleClear = async () => {
-    await resume.clearPosition();
+  const handlePositionPress = (pos: PlaybackPosition) => {
+    navigation.navigate('Player', { videoId: pos.videoId, libraryId });
+  };
+
+  const handleDelete = async (pos: PlaybackPosition) => {
+    await clearResumePosition(pos.videoId, iosStorage);
     await refreshAllPositions();
   };
 
   const handleClearAll = async () => {
-    await resume.clearAllPositions();
+    await clearAllResumePositions(iosStorage);
+    await refreshAllPositions();
+    setActionMessage('All positions cleared.');
+  };
+
+  const handleExport = async () => {
+    setExportedJson(await exportResumePositions(iosStorage));
+  };
+
+  const handleImport = async () => {
+    const ok = await importResumePositions(importText, iosStorage);
+    setImportVisible(false);
+    setImportText('');
+    setActionMessage(ok ? 'Positions imported.' : 'Import failed — invalid JSON payload.');
     await refreshAllPositions();
   };
 
-  const isAndroid = Platform.OS === 'android';
+  const handleCleanup = async () => {
+    await cleanupExpiredResumePositions(iosStorage, retentionDays);
+    await refreshAllPositions();
+    setActionMessage('Expired positions cleaned up.');
+  };
 
   return (
     <View style={styles.container}>
       <Header title="Resume Positions" onBack={() => navigation.goBack()} />
       <ScrollView>
-        {/* Player */}
-        <View style={styles.playerWrapper}>
-          <BunnyStreamPlayer
-            ref={player.ref}
-            style={styles.player}
-            source={{ type: 'vod', videoId, libraryId }}
-            autoPlay
-            resumeConfig={resumeConfig}
-            onResumePositionAvailable={
-              isAndroid
-                ? (e) => {
-                    const pos = e.nativeEvent.position;
-                    // Auto-resume on Android: seek to the saved position.
-                    controls.seekTo(pos.positionMs);
-                  }
-                : undefined
-            }
-            {...player.eventHandlers}
-          />
-        </View>
-
-        <Text style={styles.status}>
-          {state.playbackState}
-          {progress.progress > 0 ? ` • ${formatTime(progress.positionMs)}` : ''}
-        </Text>
+        {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
 
         {/* Platform info */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {isAndroid
-              ? 'Android — Native SDK'
-              : 'iOS — JavaScript fallback (AsyncStorage)'}
+            {isAndroid ? 'Android — Native SDK' : 'iOS — JavaScript fallback (AsyncStorage)'}
           </Text>
           <Text style={styles.cardText}>
             {isAndroid
-              ? 'Positions are persisted by the native PlaybackPositionManager. The resumeConfig prop enables auto-save. onResumePositionAvailable fires when a saved position is available.'
-              : 'Positions are tracked in JS and persisted to AsyncStorage. The useResumePosition hook saves on progress (throttled) and restores on mount.'}
+              ? 'Positions are persisted by the native PlaybackPositionManager (SharedPreferences). The resumeConfig prop on the player enables auto-save; onResumePositionAvailable fires when a saved position is found.'
+              : 'Positions are tracked in JS and persisted to AsyncStorage by the useResumePosition hook while the player runs.'}
           </Text>
         </View>
 
-        {/* Current video position */}
+        {/* All saved positions */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Current video</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Title</Text>
-            <Text style={styles.value}>{videoMeta?.title ?? videoId}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Position</Text>
-            <Text style={styles.value}>{formatTime(progress.positionMs)}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Duration</Text>
-            <Text style={styles.value}>{formatTime(state.durationMs)}</Text>
-          </View>
-          {resume.restoredPosition ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Restored from</Text>
-              <Text style={styles.value}>{formatTime(resume.restoredPosition.positionMs)}</Text>
-            </View>
-          ) : null}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.button} onPress={handleClear}>
-              <Text style={styles.buttonText}>Clear this video</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* All saved positions (iOS only) */}
-        {!isAndroid ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>All saved positions</Text>
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : allPositions.length === 0 ? (
-              <Text style={styles.emptyText}>No saved positions yet.</Text>
-            ) : (
-              allPositions.map((pos) => (
-                <View key={pos.videoId} style={styles.positionItem}>
+          <Text style={styles.cardTitle}>Saved positions</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : allPositions.length === 0 ? (
+            <Text style={styles.emptyText}>
+              No saved positions yet. Play a video — the player saves your position and asks whether
+              to resume on the next visit.
+            </Text>
+          ) : (
+            allPositions.map((pos) => (
+              <TouchableOpacity
+                key={pos.videoId}
+                style={styles.positionItem}
+                onPress={() => handlePositionPress(pos)}
+              >
+                <View style={styles.positionInfo}>
                   <Text style={styles.positionTitle}>{pos.videoTitle || pos.videoId}</Text>
                   <Text style={styles.positionDetail}>
                     {formatTime(pos.positionMs)} / {formatTime(pos.durationMs)} (
@@ -201,47 +165,110 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
                   </Text>
                   <Text style={styles.positionDate}>{formatDate(pos.timestamp)}</Text>
                 </View>
-              ))
-            )}
-            {allPositions.length > 0 ? (
-              <TouchableOpacity style={styles.buttonDanger} onPress={handleClearAll}>
-                <Text style={styles.buttonTextDanger}>Clear all positions</Text>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => void handleDelete(pos)}
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            ) : null}
+            ))
+          )}
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => void handleExport()}
+              disabled={allPositions.length === 0}
+            >
+              <Text style={styles.actionButtonText}>Export</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setImportVisible(true)}>
+              <Text style={styles.actionButtonText}>Import</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={() => void handleCleanup()}>
+              <Text style={styles.actionButtonText}>Cleanup</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>All saved positions</Text>
-            <Text style={styles.emptyText}>
-              On Android, positions are managed by the native SDK. Use the native player's
-              resume UI or query the SDK directly.
-            </Text>
-          </View>
-        )}
+          {allPositions.length > 0 ? (
+            <TouchableOpacity style={styles.buttonDanger} onPress={() => void handleClearAll()}>
+              <Text style={styles.buttonTextDanger}>Clear all positions</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </ScrollView>
+
+      {/* Export dialog — selectable JSON payload */}
+      <Modal
+        visible={exportedJson !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExportedJson(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Export positions</Text>
+            <TextInput
+              style={styles.jsonInput}
+              value={exportedJson ?? ''}
+              multiline
+              editable={false}
+            />
+            <TouchableOpacity style={styles.button} onPress={() => setExportedJson(null)}>
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Import dialog — paste a JSON array of PlaybackPosition */}
+      <Modal
+        visible={importVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImportVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Import positions</Text>
+            <TextInput
+              style={styles.jsonInput}
+              value={importText}
+              onChangeText={setImportText}
+              multiline
+              placeholder='[{"videoId":"…","positionMs":…,"durationMs":…,"timestamp":…}]'
+              placeholderTextColor={colors.onSurfaceVariant}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => setImportVisible(false)}>
+                <Text style={styles.actionButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton} onPress={() => void handleImport()}>
+                <Text style={styles.actionButtonText}>Import</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  playerWrapper: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    backgroundColor: '#000',
-  },
-  player: { flex: 1 },
-  status: {
+  actionMessage: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: colors.onSurfaceVariant,
+    paddingTop: 12,
+    fontSize: 13,
+    color: colors.primary,
   },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 12,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginTop: 12,
     padding: 16,
     elevation: 2,
     shadowColor: '#000',
@@ -260,14 +287,6 @@ const styles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     lineHeight: 20,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  label: { fontSize: 14, color: colors.onSurfaceVariant },
-  value: { fontSize: 14, color: colors.onSurface, fontWeight: '500' },
-  buttonRow: { marginTop: 12 },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 10,
@@ -289,13 +308,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.onSurfaceVariant,
     fontStyle: 'italic',
+    lineHeight: 20,
   },
   positionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(24, 61, 109, 0.1)',
   },
+  positionInfo: { flex: 1 },
   positionTitle: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
   positionDetail: { fontSize: 13, color: colors.onSurfaceVariant, marginTop: 2 },
   positionDate: { fontSize: 12, color: colors.onSurfaceVariant, marginTop: 2, opacity: 0.7 },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(176, 0, 32, 0.1)',
+  },
+  deleteButtonText: { color: '#B00020', fontSize: 13, fontWeight: '600' },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(24, 61, 109, 0.1)',
+  },
+  actionButtonText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.onSurface,
+    marginBottom: 12,
+  },
+  jsonInput: {
+    borderWidth: 1,
+    borderColor: 'rgba(24, 61, 109, 0.2)',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 120,
+    maxHeight: 220,
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: colors.onSurface,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
 });

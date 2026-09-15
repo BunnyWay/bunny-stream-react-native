@@ -171,6 +171,24 @@
       "notes": "Android: onRetentionGraphUpdated event from native player. iOS: fetch via API client (getVideoHeatmap). Player-view event not available."
     },
     {
+      "id": "player.resume-management",
+      "area": "Resume position management (list/clear/export/import/cleanup)",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "phase-7",
+      "notes": "Platform-agnostic JS API (getAllResumePositions, clearResumePosition, clearAllResumePositions, exportResumePositions, importResumePositions, cleanupExpiredResumePositions). Android delegates to the native PlaybackPositionManager via TurboModule; iOS runs against the pluggable AsyncStorage used by useResumePosition. Export uses the normalized PlaybackPosition JSON shape on both platforms."
+    },
+    {
+      "id": "player.playback-speeds-query",
+      "area": "Playback speed list query",
+      "android": "supported",
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "phase-7",
+      "notes": "getPlaybackSpeeds() queries the native engine on Android (allowedSpeeds → dashboard playerSettings → SDK defaults). iOS has no public speed API — returns the SDK's hardcoded list [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]."
+    },
+    {
       "id": "api.videos-basic",
       "area": "Basic video management API",
       "android": "supported",
