@@ -4,7 +4,17 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
   __esModule: true,
-  default: { initialize: jest.fn(), isRunningOnTV: jest.fn(() => false) },
+  default: {
+    initialize: jest.fn(),
+    isRunningOnTV: jest.fn(() => false),
+    getPlaybackSpeeds: jest.fn(async () => []),
+    getAllSavedPositions: jest.fn(async () => '[]'),
+    clearSavedPosition: jest.fn(async () => undefined),
+    clearAllSavedPositions: jest.fn(async () => undefined),
+    exportPositions: jest.fn(async () => '[]'),
+    importPositions: jest.fn(async () => false),
+    cleanupExpiredPositions: jest.fn(async () => undefined),
+  },
 }));
 jest.mock('../specs/NativeBunnyStreamApi', () => ({
   __esModule: true,
@@ -55,9 +65,16 @@ describe('public package API', () => {
         'TRANSITIONAL_VIDEO_STATUSES',
         'VideoStatusEnum',
         'bunnyImageSource',
+        'cleanupExpiredResumePositions',
+        'clearAllResumePositions',
+        'clearResumePosition',
         'errorOrNull',
+        'exportResumePositions',
         'fold',
+        'getAllResumePositions',
         'getOrNull',
+        'getPlaybackSpeeds',
+        'importResumePositions',
         'initialize',
         'isBunnyCdnUrl',
         'isRunningOnTV',

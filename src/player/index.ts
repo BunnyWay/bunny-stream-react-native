@@ -45,4 +45,13 @@ export type {
   UseResumePositionResult,
 } from './hooks/useResumePosition';
 export { isRunningOnTV } from './isRunningOnTV';
+export { getPlaybackSpeeds } from './playbackSpeeds';
+export {
+  cleanupExpiredResumePositions,
+  clearAllResumePositions,
+  clearResumePosition,
+  exportResumePositions,
+  getAllResumePositions,
+  importResumePositions,
+} from './resumePositions';
 export { sourceIdentityKey } from './sourceIdentity';

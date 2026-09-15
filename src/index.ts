@@ -3,6 +3,13 @@
 export { initialize } from './config/initialize';
 export {
   BunnyStreamPlayer,
+  cleanupExpiredResumePositions,
+  clearAllResumePositions,
+  clearResumePosition,
+  exportResumePositions,
+  getAllResumePositions,
+  getPlaybackSpeeds,
+  importResumePositions,
   isRunningOnTV,
   sourceIdentityKey,
   useBunnyStreamPlayer,

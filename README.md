@@ -102,6 +102,36 @@ const { restoredPosition, savePosition, clearPosition, getAllPositions } = useRe
 });
 ```
 
+**Resume confirmation UX:** return `false` from `onPositionAvailable` (iOS hook) or handle `onResumePositionAvailable` (Android prop) to show a "Resume / Start Over" prompt instead of auto-seeking — the example app demonstrates this pattern.
+
+**Resume management** (platform-agnostic; Android delegates to the native `PlaybackPositionManager`, iOS uses the pluggable storage):
+
+```tsx
+import {
+  getAllResumePositions,
+  clearResumePosition,
+  clearAllResumePositions,
+  exportResumePositions,
+  importResumePositions,
+  cleanupExpiredResumePositions,
+} from 'bunny-stream-react-native';
+
+const positions = await getAllResumePositions(AsyncStorage); // storage arg is iOS-only
+await clearResumePosition('video-id', AsyncStorage);
+await clearAllResumePositions(AsyncStorage);
+const json = await exportResumePositions(AsyncStorage); // normalized PlaybackPosition[] JSON
+await importResumePositions(json, AsyncStorage);
+await cleanupExpiredResumePositions(AsyncStorage, 7 /* retentionDays, iOS-only arg */);
+```
+
+**Playback speed list** — `getPlaybackSpeeds()` queries the native engine on Android (respects `allowedSpeeds` and dashboard `playerSettings`); on iOS it returns the SDK's hardcoded list `[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]`:
+
+```tsx
+import { getPlaybackSpeeds } from 'bunny-stream-react-native';
+
+const speeds = await getPlaybackSpeeds();
+```
+
 See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
 
 ### Images, TV, and cast/PiP (Phase 7)
