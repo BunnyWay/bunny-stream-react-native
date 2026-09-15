@@ -40,6 +40,7 @@ import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
+import net.bunny.reactnative.state.toJsonString
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.ceil
@@ -906,15 +907,4 @@ private fun List<RetentionGraphEntry>.retentionToJson(): String {
     })
   }
   return arr.toString()
-}
-
-private fun PlaybackPosition.toJsonString(): String {
-  return JSONObject().apply {
-    put("videoId", videoId)
-    put("positionMs", position)
-    put("durationMs", duration)
-    put("watchPercentage", watchPercentage)
-    put("timestamp", timestamp)
-    if (videoTitle.isNotEmpty()) put("videoTitle", videoTitle)
-  }.toString()
 }
