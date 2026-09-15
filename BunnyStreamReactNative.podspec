@@ -1,9 +1,12 @@
 require "json"
 
 package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+native_sdk_baselines = JSON.parse(File.read(File.join(__dir__, "native-sdk-baselines.json")))
+ios_sdk_baseline = native_sdk_baselines.fetch("ios")
+# TODO(iOS SDK): Replace the local checkout with the public tagged SwiftPM package in Plan phase 0B.
 ios_sdk_path = ENV.fetch(
   "BUNNY_STREAM_IOS_SDK_PATH",
-  File.expand_path("../bunny-stream-ios-private", __dir__)
+  File.expand_path(ios_sdk_baseline.fetch("defaultLocalPath"), __dir__)
 )
 
 unless File.exist?(File.join(ios_sdk_path, "Package.swift"))
@@ -39,7 +42,7 @@ Pod::Spec.new do |s|
   spm_dependency(
     s,
     url: ios_sdk_path,
-    requirement: { kind: "exactVersion", version: "0.0.0" },
-    products: ["BunnyStreamPlayer", "BunnyStreamAPI"]
+    requirement: { kind: "exactVersion", version: ios_sdk_baseline.fetch("swiftPackageVersion") },
+    products: ["BunnyStreamPlayer", "BunnyStreamAPI", "BunnyStreamUploader"]
   )
 end

@@ -16,6 +16,8 @@ import BunnyStreamPlayer
 ///   (only when `(error as? BunnyLiveStreamError)?.isPermanent == true`).
 /// - `onVideoSizeChange` is **not emitted** because the SDK does not expose
 ///   this callback for live (Plan-iOS.md §12.2).
+/// - TODO(iOS SDK): Emit video size and `dvrEnabled` after the public live
+///   callback exposes those values.
 /// - Recreates the hosted view only when the source identity changes.
 @MainActor
 @objc public final class BunnyLiveStreamPlayerViewImpl: UIView {
@@ -33,8 +35,8 @@ import BunnyStreamPlayer
   private var isMounted = false
 
   /// Closure called when a live state change should be emitted to JS.
-  /// Payload: (stateString, isLive, reason?, targetEpochMs?, title?, dvrEnabled?)
-  @objc public var onLiveStateChange: ((String, Bool, String?, NSNumber?, String?, Bool) -> Void)?
+  /// Payload: state, isLive, reason, targetEpochMs, title, videoId, message, dvrEnabled.
+  @objc public var onLiveStateChange: ((String, Bool, String?, NSNumber?, String?, String?, String?, Bool) -> Void)?
 
   /// Closure called when a terminal live error should be emitted to JS.
   @objc public var onLiveError: ((String) -> Void)?
@@ -168,8 +170,17 @@ import BunnyStreamPlayer
   // MARK: - State mapping
 
   private func handleStateChange(_ state: BunnyLiveStreamPlaybackState) {
-    let (stateString, isLive) = mapLiveState(state)
-    onLiveStateChange?(stateString, isLive, nil, nil, nil, false)
+    let payload = mapLiveState(state)
+    onLiveStateChange?(
+      payload.state,
+      payload.isLive,
+      payload.reason,
+      payload.targetEpochMs,
+      payload.title,
+      payload.videoId,
+      payload.message,
+      false
+    )
   }
 
   private func handlePlaybackError(_ error: Error) {
@@ -182,24 +193,80 @@ import BunnyStreamPlayer
     }
   }
 
-  /// Maps `BunnyLiveStreamPlaybackState` to the Codegen `onLiveStateChange`
-  /// payload (state string + isLive boolean).
-  private func mapLiveState(_ state: BunnyLiveStreamPlaybackState) -> (String, Bool) {
+  private struct LiveStatePayload {
+    let state: String
+    let isLive: Bool
+    let reason: String?
+    let targetEpochMs: NSNumber?
+    let title: String?
+    let videoId: String?
+    let message: String?
+  }
+
+  /// Maps every value currently exposed by `BunnyLiveStreamPlaybackState` to
+  /// the shared Codegen payload. `dvrEnabled` remains unavailable in the SDK.
+  private func mapLiveState(_ state: BunnyLiveStreamPlaybackState) -> LiveStatePayload {
     switch state {
     case .loading:
-      return ("loading", false)
+      return LiveStatePayload(
+        state: "loading",
+        isLive: false,
+        reason: nil,
+        targetEpochMs: nil,
+        title: nil,
+        videoId: nil,
+        message: nil
+      )
     case .playing(let isVodRecording):
-      // `.playing(isVodRecording: true)` is a finished stream's recording,
-      // `.playing(isVodRecording: false)` is the live edge.
-      return (isVodRecording ? "vod" : "live", !isVodRecording)
-    case .countdown:
-      return ("countdown", false)
-    case .trailer:
-      return ("trailer", false)
-    case .offline:
-      return ("offline", false)
-    case .failed:
-      return ("offline", false)
+      return LiveStatePayload(
+        state: isVodRecording ? "vod" : "live",
+        isLive: !isVodRecording,
+        reason: nil,
+        targetEpochMs: nil,
+        title: nil,
+        videoId: nil,
+        message: nil
+      )
+    case .countdown(let date, let title):
+      return LiveStatePayload(
+        state: "countdown",
+        isLive: false,
+        reason: nil,
+        targetEpochMs: NSNumber(value: date.timeIntervalSince1970 * 1000),
+        title: title,
+        videoId: nil,
+        message: nil
+      )
+    case .trailer(let vodId, let scheduledStart, let title):
+      return LiveStatePayload(
+        state: "trailer",
+        isLive: false,
+        reason: nil,
+        targetEpochMs: scheduledStart.map { NSNumber(value: $0.timeIntervalSince1970 * 1000) },
+        title: title,
+        videoId: vodId,
+        message: nil
+      )
+    case .offline(let message):
+      return LiveStatePayload(
+        state: "offline",
+        isLive: false,
+        reason: "offline",
+        targetEpochMs: nil,
+        title: nil,
+        videoId: nil,
+        message: message
+      )
+    case .failed(let message):
+      return LiveStatePayload(
+        state: "offline",
+        isLive: false,
+        reason: "failed",
+        targetEpochMs: nil,
+        title: nil,
+        videoId: nil,
+        message: message
+      )
     }
   }
 

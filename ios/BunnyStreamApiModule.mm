@@ -64,6 +64,42 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                                                              resolve:resolve];
 }
 
+- (void)fetchVideoHeatmap:(double)libraryId
+                    videoId:(NSString *)videoId
+                    resolve:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoHeatmapWithLibraryId:libraryId
+                                                            videoId:videoId
+                                                            resolve:resolve];
+}
+
+- (void)fetchVideoStatistics:(double)libraryId
+                     videoId:(NSString *)videoId
+                    dateFrom:(NSString *)dateFrom
+                      dateTo:(NSString *)dateTo
+                      hourly:(BOOL)hourly
+                     resolve:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoStatisticsWithLibraryId:libraryId
+                                                               videoId:videoId
+                                                              dateFrom:dateFrom
+                                                                dateTo:dateTo
+                                                                hourly:hourly
+                                                               resolve:resolve];
+}
+
+- (void)fetchVideoResolutions:(double)libraryId
+                      videoId:(NSString *)videoId
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoResolutionsWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                resolve:resolve];
+}
+
 // MARK: - VideoRepository: creating and changing
 
 - (void)createVideo:(double)libraryId
@@ -96,6 +132,70 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
   [[BunnyStreamApiModuleImpl shared] deleteVideoWithLibraryId:libraryId
                                                       videoId:videoId
                                                       resolve:resolve];
+}
+
+// MARK: - CollectionRepository
+
+- (void)listCollections:(double)libraryId
+                   page:(double)page
+           itemsPerPage:(double)itemsPerPage
+                 search:(NSString *)search
+                orderBy:(NSString *)orderBy
+      includeThumbnails:(BOOL)includeThumbnails
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] listCollectionsWithLibraryId:libraryId
+                                                             page:page
+                                                     itemsPerPage:itemsPerPage
+                                                           search:search
+                                                          orderBy:orderBy
+                                                includeThumbnails:includeThumbnails
+                                                          resolve:resolve];
+}
+
+- (void)getCollection:(double)libraryId
+         collectionId:(NSString *)collectionId
+    includeThumbnails:(BOOL)includeThumbnails
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] getCollectionWithLibraryId:libraryId
+                                                   collectionId:collectionId
+                                              includeThumbnails:includeThumbnails
+                                                        resolve:resolve];
+}
+
+- (void)createCollection:(double)libraryId
+                    name:(NSString *)name
+                 resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] createCollectionWithLibraryId:libraryId
+                                                              name:name
+                                                           resolve:resolve];
+}
+
+- (void)updateCollection:(double)libraryId
+            collectionId:(NSString *)collectionId
+                    name:(NSString *)name
+                 resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] updateCollectionWithLibraryId:libraryId
+                                                      collectionId:collectionId
+                                                              name:name
+                                                           resolve:resolve];
+}
+
+- (void)deleteCollection:(double)libraryId
+            collectionId:(NSString *)collectionId
+                 resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] deleteCollectionWithLibraryId:libraryId
+                                                      collectionId:collectionId
+                                                           resolve:resolve];
 }
 
 // MARK: - LiveStreamRepository: reading
@@ -194,6 +294,72 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
   [[BunnyStreamApiModuleImpl shared] stopLiveStreamWithLibraryId:libraryId
                                                          streamId:streamId
                                                           resolve:resolve];
+}
+
+// MARK: - LiveStreamRepository: operational state and thumbnails
+
+- (void)getLiveStreamStatus:(double)libraryId
+                   streamId:(NSString *)streamId
+                    resolve:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] getLiveStreamStatusWithLibraryId:libraryId
+                                                             streamId:streamId
+                                                              resolve:resolve];
+}
+
+- (void)setLiveStreamThumbnail:(double)libraryId
+                      streamId:(NSString *)streamId
+                  thumbnailUrl:(NSString *)thumbnailUrl
+                       resolve:(RCTPromiseResolveBlock)resolve
+                        reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] setLiveStreamThumbnailWithLibraryId:libraryId
+                                                                streamId:streamId
+                                                            thumbnailUrl:thumbnailUrl
+                                                                 resolve:resolve];
+}
+
+- (void)uploadLiveStreamThumbnail:(double)libraryId
+                         streamId:(NSString *)streamId
+                              uri:(NSString *)uri
+                      contentType:(NSString *)contentType
+                          resolve:(RCTPromiseResolveBlock)resolve
+                           reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] uploadLiveStreamThumbnailWithLibraryId:libraryId
+                                                                   streamId:streamId
+                                                                        uri:uri
+                                                                contentType:contentType
+                                                                    resolve:resolve];
+}
+
+- (void)listLiveStreamThumbnails:(double)libraryId
+                        streamId:(NSString *)streamId
+                           limit:(NSNumber *)limit
+                            from:(NSString *)from
+                              to:(NSString *)to
+                         resolve:(RCTPromiseResolveBlock)resolve
+                          reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] listLiveStreamThumbnailsWithLibraryId:libraryId
+                                                                  streamId:streamId
+                                                                     limit:limit
+                                                                      from:from
+                                                                        to:to
+                                                                   resolve:resolve];
+}
+
+- (void)deleteLiveStreamThumbnail:(double)libraryId
+                         streamId:(NSString *)streamId
+            restoreLibraryDefault:(BOOL)restoreLibraryDefault
+                          resolve:(RCTPromiseResolveBlock)resolve
+                           reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] deleteLiveStreamThumbnailWithLibraryId:libraryId
+                                                                   streamId:streamId
+                                                      restoreLibraryDefault:restoreLibraryDefault
+                                                                    resolve:resolve];
 }
 
 // MARK: - Player settings

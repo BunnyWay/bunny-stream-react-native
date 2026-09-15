@@ -1,5 +1,8 @@
 import type { RootStackParamList } from '../navigation/types';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -7,6 +10,7 @@ import * as React from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -21,14 +25,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   BunnyStreamApi,
+  BunnyStreamUpload,
   LiveStreamStatusEnum,
   fold,
   liveStreamStatusLabel,
+  useBunnyImage,
   type LiveStream,
   type LiveStreamStatus,
+  type UploadEvent,
 } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
+import { pickImage, pickVideo } from '../media/picker';
 import { loadSettings } from '../storage/storage';
 import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
@@ -53,13 +61,30 @@ const STATUS_COLORS: Record<string, string> = {
   [LiveStreamStatusEnum.UNKNOWN]: '#aaa',
 };
 
-export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
+export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps) {
   const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editStream, setEditStream] = React.useState<LiveStream | null>(null);
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
   const [rtmpStream, setRtmpStream] = React.useState<LiveStream | null>(null);
+
+  // Results handed back from the TrailerPicker / ThumbnailPicker screens via
+  // route params. Forwarded to the editor modal, then cleared once consumed.
+  const [pickedTrailerVideoId, setPickedTrailerVideoId] = React.useState<string | null>(null);
+  const [pickedThumbnailUrl, setPickedThumbnailUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (route.params?.pickedTrailerVideoId) {
+      setPickedTrailerVideoId(route.params.pickedTrailerVideoId);
+      // Clear the param so a re-mount doesn't re-apply a stale pick.
+      navigation.setParams({ pickedTrailerVideoId: undefined });
+    }
+    if (route.params?.pickedThumbnailUrl) {
+      setPickedThumbnailUrl(route.params.pickedThumbnailUrl);
+      navigation.setParams({ pickedThumbnailUrl: undefined });
+    }
+  }, [route.params, navigation]);
 
   const loadStreams = React.useCallback(async () => {
     const stored = await loadSettings();
@@ -196,6 +221,11 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
         visible={createOpen}
         libraryId={libraryId}
         stream={null}
+        navigation={navigation}
+        pickedTrailerVideoId={pickedTrailerVideoId}
+        pickedThumbnailUrl={pickedThumbnailUrl}
+        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
+        onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setCreateOpen(false)}
         onDone={handleCreated}
       />
@@ -205,6 +235,11 @@ export function LiveStreamsScreen({ navigation }: LiveStreamsScreenProps) {
         visible={editStream != null}
         libraryId={libraryId}
         stream={editStream}
+        navigation={navigation}
+        pickedTrailerVideoId={pickedTrailerVideoId}
+        pickedThumbnailUrl={pickedThumbnailUrl}
+        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
+        onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setEditStream(null)}
         onDone={handleEditSaved}
       />
@@ -579,12 +614,22 @@ function LiveStreamEditorModal({
   visible,
   libraryId,
   stream,
+  navigation,
+  pickedTrailerVideoId,
+  pickedThumbnailUrl,
+  onConsumePickedTrailer,
+  onConsumePickedThumbnail,
   onClose,
   onDone,
 }: {
   visible: boolean;
   libraryId: number | null;
   stream: LiveStream | null;
+  navigation: NativeStackNavigationProp<RootStackParamList, 'LiveStreams'>;
+  pickedTrailerVideoId: string | null;
+  pickedThumbnailUrl: string | null;
+  onConsumePickedTrailer: () => void;
+  onConsumePickedThumbnail: () => void;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -608,10 +653,19 @@ function LiveStreamEditorModal({
   // Trailer
   const [trailerEnabled, setTrailerEnabled] = React.useState(false);
   const [trailerVideoId, setTrailerVideoId] = React.useState('');
+  // In-progress trailer upload (basic uploader, like native demo apps).
+  const [trailerUpload, setTrailerUpload] = React.useState<{
+    uploadId: string;
+    progress: number;
+    status: 'uploading' | 'failed';
+    error: string | null;
+  } | null>(null);
 
   // Thumbnail
   const [thumbnailEnabled, setThumbnailEnabled] = React.useState(false);
   const [thumbnailUrl, setThumbnailUrl] = React.useState('');
+  // Local image URI from the system picker — uploaded after the stream exists.
+  const [thumbnailLocalUri, setThumbnailLocalUri] = React.useState<string | null>(null);
 
   // RTMP outputs
   const [rtmpOutputs, setRtmpOutputs] = React.useState<{ url: string; key: string }[]>([]);
@@ -621,6 +675,105 @@ function LiveStreamEditorModal({
   const insets = useSafeAreaInsets();
 
   const MAX_RTMP = 4;
+
+  // Apply a trailer picked from the library picker screen.
+  React.useEffect(() => {
+    if (pickedTrailerVideoId) {
+      setTrailerEnabled(true);
+      setTrailerVideoId(pickedTrailerVideoId);
+      onConsumePickedTrailer();
+    }
+  }, [pickedTrailerVideoId, onConsumePickedTrailer]);
+
+  // Apply a thumbnail URL picked from the generated-thumbnails picker screen.
+  React.useEffect(() => {
+    if (pickedThumbnailUrl) {
+      setThumbnailEnabled(true);
+      setThumbnailUrl(pickedThumbnailUrl);
+      setThumbnailLocalUri(null);
+      onConsumePickedThumbnail();
+    }
+  }, [pickedThumbnailUrl, onConsumePickedThumbnail]);
+
+  // Subscribe to upload events while the modal is open, to drive the trailer
+  // upload progress row. Only the trailer upload is tracked here (library
+  // uploads live on the VideoUpload screen).
+  React.useEffect(() => {
+    if (!visible) return;
+    const unsubscribe = BunnyStreamUpload.addUploadListener((event: UploadEvent) => {
+      setTrailerUpload((current) => {
+        if (!current || event.uploadId !== current.uploadId) return current;
+        switch (event.type) {
+          case 'progress':
+            return { ...current, progress: event.progress, status: 'uploading' };
+          case 'completed':
+            setTrailerVideoId(event.videoId);
+            setTrailerEnabled(true);
+            return null;
+          case 'failed':
+            return { ...current, status: 'failed', error: event.error.message };
+          case 'cancelled':
+            return null;
+          default:
+            return current;
+        }
+      });
+    });
+    return unsubscribe;
+  }, [visible]);
+
+  const handleUploadTrailer = async () => {
+    if (libraryId == null) return;
+    setError(null);
+    try {
+      const picked = await pickVideo(1);
+      if (!picked || picked.length === 0) return;
+      const file = picked[0];
+      const result = await BunnyStreamUpload.startUpload({
+        libraryId,
+        uri: file.uri,
+        title: file.fileName ?? undefined,
+        mode: 'basic',
+      });
+      fold(
+        result,
+        (handle) => {
+          setTrailerUpload({
+            uploadId: handle.uploadId,
+            progress: 0,
+            status: 'uploading',
+            error: null,
+          });
+        },
+        (err) => setError(err.message),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handlePickThumbnailPhoto = async () => {
+    setError(null);
+    try {
+      const picked = await pickImage();
+      if (!picked) return;
+      setThumbnailLocalUri(picked.uri);
+      setThumbnailUrl('');
+      setThumbnailEnabled(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleChooseTrailerFromLibrary = () => {
+    if (libraryId == null) return;
+    navigation.navigate('TrailerPicker', { libraryId });
+  };
+
+  const handleBrowseThumbnails = () => {
+    if (libraryId == null || stream == null) return;
+    navigation.navigate('ThumbnailPicker', { libraryId, streamId: stream.id });
+  };
 
   // Reset/prefill form when modal opens
   React.useEffect(() => {
@@ -663,6 +816,8 @@ function LiveStreamEditorModal({
         setTrailerVideoId('');
         setThumbnailEnabled(false);
         setThumbnailUrl('');
+        setThumbnailLocalUri(null);
+        setTrailerUpload(null);
         setRtmpOutputs([]);
       }
       setSaving(false);
@@ -698,27 +853,80 @@ function LiveStreamEditorModal({
       rtmpOutputs: rtmp.length > 0 ? rtmp : null,
     };
 
+    // Phase 1: create or update the live stream record.
+    let resolvedStreamId: string | null = null;
     if (isEdit && stream) {
       const result = await BunnyStreamApi.updateLiveStream(libraryId, stream.id, payload);
-      fold(
-        result,
-        () => onDone(),
-        (err) => {
-          setError(err.message);
-          setSaving(false);
-        },
-      );
+      if (!result.ok) {
+        setError(result.error.message);
+        setSaving(false);
+        return;
+      }
+      resolvedStreamId = stream.id;
     } else {
       const result = await BunnyStreamApi.createLiveStream(libraryId, payload);
-      fold(
-        result,
-        () => onDone(),
-        (err) => {
-          setError(err.message);
-          setSaving(false);
-        },
-      );
+      if (!result.ok) {
+        setError(result.error.message);
+        setSaving(false);
+        return;
+      }
+      resolvedStreamId = result.value.id;
     }
+
+    if (resolvedStreamId == null) {
+      // Stream saved but we couldn't resolve an id for the thumbnail step —
+      // treat as success and let the list refresh surface the stream.
+      onDone();
+      return;
+    }
+
+    // Phase 2: apply the thumbnail. The thumbnail endpoints require a
+    // streamId, so this runs after the stream exists. Mirrors the native
+    // demo apps' two-phase save.
+    const thumbError = await applyThumbnail(resolvedStreamId);
+    if (thumbError) {
+      setError(thumbError);
+      setSaving(false);
+      return;
+    }
+
+    onDone();
+  };
+
+  /**
+   * Applies the thumbnail selection to an existing stream. Returns an error
+   * message on failure, or null on success / no-op.
+   *
+   * - Local image (from Photos) → `uploadLiveStreamThumbnail`
+   * - Remote URL → `setLiveStreamThumbnail`
+   * - Thumbnail disabled while editing and a thumbnail existed → `deleteLiveStreamThumbnail`
+   */
+  const applyThumbnail = async (streamId: string): Promise<string | null> => {
+    if (libraryId == null) return null;
+
+    if (thumbnailEnabled) {
+      if (thumbnailLocalUri) {
+        const result = await BunnyStreamApi.uploadLiveStreamThumbnail(
+          libraryId,
+          streamId,
+          thumbnailLocalUri,
+        );
+        return result.ok ? null : result.error.message;
+      }
+      const trimmed = thumbnailUrl.trim();
+      if (trimmed) {
+        const result = await BunnyStreamApi.setLiveStreamThumbnail(libraryId, streamId, trimmed);
+        return result.ok ? null : result.error.message;
+      }
+      return null;
+    }
+
+    // Thumbnail disabled. When editing a stream that had a thumbnail, clear it.
+    if (isEdit && stream && stream.thumbnailFileName) {
+      const result = await BunnyStreamApi.deleteLiveStreamThumbnail(libraryId, streamId);
+      return result.ok ? null : result.error.message;
+    }
+    return null;
   };
 
   return (
@@ -883,6 +1091,64 @@ function LiveStreamEditorModal({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+
+              <View style={createStyles.pickerActionsRow}>
+                <TouchableOpacity
+                  style={[
+                    createStyles.pickerButton,
+                    libraryId == null && createStyles.pickerButtonDisabled,
+                  ]}
+                  onPress={handleUploadTrailer}
+                  disabled={libraryId == null || trailerUpload != null}
+                >
+                  <Text style={createStyles.pickerButtonText}>
+                    {trailerUpload ? 'Uploading…' : 'Upload trailer video'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    createStyles.pickerButton,
+                    libraryId == null && createStyles.pickerButtonDisabled,
+                  ]}
+                  onPress={handleChooseTrailerFromLibrary}
+                  disabled={libraryId == null}
+                >
+                  <Text style={createStyles.pickerButtonText}>Choose from library</Text>
+                </TouchableOpacity>
+              </View>
+
+              {trailerUpload ? (
+                <View style={createStyles.uploadProgressBox}>
+                  <View style={createStyles.uploadProgressTrack}>
+                    <View
+                      style={[
+                        createStyles.uploadProgressFill,
+                        { width: `${Math.round(trailerUpload.progress * 100)}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={createStyles.uploadProgressText}>
+                    {trailerUpload.status === 'failed'
+                      ? `Upload failed${trailerUpload.error ? ': ' + trailerUpload.error : ''}`
+                      : `${Math.round(trailerUpload.progress * 100)}%`}
+                  </Text>
+                </View>
+              ) : null}
+
+              {trailerVideoId.trim() ? (
+                <View style={createStyles.pickedValueRow}>
+                  <Text style={createStyles.pickedValueLabel}>Selected trailer:</Text>
+                  <Text style={createStyles.pickedValue} numberOfLines={1}>
+                    {trailerVideoId.trim()}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setTrailerVideoId('')}
+                    style={createStyles.pickedValueClear}
+                  >
+                    <Text style={createStyles.pickedValueClearText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </>
           ) : null}
 
@@ -902,13 +1168,58 @@ function LiveStreamEditorModal({
               <TextInput
                 style={createStyles.input}
                 value={thumbnailUrl}
-                onChangeText={setThumbnailUrl}
+                onChangeText={(v) => {
+                  setThumbnailUrl(v);
+                  if (v.trim()) setThumbnailLocalUri(null);
+                }}
                 placeholder="https://example.com/poster.jpg"
                 placeholderTextColor="#999"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
               />
+
+              <View style={createStyles.pickerActionsRow}>
+                <TouchableOpacity
+                  style={[
+                    createStyles.pickerButton,
+                    libraryId == null && createStyles.pickerButtonDisabled,
+                  ]}
+                  onPress={handlePickThumbnailPhoto}
+                  disabled={libraryId == null}
+                >
+                  <Text style={createStyles.pickerButtonText}>Choose from Photos</Text>
+                </TouchableOpacity>
+                {isEdit && stream ? (
+                  <TouchableOpacity
+                    style={[
+                      createStyles.pickerButton,
+                      libraryId == null && createStyles.pickerButtonDisabled,
+                    ]}
+                    onPress={handleBrowseThumbnails}
+                    disabled={libraryId == null}
+                  >
+                    <Text style={createStyles.pickerButtonText}>Browse generated</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {thumbnailLocalUri ? (
+                <View style={createStyles.thumbnailPreviewBox}>
+                  <Image
+                    source={{ uri: thumbnailLocalUri }}
+                    style={createStyles.thumbnailPreview}
+                    resizeMode="cover"
+                  />
+                  <Text style={createStyles.thumbnailPreviewHint}>
+                    Local image — uploaded after the stream is saved.
+                  </Text>
+                </View>
+              ) : null}
+
+              {!thumbnailLocalUri && thumbnailUrl.trim() ? (
+                <ThumbnailPreview url={thumbnailUrl.trim()} />
+              ) : null}
             </>
           ) : null}
 
@@ -975,6 +1286,18 @@ function LiveStreamEditorModal({
         </ScrollView>
       </View>
     </Modal>
+  );
+}
+
+/** Renders a remote thumbnail URL through the cached Bunny image hook. */
+function ThumbnailPreview({ url }: { url: string }) {
+  const { uri } = useBunnyImage(url);
+  if (!uri) return null;
+  return (
+    <View style={createStyles.thumbnailPreviewBox}>
+      <Image source={{ uri }} style={createStyles.thumbnailPreview} resizeMode="cover" />
+      <Text style={createStyles.thumbnailPreviewHint}>Remote image URL</Text>
+    </View>
   );
 }
 
@@ -1161,6 +1484,90 @@ const createStyles = StyleSheet.create({
   savingRow: {
     alignItems: 'center',
     marginTop: 16,
+  },
+  pickerActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  pickerButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  pickerButtonDisabled: {
+    opacity: 0.4,
+  },
+  pickerButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  uploadProgressBox: {
+    marginTop: 10,
+  },
+  uploadProgressTrack: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(24, 61, 109, 0.15)',
+    borderRadius: 2,
+  },
+  uploadProgressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  uploadProgressText: {
+    fontSize: 12,
+    color: colors.onSurfaceVariant,
+    marginTop: 4,
+  },
+  pickedValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  pickedValueLabel: {
+    fontSize: 12,
+    color: colors.onSurfaceVariant,
+  },
+  pickedValue: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: colors.onSurface,
+  },
+  pickedValueClear: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d32f2f',
+  },
+  pickedValueClearText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#d32f2f',
+  },
+  thumbnailPreviewBox: {
+    marginTop: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a2e',
+  },
+  thumbnailPreview: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  thumbnailPreviewHint: {
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    padding: 6,
   },
 });
 

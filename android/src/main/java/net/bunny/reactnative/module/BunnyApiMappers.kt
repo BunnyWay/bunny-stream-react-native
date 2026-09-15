@@ -6,19 +6,27 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
 import net.bunny.api.error.BunnyError
+import net.bunny.api.collection.domain.model.VideoCollection
+import net.bunny.api.collection.domain.model.VideoCollectionList
 import net.bunny.api.error.BunnyResult
 import net.bunny.api.livestream.domain.model.LiveStream
+import net.bunny.api.livestream.domain.model.LiveStreamIngestStatus
 import net.bunny.api.livestream.domain.model.LiveStreamList
 import net.bunny.api.livestream.domain.model.LiveStreamPlayData
+import net.bunny.api.livestream.domain.model.LiveStreamThumbnail
 import net.bunny.api.settings.domain.model.PlayerSettings
 import net.bunny.api.livestream.domain.model.RtmpOutput
 import net.bunny.api.video.domain.model.Caption
 import net.bunny.api.video.domain.model.Chapter
 import net.bunny.api.video.domain.model.MetaTag
 import net.bunny.api.video.domain.model.Moment
+import net.bunny.api.video.domain.model.ResolutionReference
+import net.bunny.api.video.domain.model.StorageObject
 import net.bunny.api.video.domain.model.Video
 import net.bunny.api.video.domain.model.VideoList
 import net.bunny.api.video.domain.model.VideoPlayData
+import net.bunny.api.video.domain.model.VideoResolutionsInfo
+import net.bunny.api.video.domain.model.VideoStatistics
 
 /**
  * Pure functions that map the SDK's domain models and [BunnyResult] envelope to
@@ -29,7 +37,7 @@ import net.bunny.api.video.domain.model.VideoPlayData
  * returns a fresh [WritableNativeMap]/[WritableNativeArray], with no side effects.
  *
  * The JS side reads these as plain objects; the TypeScript surface in
- * `src/api/types.ts` is the contract the shapes conform to.
+ * `src/api/models` and `src/api/result` define the contract these shapes conform to.
  */
 internal object BunnyApiMappers {
 
@@ -38,7 +46,7 @@ internal object BunnyApiMappers {
   /**
    * Maps a [BunnyResult] to the JS envelope `{ ok: true, value }` or
    * `{ ok: false, error }`. [valueMapper] converts the Ok payload to a
-   * [WritableMap]; for `Unit` results pass `{ -> unitValue() }`.
+   * [WritableMap]. Unit results use [toUnitEnvelope].
    */
   fun <T> BunnyResult<T>.toEnvelope(valueMapper: (T) -> WritableMap): WritableMap {
     val out = WritableNativeMap()
@@ -55,8 +63,35 @@ internal object BunnyApiMappers {
     return out
   }
 
-  /** A `null`-valued Ok payload, for `BunnyResult<Unit>` results. */
-  fun unitValue(): WritableMap = WritableNativeMap().apply { putNull("value") }
+  /** Maps a result whose successful JS value is an array. */
+  fun <T> BunnyResult<T>.toArrayEnvelope(valueMapper: (T) -> WritableArray): WritableMap {
+    val out = WritableNativeMap()
+    when (this) {
+      is BunnyResult.Ok -> {
+        out.putBoolean("ok", true)
+        out.putArray("value", valueMapper(value))
+      }
+      is BunnyResult.Err -> {
+        out.putBoolean("ok", false)
+        out.putMap("error", error.toWritableMap())
+      }
+    }
+    return out
+  }
+
+  /** Maps a Unit result to an envelope whose successful value is JS `null`. */
+  fun BunnyResult<Unit>.toUnitEnvelope(): WritableMap = WritableNativeMap().apply {
+    when (this@toUnitEnvelope) {
+      is BunnyResult.Ok -> {
+        putBoolean("ok", true)
+        putNull("value")
+      }
+      is BunnyResult.Err -> {
+        putBoolean("ok", false)
+        putMap("error", error.toWritableMap())
+      }
+    }
+  }
 
   // endregion
 
@@ -65,7 +100,7 @@ internal object BunnyApiMappers {
   /**
    * Maps a [BunnyError] subclass to `{ kind, httpStatus, message, isTerminal }`.
    * The `kind` string is the JS discriminant — see `BunnyErrorKind` in
-   * `src/api/types.ts`.
+   * `src/api/result/BunnyResult.ts`.
    */
   fun BunnyError.toWritableMap(): WritableMap = WritableNativeMap().apply {
     putString("kind", kindName())
@@ -163,6 +198,75 @@ internal object BunnyApiMappers {
     putArray("items", items.toWritableArray { it.toWritableMap() })
   }
 
+  fun heatmapToWritableMap(heatmap: Map<String, Int>): WritableMap = WritableNativeMap().apply {
+    for ((offset, viewers) in heatmap) putInt(offset, viewers)
+  }
+
+  fun VideoStatistics.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putMap("viewsChart", viewsChart.toWritableMap())
+    putMap("watchTimeChart", watchTimeChart.toWritableMap())
+    putMap("countryViewCounts", countryViewCounts.toWritableMap())
+    putMap("countryWatchTime", countryWatchTime.toWritableMap())
+    putInt("engagementScore", engagementScore)
+  }
+
+  fun VideoResolutionsInfo.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putString("videoId", videoId)
+    putDouble("videoLibraryId", videoLibraryId.toDouble())
+    putStringArray("availableResolutions", availableResolutions)
+    putStringArray("configuredResolutions", configuredResolutions)
+    putArray("playlistResolutions", playlistResolutions.toWritableArray { it.toWritableMap() })
+    putArray("storageResolutions", storageResolutions.toWritableArray { it.toWritableMap() })
+    putArray("mp4Resolutions", mp4Resolutions.toWritableArray { it.toWritableMap() })
+    putArray("storageObjects", storageObjects.toWritableArray { it.toWritableMap() })
+    putArray("oldResolutions", oldResolutions.toWritableArray { it.toWritableMap() })
+    putBoolean("hasBothOldAndNewResolutionFormat", hasBothOldAndNewResolutionFormat)
+    putBoolean("hasOriginal", hasOriginal)
+  }
+
+  private fun ResolutionReference.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putString("resolution", resolution)
+    putString("path", path)
+  }
+
+  private fun StorageObject.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putString("id", id)
+    putString("storageZoneName", storageZoneName)
+    putNullableLong("storageZoneId", storageZoneId)
+    putString("path", path)
+    putString("objectName", objectName)
+    putDouble("lengthBytes", lengthBytes.toDouble())
+    putString("dateCreated", dateCreated)
+    putString("lastChanged", lastChanged)
+    putBoolean("isDirectory", isDirectory)
+    putString("contentType", contentType)
+    putNullableInt("serverId", serverId)
+    putString("userId", userId)
+    putString("checksum", checksum)
+    putString("replicatedZones", replicatedZones)
+  }
+
+  // endregion
+
+  // region — Collection —
+
+  fun VideoCollection.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putString("id", id)
+    putDouble("videoLibraryId", videoLibraryId.toDouble())
+    putString("name", name)
+    putDouble("videoCount", videoCount.toDouble())
+    putDouble("totalSizeBytes", totalSizeBytes.toDouble())
+    putStringArray("previewVideoIds", previewVideoIds)
+    putStringArray("previewImageUrls", previewImageUrls)
+  }
+
+  fun VideoCollectionList.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putDouble("totalItems", totalItems.toDouble())
+    putDouble("currentPage", currentPage.toDouble())
+    putInt("itemsPerPage", itemsPerPage)
+    putArray("items", items.toWritableArray { it.toWritableMap() })
+  }
+
   // endregion
 
   // region — LiveStream —
@@ -214,6 +318,25 @@ internal object BunnyApiMappers {
     putInt("itemsPerPage", itemsPerPage)
     putArray("items", items.toWritableArray { it.toWritableMap() })
   }
+
+  fun LiveStreamIngestStatus.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putBoolean("readyToStart", readyToStart)
+    putBoolean("primaryLive", primaryLive)
+    putBoolean("backupLive", backupLive)
+    putBoolean("isLive", primaryLive || backupLive)
+    putNullableLong("lastPingAgoMs", lastPingAgoMs)
+    putNullableInt("durationSeconds", durationSeconds)
+    // TODO(Android SDK): Map the status timestamp after the domain model exposes it.
+    putNull("statusTime")
+  }
+
+  fun LiveStreamThumbnail.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putString("url", url)
+    putString("timestamp", timestamp)
+  }
+
+  fun liveStreamThumbnailsToWritableArray(thumbnails: List<LiveStreamThumbnail>): WritableArray =
+    thumbnails.toWritableArray { it.toWritableMap() }
 
   // endregion
 
@@ -322,6 +445,10 @@ internal object BunnyApiMappers {
     if (value == null) putNull(key) else putDouble(key, value)
   }
 
+  private fun WritableMap.putNullableLong(key: String, value: Long?) {
+    if (value == null) putNull(key) else putDouble(key, value.toDouble())
+  }
+
   private fun WritableMap.putNullableBoolean(key: String, value: Boolean?) {
     if (value == null) putNull(key) else putBoolean(key, value)
   }
@@ -336,6 +463,10 @@ internal object BunnyApiMappers {
     val array = WritableNativeArray()
     for (v in values) array.pushDouble(v.toDouble())
     putArray(key, array)
+  }
+
+  private fun Map<String, Long>.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    for ((key, value) in this@toWritableMap) putDouble(key, value.toDouble())
   }
 
   private fun <T> List<T>.toWritableArray(mapper: (T) -> WritableMap): WritableArray {

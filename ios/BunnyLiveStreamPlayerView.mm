@@ -47,7 +47,8 @@ liveStateFromString(const std::string &s)
     // Wire the Swift impl's closures to the Fabric event emitter.
     __weak __typeof__(self) weakSelf = self;
     _impl.onLiveStateChange = ^(NSString *state, BOOL isLive, NSString *reason,
-                                NSNumber *targetEpochMs, NSString *title, BOOL dvrEnabled) {
+                                NSNumber *targetEpochMs, NSString *title, NSString *videoId,
+                                NSString *message, BOOL dvrEnabled) {
       __strong __typeof__(weakSelf) strongSelf = weakSelf;
       if (!strongSelf || !strongSelf->_liveEventEmitter) return;
       strongSelf->_liveEventEmitter->onLiveStateChange({
@@ -56,6 +57,8 @@ liveStateFromString(const std::string &s)
         .reason = reason ? std::string([reason UTF8String]) : "",
         .targetEpochMs = targetEpochMs ? [targetEpochMs doubleValue] : 0.0,
         .title = title ? std::string([title UTF8String]) : "",
+        .videoId = videoId ? std::string([videoId UTF8String]) : "",
+        .message = message ? std::string([message UTF8String]) : "",
         .dvrEnabled = (bool)dvrEnabled
       });
     };

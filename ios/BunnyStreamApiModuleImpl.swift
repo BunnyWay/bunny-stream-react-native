@@ -15,6 +15,9 @@ import React
 /// stored in `BunnyStreamConfiguration` by the `BunnyStreamPlayer` TurboModule's
 /// `initialize(accessKey, libraryId)`, and this module reads them to construct
 /// a `BunnyStreamAPI` instance lazily.
+///
+/// TODO(iOS SDK): Replace generated video API models with stable domain
+/// VideoRepository and CollectionRepository surfaces when they become public.
 @objc public final class BunnyStreamApiModuleImpl: NSObject {
 
   @objc public static let shared = BunnyStreamApiModuleImpl()
@@ -68,6 +71,28 @@ import React
                        token: token, expires: expires?.doubleValue, resolve: resolve)
   }
 
+  @objc public func fetchVideoHeatmapWithLibraryId(_ libraryId: Double,
+                                                   videoId: String,
+                                                   resolve: @escaping RCTPromiseResolveBlock) {
+    fetchVideoHeatmap(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
+  @objc public func fetchVideoStatisticsWithLibraryId(_ libraryId: Double,
+                                                      videoId: String?,
+                                                      dateFrom: String?,
+                                                      dateTo: String?,
+                                                      hourly: Bool,
+                                                      resolve: @escaping RCTPromiseResolveBlock) {
+    fetchVideoStatistics(libraryId: libraryId, videoId: videoId, dateFrom: dateFrom,
+                         dateTo: dateTo, hourly: hourly, resolve: resolve)
+  }
+
+  @objc public func fetchVideoResolutionsWithLibraryId(_ libraryId: Double,
+                                                       videoId: String,
+                                                       resolve: @escaping RCTPromiseResolveBlock) {
+    fetchVideoResolutions(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
   @objc public func createVideoWithLibraryId(_ libraryId: Double,
                                        request: NSDictionary,
                                        resolve: @escaping RCTPromiseResolveBlock) {
@@ -85,6 +110,45 @@ import React
                                        videoId: String,
                                        resolve: @escaping RCTPromiseResolveBlock) {
     deleteVideo(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
+  @objc public func listCollectionsWithLibraryId(_ libraryId: Double,
+                                                 page: Double,
+                                                 itemsPerPage: Double,
+                                                 search: String?,
+                                                 orderBy: String,
+                                                 includeThumbnails: Bool,
+                                                 resolve: @escaping RCTPromiseResolveBlock) {
+    listCollections(libraryId: libraryId, page: page, itemsPerPage: itemsPerPage,
+                    search: search, orderBy: orderBy, includeThumbnails: includeThumbnails,
+                    resolve: resolve)
+  }
+
+  @objc public func getCollectionWithLibraryId(_ libraryId: Double,
+                                               collectionId: String,
+                                               includeThumbnails: Bool,
+                                               resolve: @escaping RCTPromiseResolveBlock) {
+    getCollection(libraryId: libraryId, collectionId: collectionId,
+                  includeThumbnails: includeThumbnails, resolve: resolve)
+  }
+
+  @objc public func createCollectionWithLibraryId(_ libraryId: Double,
+                                                  name: String,
+                                                  resolve: @escaping RCTPromiseResolveBlock) {
+    createCollection(libraryId: libraryId, name: name, resolve: resolve)
+  }
+
+  @objc public func updateCollectionWithLibraryId(_ libraryId: Double,
+                                                  collectionId: String,
+                                                  name: String,
+                                                  resolve: @escaping RCTPromiseResolveBlock) {
+    updateCollection(libraryId: libraryId, collectionId: collectionId, name: name, resolve: resolve)
+  }
+
+  @objc public func deleteCollectionWithLibraryId(_ libraryId: Double,
+                                                  collectionId: String,
+                                                  resolve: @escaping RCTPromiseResolveBlock) {
+    deleteCollection(libraryId: libraryId, collectionId: collectionId, resolve: resolve)
   }
 
   @objc public func listLiveStreamsWithLibraryId(_ libraryId: Double,
@@ -143,6 +207,47 @@ import React
                                                 streamId: String,
                                                 resolve: @escaping RCTPromiseResolveBlock) {
     stopLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
+  }
+
+  @objc public func getLiveStreamStatusWithLibraryId(_ libraryId: Double,
+                                                     streamId: String,
+                                                     resolve: @escaping RCTPromiseResolveBlock) {
+    getLiveStreamStatus(libraryId: libraryId, streamId: streamId, resolve: resolve)
+  }
+
+  @objc public func setLiveStreamThumbnailWithLibraryId(_ libraryId: Double,
+                                                        streamId: String,
+                                                        thumbnailUrl: String,
+                                                        resolve: @escaping RCTPromiseResolveBlock) {
+    setLiveStreamThumbnail(libraryId: libraryId, streamId: streamId,
+                           thumbnailUrl: thumbnailUrl, resolve: resolve)
+  }
+
+  @objc public func uploadLiveStreamThumbnailWithLibraryId(_ libraryId: Double,
+                                                           streamId: String,
+                                                           uri: String,
+                                                           contentType: String,
+                                                           resolve: @escaping RCTPromiseResolveBlock) {
+    uploadLiveStreamThumbnail(libraryId: libraryId, streamId: streamId, uri: uri,
+                              contentType: contentType, resolve: resolve)
+  }
+
+  @objc public func listLiveStreamThumbnailsWithLibraryId(_ libraryId: Double,
+                                                          streamId: String,
+                                                          limit: NSNumber?,
+                                                          from: String?,
+                                                          to: String?,
+                                                          resolve: @escaping RCTPromiseResolveBlock) {
+    listLiveStreamThumbnails(libraryId: libraryId, streamId: streamId,
+                             limit: limit?.doubleValue, from: from, to: to, resolve: resolve)
+  }
+
+  @objc public func deleteLiveStreamThumbnailWithLibraryId(_ libraryId: Double,
+                                                           streamId: String,
+                                                           restoreLibraryDefault: Bool,
+                                                           resolve: @escaping RCTPromiseResolveBlock) {
+    deleteLiveStreamThumbnail(libraryId: libraryId, streamId: streamId,
+                              restoreLibraryDefault: restoreLibraryDefault, resolve: resolve)
   }
 
   @objc public func fetchPlayerSettingsWithLibraryId(_ libraryId: Double,
@@ -221,6 +326,21 @@ import React
       return errEnvelope(kind: "Network", httpStatus: 0, message: e.localizedDescription, isTerminal: false)
     }
     return errEnvelope(kind: "Network", httpStatus: 0, message: error.localizedDescription, isTerminal: false)
+  }
+
+  private func decodeError(_ message: String = "Unexpected response body") -> [String: Any] {
+    errEnvelope(kind: "Decode", httpStatus: 0, message: message, isTerminal: false)
+  }
+
+  private func httpError(status: Int) -> [String: Any] {
+    switch status {
+    case 401, 403:
+      return errEnvelope(kind: "Auth", httpStatus: status, message: "Unauthorized", isTerminal: true)
+    case 404, 410:
+      return errEnvelope(kind: "NotFound", httpStatus: status, message: "Not found", isTerminal: true)
+    default:
+      return errEnvelope(kind: "Http", httpStatus: status, message: "HTTP \(status)", isTerminal: false)
+    }
   }
 
   // MARK: - Video operations
@@ -330,6 +450,120 @@ import React
     }
   }
 
+  func fetchVideoHeatmap(libraryId: Double, videoId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.getVideoHeatmap(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId)
+        ))
+        switch output {
+        case .ok(let response):
+          if case .json(let model) = response.body {
+            resolve(okEnvelope(model.heatmap?.additionalProperties ?? [:]))
+          } else {
+            resolve(decodeError())
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func fetchVideoStatistics(
+    libraryId: Double,
+    videoId: String?,
+    dateFrom: String?,
+    dateTo: String?,
+    hourly: Bool,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let parsedFrom = dateFrom.flatMap(Self.parseDate)
+    let parsedTo = dateTo.flatMap(Self.parseDate)
+    if dateFrom != nil && parsedFrom == nil {
+      resolve(invalidState("fetchVideoStatistics: 'dateFrom' must be a valid ISO 8601 date"))
+      return
+    }
+    if dateTo != nil && parsedTo == nil {
+      resolve(invalidState("fetchVideoStatistics: 'dateTo' must be a valid ISO 8601 date"))
+      return
+    }
+    Task {
+      do {
+        let output = try await api.client.getVideoStatistics(.init(
+          path: .init(libraryId: Int64(libraryId)),
+          query: .init(dateFrom: parsedFrom, dateTo: parsedTo, hourly: hourly, videoGuid: videoId)
+        ))
+        switch output {
+        case .ok(let response):
+          if case .json(let model) = response.body {
+            resolve(okEnvelope(Self.videoStatisticsDict(from: model)))
+          } else {
+            resolve(decodeError())
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func fetchVideoResolutions(libraryId: Double, videoId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.getVideoResolutions(.init(
+          path: .init(libraryId: Int64(libraryId), videoId: videoId)
+        ))
+        switch output {
+        case .ok(let response):
+          guard case .json(let status) = response.body else {
+            resolve(decodeError())
+            return
+          }
+          if status.value1.success == false {
+            let code = status.value1.statusCode.map(Int.init) ?? 0
+            resolve(errEnvelope(kind: "InvalidState", httpStatus: code,
+                                message: status.value1.message ?? "Unable to fetch video resolutions",
+                                isTerminal: true))
+          } else if case .VideoResolutionsInfoModel(let model)? = status.value2.data {
+            resolve(okEnvelope(Self.videoResolutionsDict(from: model)))
+          } else {
+            resolve(decodeError("Video resolutions response did not contain data"))
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
   func createVideo(libraryId: Double, request: NSDictionary, resolve: @escaping RCTPromiseResolveBlock) {
     guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
     guard let title = request["title"] as? String, !title.isEmpty else {
@@ -412,6 +646,186 @@ import React
           resolve(errEnvelope(kind: "Network", httpStatus: 500, message: "Internal server error", isTerminal: false))
         case .undocumented(let code, _):
           resolve(errEnvelope(kind: "Network", httpStatus: code, message: "HTTP \(code)", isTerminal: !(500...599).contains(code)))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  // MARK: - Collection operations
+
+  func listCollections(
+    libraryId: Double,
+    page: Double,
+    itemsPerPage: Double,
+    search: String?,
+    orderBy: String,
+    includeThumbnails: Bool,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.listCollections(.init(
+          path: .init(libraryId: Int64(libraryId)),
+          query: .init(page: Int32(page), itemsPerPage: Int32(itemsPerPage), search: search,
+                       orderBy: orderBy, includeThumbnails: includeThumbnails)
+        ))
+        switch output {
+        case .ok(let response):
+          if case .json(let model) = response.body {
+            resolve(okEnvelope(Self.collectionListDict(from: model)))
+          } else {
+            resolve(decodeError())
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func getCollection(
+    libraryId: Double,
+    collectionId: String,
+    includeThumbnails: Bool,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.getCollection(.init(
+          path: .init(libraryId: Int64(libraryId), collectionId: collectionId),
+          query: .init(includeThumbnails: includeThumbnails)
+        ))
+        switch output {
+        case .ok(let response):
+          if case .json(let model) = response.body {
+            resolve(okEnvelope(Self.collectionDict(from: model)))
+          } else {
+            resolve(decodeError())
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func createCollection(libraryId: Double, name: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { resolve(invalidState("createCollection: 'name' must not be blank")); return }
+    Task {
+      do {
+        let output = try await api.client.createCollection(.init(
+          path: .init(libraryId: Int64(libraryId)),
+          body: .json(.UpdateCollectionModel(.init(name: name)))
+        ))
+        switch output {
+        case .ok(let response):
+          if case .json(let model) = response.body {
+            resolve(okEnvelope(Self.collectionDict(from: model)))
+          } else {
+            resolve(decodeError())
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func updateCollection(
+    libraryId: Double,
+    collectionId: String,
+    name: String,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { resolve(invalidState("updateCollection: 'name' must not be blank")); return }
+    Task {
+      do {
+        let output = try await api.client.updateCollection(.init(
+          path: .init(libraryId: Int64(libraryId), collectionId: collectionId),
+          body: .json(.UpdateCollectionModel(.init(name: name)))
+        ))
+        switch output {
+        case .ok(let response):
+          guard case .json(let status) = response.body else {
+            resolve(decodeError())
+            return
+          }
+          if status.success == false {
+            resolve(errEnvelope(kind: "InvalidState", httpStatus: status.statusCode.map(Int.init) ?? 0,
+                                message: status.message ?? "Unable to update collection",
+                                isTerminal: true))
+          } else {
+            resolve(okEnvelope(NSNull()))
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
+        }
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func deleteCollection(libraryId: Double, collectionId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    Task {
+      do {
+        let output = try await api.client.deleteCollection(.init(
+          path: .init(libraryId: Int64(libraryId), collectionId: collectionId)
+        ))
+        switch output {
+        case .ok(let response):
+          guard case .json(let status) = response.body else {
+            resolve(decodeError())
+            return
+          }
+          if status.success == false {
+            resolve(errEnvelope(kind: "InvalidState", httpStatus: status.statusCode.map(Int.init) ?? 0,
+                                message: status.message ?? "Unable to delete collection",
+                                isTerminal: true))
+          } else {
+            resolve(okEnvelope(NSNull()))
+          }
+        case .unauthorized:
+          resolve(httpError(status: 401))
+        case .notFound:
+          resolve(httpError(status: 404))
+        case .internalServerError:
+          resolve(httpError(status: 500))
+        case .undocumented(let code, _):
+          resolve(httpError(status: code))
         }
       } catch {
         resolve(envelope(from: error))
@@ -558,6 +972,147 @@ import React
     }
   }
 
+  func getLiveStreamStatus(libraryId: Double, streamId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let repo = api.liveStreams
+    Task {
+      do {
+        let status = try await repo.ingestStatus(libraryId: Int(libraryId), streamId: streamId)
+        resolve(okEnvelope(Self.liveStreamIngestStatusDict(from: status)))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func setLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    thumbnailUrl: String,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let repo = api.liveStreams
+    Task {
+      do {
+        try await repo.setThumbnail(libraryId: Int(libraryId), streamId: streamId,
+                                    thumbnailUrl: thumbnailUrl)
+        resolve(okEnvelope(NSNull()))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func uploadLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    uri: String,
+    contentType: String,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    guard let format = Self.imageFormat(for: contentType) else {
+      resolve(invalidState("uploadLiveStreamThumbnail: unsupported content type"))
+      return
+    }
+    guard let fileURL = Self.localFileURL(from: uri) else {
+      resolve(invalidState("uploadLiveStreamThumbnail: 'uri' must be a local file URI"))
+      return
+    }
+    let repo = api.liveStreams
+    Task {
+      let accessingSecurityScopedResource = fileURL.startAccessingSecurityScopedResource()
+      defer {
+        if accessingSecurityScopedResource {
+          fileURL.stopAccessingSecurityScopedResource()
+        }
+      }
+      let imageData: Data
+      do {
+        let handle = try FileHandle(forReadingFrom: fileURL)
+        defer { try? handle.close() }
+        imageData = try handle.read(upToCount: Self.maxThumbnailBytes + 1) ?? Data()
+      } catch {
+        resolve(errEnvelope(kind: "LocalFile", httpStatus: 0,
+                            message: "uploadLiveStreamThumbnail: unable to read the local image",
+                            isTerminal: true))
+        return
+      }
+      guard !imageData.isEmpty else {
+        resolve(errEnvelope(kind: "LocalFile", httpStatus: 0,
+                            message: "uploadLiveStreamThumbnail: local image is empty",
+                            isTerminal: true))
+        return
+      }
+      guard imageData.count <= Self.maxThumbnailBytes else {
+        resolve(errEnvelope(kind: "LocalFile", httpStatus: 0,
+                            message: "uploadLiveStreamThumbnail: local image exceeds the 20 MB limit",
+                            isTerminal: true))
+        return
+      }
+      do {
+        try await repo.uploadThumbnail(libraryId: Int(libraryId), streamId: streamId,
+                                       imageData: imageData, format: format)
+        resolve(okEnvelope(NSNull()))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func listLiveStreamThumbnails(
+    libraryId: Double,
+    streamId: String,
+    limit: Double?,
+    from: String?,
+    to: String?,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let parsedFrom = from.flatMap(Self.parseDate)
+    let parsedTo = to.flatMap(Self.parseDate)
+    if from != nil && parsedFrom == nil {
+      resolve(invalidState("listLiveStreamThumbnails: 'from' must be a valid ISO 8601 date"))
+      return
+    }
+    if to != nil && parsedTo == nil {
+      resolve(invalidState("listLiveStreamThumbnails: 'to' must be a valid ISO 8601 date"))
+      return
+    }
+    let repo = api.liveStreams
+    Task {
+      do {
+        let thumbnails = try await repo.listThumbnails(
+          libraryId: Int(libraryId), streamId: streamId, limit: limit.map(Int.init),
+          from: parsedFrom, to: parsedTo
+        )
+        resolve(okEnvelope(thumbnails.map(Self.liveStreamThumbnailDict(from:))))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
+  func deleteLiveStreamThumbnail(
+    libraryId: Double,
+    streamId: String,
+    restoreLibraryDefault: Bool,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    guard let api else { resolve(invalidState("BunnyStreamApi is not initialised.")); return }
+    let repo = api.liveStreams
+    Task {
+      do {
+        try await repo.deleteThumbnail(libraryId: Int(libraryId), streamId: streamId,
+                                       restoreLibraryDefault: restoreLibraryDefault)
+        resolve(okEnvelope(NSNull()))
+      } catch {
+        resolve(envelope(from: error))
+      }
+    }
+  }
+
   // MARK: - Player settings
 
   func fetchPlayerSettings(
@@ -646,11 +1201,30 @@ import React
   }
 
   private static func parseDate(_ iso: String) -> Date? {
-    let f = ISO8601DateFormatter()
-    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    if let d = f.date(from: iso) { return d }
-    f.formatOptions = [.withInternetDateTime]
-    return f.date(from: iso)
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = formatter.date(from: iso) { return date }
+    formatter.formatOptions = [.withInternetDateTime]
+    if let date = formatter.date(from: iso) { return date }
+    formatter.formatOptions = [.withFullDate]
+    return formatter.date(from: iso)
+  }
+
+  private static func imageFormat(for contentType: String) -> BunnyImageFormat? {
+    switch contentType.lowercased() {
+    case "image/jpeg": return .jpeg
+    case "image/png": return .png
+    case "image/webp": return .webp
+    case "image/gif": return .gif
+    default: return nil
+    }
+  }
+
+  private static let maxThumbnailBytes = 20 * 1024 * 1024
+
+  private static func localFileURL(from uri: String) -> URL? {
+    guard let url = URL(string: uri), url.isFileURL else { return nil }
+    return url
   }
 
   // MARK: - Domain → NSDictionary mappers
@@ -800,6 +1374,101 @@ import React
       "seekPath": model.seekPath ?? "",
       "captionsPath": model.captionsPath ?? "",
       "resumePosition": 0,
+    ]
+  }
+
+  static func collectionDict(from model: Components.Schemas.CollectionModel) -> [String: Any] {
+    [
+      "id": model.guid ?? "",
+      "videoLibraryId": model.videoLibraryId ?? 0,
+      "name": model.name ?? "",
+      "videoCount": model.videoCount ?? 0,
+      "totalSizeBytes": model.totalSize ?? 0,
+      "previewVideoIds": (model.previewVideoIds ?? "")
+        .split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { !$0.isEmpty },
+      "previewImageUrls": model.previewImageUrls ?? [],
+    ]
+  }
+
+  static func collectionListDict(from model: Components.Schemas.PaginationListOfCollectionModel) -> [String: Any] {
+    [
+      "totalItems": model.totalItems ?? 0,
+      "currentPage": model.currentPage ?? 0,
+      "itemsPerPage": model.itemsPerPage ?? 0,
+      "items": (model.items ?? []).map(collectionDict(from:)),
+    ]
+  }
+
+  static func videoStatisticsDict(from model: Components.Schemas.VideoStatisticsModel) -> [String: Any] {
+    [
+      "viewsChart": model.viewsChart?.additionalProperties ?? [:],
+      "watchTimeChart": model.watchTimeChart?.additionalProperties ?? [:],
+      "countryViewCounts": model.countryViewCounts?.additionalProperties ?? [:],
+      "countryWatchTime": model.countryWatchTime?.additionalProperties ?? [:],
+      "engagementScore": model.engagementScore ?? 0,
+    ]
+  }
+
+  static func videoResolutionsDict(from model: Components.Schemas.VideoResolutionsInfoModel) -> [String: Any] {
+    [
+      "videoId": model.videoId ?? "",
+      "videoLibraryId": model.videoLibraryId ?? 0,
+      "availableResolutions": model.availableResolutions ?? [],
+      "configuredResolutions": model.configuredResolutions ?? [],
+      "playlistResolutions": (model.playlistResolutions ?? []).map(resolutionReferenceDict(from:)),
+      "storageResolutions": (model.storageResolutions ?? []).map(resolutionReferenceDict(from:)),
+      "mp4Resolutions": (model.mp4Resolutions ?? []).map(resolutionReferenceDict(from:)),
+      "storageObjects": (model.storageObjects ?? []).map(storageObjectDict(from:)),
+      "oldResolutions": (model.oldResolutions ?? []).map(storageObjectDict(from:)),
+      "hasBothOldAndNewResolutionFormat": model.hasBothOldAndNewResolutionFormat ?? false,
+      "hasOriginal": model.hasOriginal ?? false,
+    ]
+  }
+
+  private static func resolutionReferenceDict(from model: Components.Schemas.ResolutionReference) -> [String: Any] {
+    [
+      "resolution": model.resolution ?? NSNull(),
+      "path": model.path ?? NSNull(),
+    ]
+  }
+
+  private static func storageObjectDict(from model: Components.Schemas.StorageObjectModel) -> [String: Any] {
+    [
+      "id": model.guid ?? NSNull(),
+      "storageZoneName": model.storageZoneName ?? NSNull(),
+      "storageZoneId": model.storageZoneId ?? NSNull(),
+      "path": model.path ?? NSNull(),
+      "objectName": model.objectName ?? NSNull(),
+      "lengthBytes": model.length ?? 0,
+      "dateCreated": model.dateCreated?.ISO8601Format() ?? NSNull(),
+      "lastChanged": model.lastChanged?.ISO8601Format() ?? NSNull(),
+      "isDirectory": model.isDirectory ?? false,
+      "contentType": model.contentType ?? NSNull(),
+      "serverId": model.serverId ?? NSNull(),
+      "userId": model.userId ?? NSNull(),
+      "checksum": model.checksum ?? NSNull(),
+      "replicatedZones": model.replicatedZones ?? NSNull(),
+    ]
+  }
+
+  static func liveStreamIngestStatusDict(from status: BunnyLiveStreamIngestStatus) -> [String: Any] {
+    [
+      "readyToStart": status.readyToStart,
+      "primaryLive": status.primaryLive ?? NSNull(),
+      "backupLive": status.backupLive ?? NSNull(),
+      "isLive": status.isLive,
+      "lastPingAgoMs": status.lastPingAgo ?? NSNull(),
+      "durationSeconds": status.duration ?? NSNull(),
+      "statusTime": status.statusTime?.ISO8601Format() ?? NSNull(),
+    ]
+  }
+
+  static func liveStreamThumbnailDict(from thumbnail: BunnyLiveStreamThumbnail) -> [String: Any] {
+    [
+      "url": thumbnail.url ?? NSNull(),
+      "timestamp": thumbnail.timestamp?.ISO8601Format() ?? NSNull(),
     ]
   }
 
