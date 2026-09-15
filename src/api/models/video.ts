@@ -1,9 +1,10 @@
 /**
  * Lifecycle state of a video in the upload → transcode → playable pipeline.
  *
- * Mirrors `net.bunny.api.model.VideoModelStatus`. `FINISHED` (4) means playable.
+ * Mirrors `net.bunny.api.model.VideoModelStatus`. `FINISHED` (4) means playable;
+ * libraries with JIT encoding settle on `JIT_PLAYLISTS_CREATED` (8) instead.
  */
-export type VideoStatus = 0 | 1 | 2 | 3 | 4 | 6;
+export type VideoStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 /**
  * Named constants for {@link VideoStatus}. Use `VideoStatusEnum.FINISHED` etc.
@@ -14,19 +15,24 @@ export const VideoStatusEnum = {
   PROCESSING: 2,
   TRANSCODING: 3,
   FINISHED: 4,
+  ERROR: 5,
   UPLOAD_FAILED: 6,
+  JIT_SEGMENTING: 7,
+  JIT_PLAYLISTS_CREATED: 8,
 } as const satisfies Record<string, VideoStatus>;
 
 /**
  * Statuses the server moves through before a video becomes playable.
- * Mirrors `VideoStatus.TRANSITIONAL` in the Android SDK — used by the list
- * screen's poll loop to decide whether to keep refreshing.
+ * Mirrors `VideoStatus.TRANSITIONAL` in the Android SDK plus the JIT
+ * segmenting state — used by the list screen's poll loop to decide whether
+ * to keep refreshing.
  */
 export const TRANSITIONAL_VIDEO_STATUSES: ReadonlySet<VideoStatus> = new Set<VideoStatus>([
   VideoStatusEnum.CREATED,
   VideoStatusEnum.UPLOADED,
   VideoStatusEnum.PROCESSING,
   VideoStatusEnum.TRANSCODING,
+  VideoStatusEnum.JIT_SEGMENTING,
 ]);
 
 /**
@@ -44,8 +50,14 @@ export function videoStatusLabel(status: VideoStatus): string {
       return 'TRANSCODING';
     case VideoStatusEnum.FINISHED:
       return 'FINISHED';
+    case VideoStatusEnum.ERROR:
+      return 'ERROR';
     case VideoStatusEnum.UPLOAD_FAILED:
       return 'UPLOAD_FAILED';
+    case VideoStatusEnum.JIT_SEGMENTING:
+      return 'JIT_SEGMENTING';
+    case VideoStatusEnum.JIT_PLAYLISTS_CREATED:
+      return 'JIT_PLAYLISTS_CREATED';
     default:
       return 'UNKNOWN';
   }

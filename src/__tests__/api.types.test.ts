@@ -96,21 +96,33 @@ describe('VideoStatusEnum', () => {
   it('maps FINISHED to 4', () => {
     expect(VideoStatusEnum.FINISHED).toBe(4);
   });
+  it('maps ERROR to 5', () => {
+    expect(VideoStatusEnum.ERROR).toBe(5);
+  });
   it('maps UPLOAD_FAILED to 6', () => {
     expect(VideoStatusEnum.UPLOAD_FAILED).toBe(6);
+  });
+  it('maps JIT_SEGMENTING to 7', () => {
+    expect(VideoStatusEnum.JIT_SEGMENTING).toBe(7);
+  });
+  it('maps JIT_PLAYLISTS_CREATED to 8', () => {
+    expect(VideoStatusEnum.JIT_PLAYLISTS_CREATED).toBe(8);
   });
 });
 
 describe('TRANSITIONAL_VIDEO_STATUSES', () => {
-  it('contains CREATED, UPLOADED, PROCESSING, TRANSCODING', () => {
+  it('contains CREATED, UPLOADED, PROCESSING, TRANSCODING, JIT_SEGMENTING', () => {
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.CREATED)).toBe(true);
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.UPLOADED)).toBe(true);
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.PROCESSING)).toBe(true);
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.TRANSCODING)).toBe(true);
+    expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.JIT_SEGMENTING)).toBe(true);
   });
-  it('does not contain FINISHED or UPLOAD_FAILED', () => {
+  it('does not contain FINISHED, ERROR, UPLOAD_FAILED or JIT_PLAYLISTS_CREATED', () => {
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.FINISHED)).toBe(false);
+    expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.ERROR)).toBe(false);
     expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.UPLOAD_FAILED)).toBe(false);
+    expect(TRANSITIONAL_VIDEO_STATUSES.has(VideoStatusEnum.JIT_PLAYLISTS_CREATED)).toBe(false);
   });
 });
 
