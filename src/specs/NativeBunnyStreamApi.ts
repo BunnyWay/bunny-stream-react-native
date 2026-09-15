@@ -46,6 +46,16 @@ export interface Spec extends TurboModule {
 
   fetchVideoHeatmap(libraryId: Double, videoId: string): Promise<Object>;
 
+  // Play data enriched with heatmap data (GET /videos/{id}/play/heatmap).
+  // Android-only — the iOS generated OpenAPI client does not expose this
+  // endpoint; the bridge resolves with an InvalidState error on iOS.
+  fetchVideoHeatmapData(
+    libraryId: Double,
+    videoId: string,
+    token: string | null,
+    expires: Double | null,
+  ): Promise<Object>;
+
   fetchVideoStatistics(
     libraryId: Double,
     videoId: string | null,
@@ -56,8 +66,10 @@ export interface Spec extends TurboModule {
 
   fetchVideoResolutions(libraryId: Double, videoId: string): Promise<Object>;
 
-  // TODO(iOS SDK): Add heatmap play data and detailed storage-size methods after
-  // both endpoints are exposed by the public generated or domain API.
+  // Per-rendition storage breakdown (GET /videos/{id}/storage). Android-only —
+  // the endpoint is absent from the iOS generated OpenAPI client; the bridge
+  // resolves with an InvalidState error on iOS.
+  fetchVideoStorageSize(libraryId: Double, videoId: string): Promise<Object>;
 
   // — VideoRepository: creating and changing —
   createVideo(libraryId: Double, request: Object): Promise<Object>;
@@ -173,6 +185,11 @@ export interface Spec extends TurboModule {
 
   // — LiveStreamRepository: operational state and thumbnails —
   getLiveStreamStatus(libraryId: Double, streamId: string): Promise<Object>;
+
+  // Single-shot live stream poll — the lightweight fetch the native players
+  // use for status refreshes. Returns the same LiveStream shape as
+  // getLiveStream. iOS falls back to getLiveStream (no dedicated poll op).
+  pollLiveStream(libraryId: Double, streamId: string): Promise<Object>;
 
   setLiveStreamThumbnail(
     libraryId: Double,

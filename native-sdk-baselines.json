@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "android": {
-    "repository": "BunnyWay/bunny-stream-android-private",
-    "branch": "feature/live_streams",
-    "commit": "fb863507d6025e399460b52c270b71dd1603f0f4",
-    "mavenVersion": "4.0.0-live.shadow.1-SNAPSHOT",
-    "defaultLocalPath": "../bunny-stream-android-private"
+    "repository": "BunnyWay/bunny-stream-android",
+    "ref": "4.0.0",
+    "commit": "61188383b56257902b1402bd5ecd4f92d62e4dd4",
+    "mavenVersion": "4.0.0",
+    "defaultLocalPath": "../bunny-stream-android"
   },
   "ios": {
     "repository": "BunnyWay/bunny-stream-ios-private",

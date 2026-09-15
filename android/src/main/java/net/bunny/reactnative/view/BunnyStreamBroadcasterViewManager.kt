@@ -20,9 +20,9 @@ import com.facebook.react.viewmanagers.BunnyStreamBroadcasterViewManagerInterfac
  *
  * Registered in [net.bunny.reactnative.BunnyStreamPlayerPackage].
  *
- * TODO(Android SDK): `startBroadcast` simulates the built-in native start
- * button when `hideDefaultControls` is false. When the SDK exposes a public
- * start method, this will be a real command.
+ * `startBroadcast` simulates the built-in native start button when
+ * `hideDefaultControls` is false — the SDK exposes no public start method
+ * (verified in 4.0.0).
  */
 class BunnyStreamBroadcasterViewManager :
   SimpleViewManager<BunnyStreamBroadcasterView>(),

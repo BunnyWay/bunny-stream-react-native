@@ -170,6 +170,31 @@ import { BunnyImage, bunnyImageSource } from 'bunny-stream-react-native';
 
 > Programmatic cast start/stop and fullscreen commands are not exposed by either SDK's public API; the native buttons inside the player controls already work.
 
+### Public SDK APIs (Phase 8, Android)
+
+The Android SDK is consumed from Maven Central (`net.bunny:player/api/recording:4.0.0`) — no local checkout or `mavenLocal()` needed. iOS still uses a pinned local checkout pending a public release tag.
+
+**Video insights** — Android-only additions (iOS resolves with an `InvalidState` error; the endpoints are absent from the iOS generated client):
+
+```tsx
+// Play data enriched with heatmap (GET /videos/{id}/play/heatmap)
+const playData = await BunnyStreamApi.fetchVideoHeatmapData(libraryId, videoId, token, expires);
+// Per-rendition storage breakdown (GET /videos/{id}/storage)
+const storage = await BunnyStreamApi.fetchVideoStorageSize(libraryId, videoId);
+```
+
+**Live poll** — `pollLiveStream(libraryId, streamId)` is the lightweight single-shot fetch the native players use for status refreshes. iOS delegates to `getLiveStream` (same return shape).
+
+**Video quality** (Android-only; no-op on iOS) — `setVideoQuality` applies Media3 track-selection parameters on the engine exposed by the SDK's public `BunnyPlayer.currentPlayer`:
+
+```tsx
+playerRef.current?.setVideoQuality({ maxHeight: 720 });   // cap at 720p
+playerRef.current?.setVideoQuality({ maxBitrate: 1_500_000 }); // cap bitrate (bps)
+playerRef.current?.setVideoQuality('auto');                // back to adaptive
+```
+
+List available renditions with `BunnyStreamApi.fetchVideoResolutions`. While casting, the constraint is a no-op on the cast player and reapplies when playback returns to the device.
+
 Planned roadmap:
 
 1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)

@@ -132,6 +132,11 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.enterPiP()
   }
 
+  @ReactMethod
+  override fun setVideoQuality(view: BunnyStreamPlayerView, quality: String) {
+    view.setVideoQuality(quality)
+  }
+
   companion object {
     const val NAME = "BunnyStreamPlayerView"
 

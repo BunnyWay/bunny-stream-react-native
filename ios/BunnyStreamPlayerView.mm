@@ -266,6 +266,11 @@ using namespace facebook::react;
 {
 }
 
+// Phase 8 — no-op: programmatic quality selection is not bridged on iOS.
+- (void)setVideoQuality:(NSString *)quality
+{
+}
+
 @end
 
 // Register the component view with the Fabric plugin registry.

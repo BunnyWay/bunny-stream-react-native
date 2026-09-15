@@ -13,16 +13,14 @@ buildscript {
     return BunnyStreamReactNative[prop]
   }
 
-  // TODO(Android SDK): This closed-test snapshot contains the latest live-stream logic.
-  // Replace it with the public Maven artifact only as the final Plan phase 0B step.
-  // The exact SDK commit and Maven version are pinned in native-sdk-baselines.json.
+  // The Bunny Stream Android SDK version is pinned in native-sdk-baselines.json
+  // and resolved from Maven Central (net.bunny:player/api/recording).
   def nativeSdkBaselines = new groovy.json.JsonSlurper().parse(file("../native-sdk-baselines.json"))
   ext.bunnyStreamSdkVersion = nativeSdkBaselines.android.mavenVersion
 
   repositories {
     google()
     mavenCentral()
-    mavenLocal()
   }
 
   dependencies {
