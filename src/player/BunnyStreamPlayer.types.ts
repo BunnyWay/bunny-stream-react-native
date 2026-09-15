@@ -162,6 +162,22 @@ export type BunnyStreamSource =
     };
 
 /**
+ * Quality constraint applied to VOD playback.
+ *
+ * - `'auto'` — adaptive bitrate (clears all constraints).
+ * - `{ maxHeight }` — cap the selected rendition height (e.g. `720` → 720p max).
+ * - `{ maxBitrate }` — cap the selected rendition bitrate in bps.
+ * - `{ maxWidth, maxHeight }` — cap both dimensions.
+ *
+ * Android-only: applied via Media3 `trackSelectionParameters` on the engine
+ * exposed by the SDK's public `BunnyPlayer.currentPlayer`. No-op on iOS
+ * (programmatic quality control is not bridged there yet). List a video's
+ * available renditions with `BunnyStreamApi.fetchVideoResolutions`.
+ */
+export type VideoQualityPreference =
+  'auto' | { maxHeight: number } | { maxBitrate: number } | { maxWidth: number; maxHeight: number };
+
+/**
  * Imperative commands available for VOD playback through
  * {@link BunnyStreamPlayer}. Commands issued before `STATE_READY` are queued
  * natively and drained when the VOD player becomes ready.
@@ -196,6 +212,13 @@ export type BunnyVodPlayerRef = {
    * PiP. The activity must declare `android:supportsPictureInPicture="true"`.
    */
   enterPiP: () => void;
+  /**
+   * Constrain video quality for the current VOD playback. Android-only —
+   * applies Media3 track-selection parameters on the engine; no-op on iOS.
+   * While casting to Chromecast the constraint is applied to the local
+   * engine and takes effect when playback returns to the device.
+   */
+  setVideoQuality: (quality: VideoQualityPreference) => void;
 };
 
 /**

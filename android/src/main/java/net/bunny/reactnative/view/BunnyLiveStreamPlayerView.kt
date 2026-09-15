@@ -209,8 +209,11 @@ class BunnyLiveStreamPlayerView(
           }
         }
         launch {
-          // TODO(Android SDK): Remove this polling after the public SDK guarantees that LIVE/EVENT
-          // playback cannot restore a VOD speed and exposes player replacement notifications.
+          // Verified against SDK 4.0.0: the live UI pins playbackSpeeds to 1.0×,
+          // but the engine's STATE_READY listener still calls loadSavedSpeed()
+          // when PlaybackSpeedConfig.rememberLastSpeed is on (the default), so a
+          // saved VOD speed can be restored on live playback. This polling
+          // remains necessary until the SDK disables speed restore for live.
           while (isActive) {
             DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->
               if (requiresLiveSpeedReset(livePlaybackActive, player.playbackParameters.speed)) {

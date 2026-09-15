@@ -129,6 +129,9 @@ export interface NativeCommands {
   // Phase 7 — Android-only: enters picture-in-picture on the host activity.
   // No-op on iOS (the SDK exposes no public PiP API).
   enterPiP: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  // Phase 8 — Android-only: applies a track-selection constraint on the VOD
+  // engine (JSON-serialized VideoQualityPreference). No-op on iOS.
+  setVideoQuality: (viewRef: React.ElementRef<HostComponent<NativeProps>>, quality: string) => void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
@@ -141,6 +144,7 @@ export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
     'mute',
     'unmute',
     'enterPiP',
+    'setVideoQuality',
   ],
 });
 

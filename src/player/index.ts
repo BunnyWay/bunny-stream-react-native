@@ -29,6 +29,7 @@ export type {
   ResumePositionAvailableEvent,
   RetentionGraphEntry,
   RetentionGraphUpdatedEvent,
+  VideoQualityPreference,
 } from './BunnyStreamPlayer.types';
 export { useBunnyStreamPlayer } from './hooks/useBunnyStreamPlayer';
 export type {

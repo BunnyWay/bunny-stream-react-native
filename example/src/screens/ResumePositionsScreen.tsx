@@ -62,8 +62,6 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
   const [importText, setImportText] = React.useState('');
   const [actionMessage, setActionMessage] = React.useState<string | null>(null);
 
-  const isAndroid = Platform.OS === 'android';
-
   const refreshAllPositions = React.useCallback(async () => {
     setAllPositions(await getAllResumePositions(iosStorage));
   }, []);
@@ -127,18 +125,6 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
       <Header title="Resume Positions" onBack={() => navigation.goBack()} />
       <ScrollView>
         {actionMessage ? <Text style={styles.actionMessage}>{actionMessage}</Text> : null}
-
-        {/* Platform info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {isAndroid ? 'Android — Native SDK' : 'iOS — JavaScript fallback (AsyncStorage)'}
-          </Text>
-          <Text style={styles.cardText}>
-            {isAndroid
-              ? 'Positions are persisted by the native PlaybackPositionManager (SharedPreferences). The resumeConfig prop on the player enables auto-save; onResumePositionAvailable fires when a saved position is found.'
-              : 'Positions are tracked in JS and persisted to AsyncStorage by the useResumePosition hook while the player runs.'}
-          </Text>
-        </View>
 
         {/* All saved positions */}
         <View style={styles.card}>
@@ -281,11 +267,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.onSurface,
     marginBottom: 12,
-  },
-  cardText: {
-    fontSize: 14,
-    color: colors.onSurfaceVariant,
-    lineHeight: 20,
   },
   button: {
     backgroundColor: colors.primary,

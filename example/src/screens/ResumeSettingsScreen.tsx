@@ -77,10 +77,6 @@ export function ResumeSettingsScreen({ navigation }: ResumeSettingsScreenProps) 
             trackColor={{ true: colors.primary }}
           />
         </View>
-        <Text style={localStyles.hint}>
-          When enabled, the player saves your position and offers to continue where you left off.
-          Android uses the native SDK; iOS uses the JS fallback with AsyncStorage.
-        </Text>
 
         <Text style={styles.sectionTitle}>Retention (days)</Text>
         <TextInput

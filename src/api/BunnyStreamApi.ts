@@ -59,6 +59,7 @@ import type {
   VideoResolutionsInfo,
   VideoStatistics,
   VideoStatisticsOptions,
+  VideoStorageSize,
 } from './models/videoInsights';
 import type { BunnyResult } from './result/BunnyResult';
 
@@ -216,6 +217,25 @@ export const BunnyStreamApi = {
     >;
   },
 
+  /**
+   * Play data enriched with heatmap data (the `/play/heatmap` endpoint).
+   * Android-only — iOS resolves with an `InvalidState` error because the
+   * generated OpenAPI client does not expose the endpoint.
+   */
+  async fetchVideoHeatmapData(
+    libraryId: number,
+    videoId: string,
+    token?: string | null,
+    expires?: number | null,
+  ): Promise<BunnyResult<VideoPlayData>> {
+    return NativeBunnyStreamApi.fetchVideoHeatmapData(
+      libraryId,
+      videoId,
+      token ?? null,
+      expires ?? null,
+    ) as Promise<BunnyResult<VideoPlayData>>;
+  },
+
   async fetchVideoStatistics(
     libraryId: number,
     options?: VideoStatisticsOptions,
@@ -235,6 +255,20 @@ export const BunnyStreamApi = {
   ): Promise<BunnyResult<VideoResolutionsInfo>> {
     return NativeBunnyStreamApi.fetchVideoResolutions(libraryId, videoId) as Promise<
       BunnyResult<VideoResolutionsInfo>
+    >;
+  },
+
+  /**
+   * Per-rendition storage breakdown for a video (the `/storage` endpoint).
+   * Android-only — iOS resolves with an `InvalidState` error because the
+   * generated OpenAPI client does not expose the endpoint.
+   */
+  async fetchVideoStorageSize(
+    libraryId: number,
+    videoId: string,
+  ): Promise<BunnyResult<VideoStorageSize>> {
+    return NativeBunnyStreamApi.fetchVideoStorageSize(libraryId, videoId) as Promise<
+      BunnyResult<VideoStorageSize>
     >;
   },
 
@@ -624,6 +658,17 @@ export const BunnyStreamApi = {
    */
   async stopLiveStream(libraryId: number, streamId: string): Promise<BunnyResult<LiveStream>> {
     return NativeBunnyStreamApi.stopLiveStream(libraryId, streamId) as Promise<
+      BunnyResult<LiveStream>
+    >;
+  },
+
+  /**
+   * Single-shot live stream poll — the lightweight fetch the native players
+   * use for status refreshes. Returns the same {@link LiveStream} shape as
+   * {@link getLiveStream}. On iOS this delegates to `getLiveStream`.
+   */
+  async pollLiveStream(libraryId: number, streamId: string): Promise<BunnyResult<LiveStream>> {
+    return NativeBunnyStreamApi.pollLiveStream(libraryId, streamId) as Promise<
       BunnyResult<LiveStream>
     >;
   },

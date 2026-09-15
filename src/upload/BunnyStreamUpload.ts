@@ -130,8 +130,8 @@ export const BunnyStreamUpload = {
   restoreUploads(): void {
     // TODO(iOS SDK): Expose TUSVideoUploader.start() reattachment after the
     // bridge has a stable way to enumerate restored UploadVideoInfo entries.
-    // TODO(Android SDK): No equivalent — Android TUS does not survive process
-    // death without a host foreground service.
+    // Android: platform limitation, not an SDK gap — TUS cannot survive
+    // process death without a host-owned foreground service.
     if (Platform.OS !== 'ios') return;
     // The native module handles restoration on first method call; this is a
     // placeholder until explicit enumeration is exposed.

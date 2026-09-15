@@ -77,6 +77,15 @@ import React
     fetchVideoHeatmap(libraryId: libraryId, videoId: videoId, resolve: resolve)
   }
 
+  @objc public func fetchVideoHeatmapDataWithLibraryId(_ libraryId: Double,
+                                                       videoId: String,
+                                                       token: String?,
+                                                       expires: NSNumber?,
+                                                       resolve: @escaping RCTPromiseResolveBlock) {
+    fetchVideoHeatmapData(libraryId: libraryId, videoId: videoId,
+                          token: token, expires: expires?.doubleValue, resolve: resolve)
+  }
+
   @objc public func fetchVideoStatisticsWithLibraryId(_ libraryId: Double,
                                                       videoId: String?,
                                                       dateFrom: String?,
@@ -91,6 +100,12 @@ import React
                                                        videoId: String,
                                                        resolve: @escaping RCTPromiseResolveBlock) {
     fetchVideoResolutions(libraryId: libraryId, videoId: videoId, resolve: resolve)
+  }
+
+  @objc public func fetchVideoStorageSizeWithLibraryId(_ libraryId: Double,
+                                                       videoId: String,
+                                                       resolve: @escaping RCTPromiseResolveBlock) {
+    fetchVideoStorageSize(libraryId: libraryId, videoId: videoId, resolve: resolve)
   }
 
   @objc public func createVideoWithLibraryId(_ libraryId: Double,
@@ -249,6 +264,12 @@ import React
     listLiveStreams(libraryId: libraryId, page: page?.doubleValue,
                     itemsPerPage: itemsPerPage?.doubleValue, search: search,
                     orderBy: orderBy, collectionId: collectionId, resolve: resolve)
+  }
+
+  @objc public func pollLiveStreamWithLibraryId(_ libraryId: Double,
+                                                streamId: String,
+                                                resolve: @escaping RCTPromiseResolveBlock) {
+    pollLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
   }
 
   @objc public func getLiveStreamWithLibraryId(_ libraryId: Double,
@@ -577,6 +598,40 @@ import React
         resolve(envelope(from: error))
       }
     }
+  }
+
+  /// Play data enriched with heatmap data.
+  ///
+  /// TODO(iOS SDK): The generated OpenAPI client does not expose
+  /// `GET /videos/{id}/play/heatmap`. Resolves with an `InvalidState` error
+  /// until the iOS SDK adds this operation.
+  func fetchVideoHeatmapData(
+    libraryId: Double,
+    videoId: String,
+    token: String?,
+    expires: Double?,
+    resolve: @escaping RCTPromiseResolveBlock
+  ) {
+    resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
+                        message: "fetchVideoHeatmapData is not supported on iOS. The generated OpenAPI client does not expose the play/heatmap endpoint.",
+                        isTerminal: true))
+  }
+
+  /// Per-rendition storage breakdown.
+  ///
+  /// TODO(iOS SDK): The generated OpenAPI client does not expose
+  /// `GET /videos/{id}/storage`. Resolves with an `InvalidState` error until
+  /// the iOS SDK adds this operation.
+  func fetchVideoStorageSize(libraryId: Double, videoId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
+                        message: "fetchVideoStorageSize is not supported on iOS. The generated OpenAPI client does not expose the storage endpoint.",
+                        isTerminal: true))
+  }
+
+  /// Single-shot live stream poll. The iOS SDK has no dedicated poll op —
+  /// falls back to `getLiveStream`, which returns the same model.
+  func pollLiveStream(libraryId: Double, streamId: String, resolve: @escaping RCTPromiseResolveBlock) {
+    getLiveStream(libraryId: libraryId, streamId: streamId, resolve: resolve)
   }
 
   func fetchVideoStatistics(

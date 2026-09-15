@@ -105,7 +105,7 @@
       "ios": "supported",
       "reactNative": "supported",
       "phase": "current",
-      "notes": "Programmatic selection remains outside the current JS contract."
+      "notes": "Native pickers cover captions/quality/audio. Programmatic quality selection is bridged on Android via setVideoQuality (Media3 track selection on the public currentPlayer); iOS programmatic quality is not bridged."
     },
     {
       "id": "player.cast-pip-fullscreen",
@@ -222,7 +222,7 @@
       "ios": "partial",
       "reactNative": "partial",
       "phase": "current",
-      "notes": "Heatmap, statistics, and resolutions are shared. Heatmap play data and detailed storage size remain blocked by missing iOS SDK endpoints."
+      "notes": "Heatmap, statistics, resolutions, heatmap play data, and detailed storage size are bridged on Android. iOS lacks the play/heatmap and /storage endpoints in the generated client; heatmap, statistics, and resolutions remain shared."
     },
     {
       "id": "api.live-operations",
@@ -353,11 +353,11 @@
     {
       "id": "distribution.public-native-packages",
       "area": "Public native dependency distribution",
-      "android": "blocked",
+      "android": "supported",
       "ios": "blocked",
-      "reactNative": "blocked",
+      "reactNative": "partial",
       "phase": "phase-0b",
-      "notes": "The final release step replaces local private SDK dependencies with public artifacts."
+      "notes": "Android resolves net.bunny:*:4.0.0 from Maven Central. iOS still uses a pinned local checkout pending a public release tag."
     }
   ]
 }

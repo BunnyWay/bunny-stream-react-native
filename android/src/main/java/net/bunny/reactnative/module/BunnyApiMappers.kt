@@ -27,6 +27,7 @@ import net.bunny.api.video.domain.model.VideoList
 import net.bunny.api.video.domain.model.VideoPlayData
 import net.bunny.api.video.domain.model.VideoResolutionsInfo
 import net.bunny.api.video.domain.model.VideoStatistics
+import net.bunny.api.video.domain.model.VideoStorageSize
 
 /**
  * Pure functions that map the SDK's domain models and [BunnyResult] envelope to
@@ -210,6 +211,24 @@ internal object BunnyApiMappers {
     putInt("engagementScore", engagementScore)
   }
 
+  fun VideoStorageSize.toWritableMap(): WritableMap = WritableNativeMap().apply {
+    putMap("encoded", WritableNativeMap().apply {
+      for ((key, rendition) in encoded) {
+        putMap(key, WritableNativeMap().apply {
+          putString("codec", rendition.codec)
+          putString("resolution", rendition.resolution)
+          putDouble("sizeBytes", rendition.sizeBytes.toDouble())
+        })
+      }
+    })
+    putDouble("thumbnailsBytes", thumbnailsBytes.toDouble())
+    putDouble("previewsBytes", previewsBytes.toDouble())
+    putDouble("originalsBytes", originalsBytes.toDouble())
+    putDouble("mp4FallbackBytes", mp4FallbackBytes.toDouble())
+    putDouble("miscellaneousBytes", miscellaneousBytes.toDouble())
+    putString("calculatedAt", calculatedAt)
+  }
+
   fun VideoResolutionsInfo.toWritableMap(): WritableMap = WritableNativeMap().apply {
     putString("videoId", videoId)
     putDouble("videoLibraryId", videoLibraryId.toDouble())
@@ -326,7 +345,9 @@ internal object BunnyApiMappers {
     putBoolean("isLive", primaryLive || backupLive)
     putNullableLong("lastPingAgoMs", lastPingAgoMs)
     putNullableInt("durationSeconds", durationSeconds)
-    // TODO(Android SDK): Map the status timestamp after the domain model exposes it.
+    // Verified in SDK 4.0.0: LiveStreamStatusModel.statusTimeUtc exists in the
+    // generated DTO but is dropped by the domain LiveStreamIngestStatus — not
+    // reachable through the public repository.
     putNull("statusTime")
   }
 
