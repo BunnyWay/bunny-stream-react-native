@@ -36,6 +36,56 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
   return @NO;
 }
 
+// Phase 7 — the iOS SDK hardcodes this speed list internally.
+- (void)getPlaybackSpeeds:(RCTPromiseResolveBlock)resolve
+                   reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@[ @0.5, @0.75, @1.0, @1.25, @1.5, @1.75, @2.0 ]);
+}
+
+// MARK: - Resume position management (stubs)
+// The iOS SDK exposes no resume-position API; JS-side AsyncStorage fallback
+// owns persistence and never calls these. Stubs keep the Codegen contract
+// satisfied.
+
+- (void)getAllSavedPositions:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@"[]");
+}
+
+- (void)clearSavedPosition:(NSString *)videoId
+                   resolve:(RCTPromiseResolveBlock)resolve
+                    reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(nil);
+}
+
+- (void)clearAllSavedPositions:(RCTPromiseResolveBlock)resolve
+                        reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(nil);
+}
+
+- (void)exportPositions:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@"[]");
+}
+
+- (void)importPositions:(NSString *)jsonData
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(@NO);
+}
+
+- (void)cleanupExpiredPositions:(RCTPromiseResolveBlock)resolve
+                         reject:(RCTPromiseRejectBlock)reject
+{
+  resolve(nil);
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {

@@ -2,6 +2,7 @@ import type { RootStackParamList } from '../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -17,18 +18,28 @@ import {
   BunnyStreamApi,
   BunnyStreamPlayer,
   fold,
+  getPlaybackSpeeds,
   sourceIdentityKey,
   useBunnyStreamPlayer,
+  useResumePosition,
   videoStatusLabel,
+  type PlaybackPosition,
+  type PlayerType,
   type Video,
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
 import { Header } from '../components/Header';
+import { ResumeDialog } from '../components/ResumeDialog';
+import {
+  DEFAULT_RESUME_SETTINGS,
+  loadResumeSettings,
+  toResumeConfig,
+} from '../storage/resumeSettings';
 import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
 
-const SPEED_OPTIONS = [0.5, 1.0, 1.5, 2.0];
+const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
 const STATUS_POLL_INTERVAL_MS = 5_000;
 
@@ -60,15 +71,76 @@ type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { videoId, libraryId } = route.params;
   const sourceKey = sourceIdentityKey({ type: 'vod', videoId, libraryId });
-  const player = useBunnyStreamPlayer(undefined, sourceKey);
+  const player = useBunnyStreamPlayer(
+    { onPlaybackRateChange: (e) => setCurrentSpeed(e.rate) },
+    sourceKey,
+  );
 
   const { state, progress, controls } = player;
   const loading = state.playbackState === 'idle' || state.playbackState === 'loading';
 
   const [currentSpeed, setCurrentSpeed] = React.useState(1.0);
+  const [speedOptions, setSpeedOptions] = React.useState<number[]>(FALLBACK_SPEEDS);
   const [useCustomControls, setUseCustomControls] = React.useState(false);
   const [videoMeta, setVideoMeta] = React.useState<Video | null>(null);
   const [metaLoading, setMetaLoading] = React.useState(true);
+  const [playerType, setPlayerType] = React.useState<PlayerType>('default');
+  const [resumeSettings, setResumeSettings] = React.useState(DEFAULT_RESUME_SETTINGS);
+  const [resumePosition, setResumePosition] = React.useState<PlaybackPosition | null>(null);
+  // Remount key for the Retry action in the playback-error overlay.
+  const [playbackAttempt, setPlaybackAttempt] = React.useState(0);
+
+  const isAndroid = Platform.OS === 'android';
+
+  // Load persisted resume settings (and refresh them when returning from the
+  // settings screen).
+  React.useEffect(() => {
+    const refresh = () => void loadResumeSettings().then(setResumeSettings);
+    refresh();
+    return navigation.addListener('focus', refresh);
+  }, [navigation]);
+
+  // Query the speeds the player offers — native engine on Android, SDK's
+  // hardcoded list on iOS.
+  React.useEffect(() => {
+    let cancelled = false;
+    void getPlaybackSpeeds().then((speeds) => {
+      if (!cancelled && speeds.length > 0) setSpeedOptions(speeds);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // iOS JS fallback resume — the native iOS SDK has no resume API, so the
+  // hook tracks progress into AsyncStorage. `onPositionAvailable` returns
+  // false to suppress the hook's auto-seek; the user decides in the dialog.
+  const iosResume = useResumePosition({
+    playerRef: player.ref,
+    videoId,
+    videoTitle: videoMeta?.title,
+    config: resumeSettings.enabled ? toResumeConfig(resumeSettings) : undefined,
+    storage: !isAndroid && resumeSettings.enabled ? AsyncStorage : undefined,
+    onPositionAvailable: (pos) => {
+      setResumePosition(pos);
+      return false;
+    },
+  });
+
+  // Auto-save on iOS while playing/paused (throttled by the hook).
+  React.useEffect(() => {
+    if (isAndroid || !resumeSettings.enabled) return;
+    if (state.durationMs <= 0) return;
+    if (state.playbackState !== 'playing' && state.playbackState !== 'paused') return;
+    void iosResume.savePosition(progress.positionMs, state.durationMs);
+  }, [
+    isAndroid,
+    resumeSettings.enabled,
+    progress.positionMs,
+    state.durationMs,
+    state.playbackState,
+    iosResume,
+  ]);
 
   // Fetch video metadata via fetchVideoPlayData (like the Android demo's
   // PlayerViewModel.fetchVideo). The play data carries the video object with
@@ -115,6 +187,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
   const progressPct = `${(progress.progress * 100).toFixed(0)}%`;
 
+  // Transitional video states (created/uploaded/processing/transcoding) get a
+  // placeholder instead of the player — the metadata poll above reloads the
+  // player automatically once encoding finishes.
+  const isTransitional = videoMeta ? [0, 1, 2, 3].includes(videoMeta.status as VideoStatus) : false;
+
   // Build the metadata properties list (like Android demo's VideoPropertiesCard).
   const metaProperties: { label: string; value: string }[] = videoMeta
     ? [
@@ -132,22 +209,46 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     <View style={styles.playerContainer}>
       <Header title="Player" onBack={() => navigation.goBack()} />
       <View style={styles.playerWrapper}>
-        <BunnyStreamPlayer
-          ref={player.ref}
-          style={styles.player}
-          source={{ type: 'vod', videoId, libraryId }}
-          autoPlay
-          controls={!useCustomControls}
-          {...player.eventHandlers}
-        />
+        {isTransitional ? (
+          <View style={styles.transitionalOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.transitionalText}>
+              {videoStatusLabel(videoMeta?.status as VideoStatus)} — playback starts automatically
+              once encoding finishes.
+            </Text>
+          </View>
+        ) : (
+          <BunnyStreamPlayer
+            key={playbackAttempt}
+            ref={player.ref}
+            style={styles.player}
+            source={{ type: 'vod', videoId, libraryId }}
+            autoPlay
+            controls={!useCustomControls}
+            resumeConfig={
+              isAndroid && resumeSettings.enabled ? toResumeConfig(resumeSettings) : undefined
+            }
+            onResumePositionAvailable={
+              isAndroid ? (e) => setResumePosition(e.nativeEvent.position) : undefined
+            }
+            onPlayerTypeChange={(e) => setPlayerType(e.nativeEvent.playerType)}
+            {...player.eventHandlers}
+          />
+        )}
 
-        {loading ? (
+        {loading && !isTransitional ? (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         ) : null}
 
-        {state.error ? (
+        {playerType === 'cast' ? (
+          <View style={playerScreenStyles.castChip}>
+            <Text style={playerScreenStyles.castChipText}>Casting</Text>
+          </View>
+        ) : null}
+
+        {state.error && !isTransitional ? (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorIcon}>⚠</Text>
             <Text style={styles.errorTitle}>Playback Error</Text>
@@ -155,7 +256,16 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             <Text style={styles.errorVideoId} numberOfLines={1}>
               Video ID: {videoId}
             </Text>
-            <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              style={styles.errorButton}
+              onPress={() => setPlaybackAttempt((n) => n + 1)}
+            >
+              <Text style={styles.errorButtonText}>Retry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.errorButton, playerScreenStyles.errorButtonSecondary]}
+              onPress={() => navigation.goBack()}
+            >
               <Text style={styles.errorButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>
@@ -224,7 +334,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             {/* Speed picker — visible alongside custom controls */}
             <Text style={styles.speedTitle}>Playback Speed</Text>
             <View style={styles.speedRow}>
-              {SPEED_OPTIONS.map((speed) => {
+              {speedOptions.map((speed) => {
                 const isActive = speed === currentSpeed;
                 return (
                   <TouchableOpacity
@@ -247,7 +357,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           <View style={styles.speedSection}>
             <Text style={styles.speedTitle}>Playback Speed</Text>
             <View style={styles.speedRow}>
-              {SPEED_OPTIONS.map((speed) => {
+              {speedOptions.map((speed) => {
                 const isActive = speed === currentSpeed;
                 return (
                   <TouchableOpacity
@@ -286,9 +396,42 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
           </View>
         ) : null}
       </ScrollView>
+
+      {/* Resume confirmation — same semantics as the Android demo's
+          ResumeDialog: Resume seeks, Start Over / dismiss leaves the saved
+          position untouched. */}
+      <ResumeDialog
+        position={resumePosition}
+        onResume={(pos) => {
+          controls.seekTo(pos.positionMs);
+          setResumePosition(null);
+        }}
+        onStartOver={() => setResumePosition(null)}
+      />
     </View>
   );
 }
+
+const playerScreenStyles = StyleSheet.create({
+  castChip: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  castChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  errorButtonSecondary: {
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+});
 
 const toggleStyles = StyleSheet.create({
   row: {

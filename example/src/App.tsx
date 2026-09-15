@@ -16,6 +16,7 @@ import { LivePlayerScreen } from './screens/LivePlayerScreen';
 import { LiveStreamsScreen } from './screens/LiveStreamsScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
 import { ResumePositionsScreen } from './screens/ResumePositionsScreen';
+import { ResumeSettingsScreen } from './screens/ResumeSettingsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ThumbnailPickerScreen } from './screens/ThumbnailPickerScreen';
 import { TrailerPickerScreen } from './screens/TrailerPickerScreen';
@@ -68,6 +69,7 @@ export default function App() {
               <Stack.Screen name="Camera" component={CameraScreen} />
               <Stack.Screen name="VideoManagement" component={VideoManagementScreen} />
               <Stack.Screen name="ResumePositions" component={ResumePositionsScreen} />
+              <Stack.Screen name="ResumeSettings" component={ResumeSettingsScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         )}
