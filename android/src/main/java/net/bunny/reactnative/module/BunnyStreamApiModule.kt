@@ -109,6 +109,20 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun fetchVideoHeatmapData(
+    libraryId: Double,
+    videoId: String,
+    token: String?,
+    expires: Double?,
+    promise: Promise,
+  ) {
+    launchApi(promise) { api ->
+      api.videoRepository
+        .fetchVideoHeatmapData(libraryId.toLong(), videoId, token, expires?.toLong())
+        .let { mappers.run { it.toEnvelope { v -> v.toWritableMap() } } }
+    }
+  }
+
   override fun fetchVideoStatistics(
     libraryId: Double,
     videoId: String?,
@@ -129,6 +143,14 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
       api.videoRepository
         .fetchVideoResolutions(libraryId.toLong(), videoId)
         .let { mappers.run { it.toEnvelope { resolutions -> resolutions.toWritableMap() } } }
+    }
+  }
+
+  override fun fetchVideoStorageSize(libraryId: Double, videoId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.videoRepository
+        .fetchVideoStorageSize(libraryId.toLong(), videoId)
+        .let { mappers.run { it.toEnvelope { size -> size.toWritableMap() } } }
     }
   }
 
@@ -514,6 +536,14 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
       api.liveStreamRepository
         .stopLiveStream(libraryId.toLong(), streamId)
         .let { mappers.run { it.toEnvelope { v -> v.toWritableMap() } } }
+    }
+  }
+
+  override fun pollLiveStream(libraryId: Double, streamId: String, promise: Promise) {
+    launchApi(promise) { api ->
+      api.liveStreamRepository
+        .pollLiveStream(libraryId.toLong(), streamId)
+        .let { mappers.run { it.toEnvelope { stream -> stream.toWritableMap() } } }
     }
   }
 

@@ -30,12 +30,13 @@ import net.bunny.bunnystreamcameraupload.RecordingStateListener
  *  4. Exposes command methods for `stopBroadcast`, `switchCamera`, and
  *     `setMuted`.
  *
- * TODO(Android SDK): There is no public `startBroadcast()` / `startRecording()`
- * method on `BunnyStreamCameraUpload`. The SDK only starts streaming when the
- * built-in start/stop button is pressed. When `hideDefaultControls` is `false`
- * (default), the user can start via the native button. When controls are
- * hidden, `startBroadcast` is a no-op. This will be resolved when the SDK
- * exposes a public start method.
+ * There is no public `startBroadcast()` / `startRecording()` method on
+ * `StreamCameraUploadView` (verified in SDK 4.0.0 — the view only exposes
+ * `startPreview`/`stopRecording`/`switchCamera`/`setAudioMuted`/`isRecording`).
+ * The SDK only starts streaming when the built-in start/stop button is
+ * pressed. When `hideDefaultControls` is `false` (default), the user can start
+ * via the native button and the `startBroadcast` command simulates that click.
+ * When controls are hidden, `startBroadcast` is a no-op.
  *
  * Camera and microphone permissions must be granted by the host app before
  * the view is mounted — the SDK checks but does not request them.
@@ -175,9 +176,8 @@ class BunnyStreamBroadcasterView(context: Context) : FrameLayout(context) {
       cameraView.startPreview()
       propsCommitted = true
 
-      // TODO(Android SDK): autoStart is not supported because there is no
-      // public startBroadcast() method. The user must use the native
-      // start button when hideDefaultControls is false.
+      // autoStart works only with visible controls: the SDK exposes no public
+      // start method (verified in 4.0.0), so we simulate the native button.
       if (pendingAutoStart && !pendingHideDefaultControls) {
         post { performStartViaNativeButton() }
       }
@@ -187,7 +187,7 @@ class BunnyStreamBroadcasterView(context: Context) : FrameLayout(context) {
   // --- Commands ---
 
   /**
-   * TODO(Android SDK): There is no public startBroadcast() method. This
+   * There is no public startBroadcast() method (verified in SDK 4.0.0). This
    * simulates clicking the built-in start/stop button when controls are
    * visible. When controls are hidden, this is a no-op.
    */
@@ -210,8 +210,8 @@ class BunnyStreamBroadcasterView(context: Context) : FrameLayout(context) {
   }
 
   fun toggleMute() {
-    // The SDK doesn't expose a toggle; track state internally.
-    // TODO(Android SDK): expose isAudioMuted() or toggleMute().
+    // The SDK doesn't expose a mute-state getter or toggle (verified in
+    // 4.0.0 — only setAudioMuted exists); track state internally.
     cameraView.setAudioMuted(!lastKnownMuted)
   }
 
@@ -220,16 +220,13 @@ class BunnyStreamBroadcasterView(context: Context) : FrameLayout(context) {
   /**
    * Simulates pressing the SDK's built-in start/stop button.
    *
-   * TODO(Android SDK): Replace with a public startBroadcast() method when
-   * the SDK exposes one. This workaround finds the button view and performs
-   * a click, which triggers the internal StreamHandler.startStreaming()
-   * or startLiveStreaming() call.
+   * The SDK exposes no public start method (verified in 4.0.0). This
+   * workaround finds the button view and performs a click, which triggers
+   * the internal StreamHandler.startStreaming() or startLiveStreaming() call.
    */
   private fun performStartViaNativeButton() {
     // The SDK's BunnyStreamCameraUpload has a built-in start/stop button.
     // When hideDefaultControls is false, we can find and click it.
-    // This is fragile but the only option until the SDK exposes a public
-    // start method.
     val startButton = findStartButton(cameraView)
     startButton?.performClick()
   }

@@ -22,14 +22,6 @@ buildscript {
     }
 }
 
-// Local snapshot of the Bunny Stream Android SDK pinned in native-sdk-baselines.json.
-// TODO(Android SDK): Replace with the public Maven artifact as the final Plan phase 0B step.
-allprojects {
-    repositories {
-        mavenLocal()
-    }
-}
-
 // Enable core library desugaring for the :app project.
 // Required by transitive deps of the Bunny Stream Android SDK
 // (media3-exoplayer-ima, interactivemedia).

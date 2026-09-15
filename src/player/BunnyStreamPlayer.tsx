@@ -5,6 +5,7 @@ import type {
   Moment,
   PlaybackPosition,
   RetentionGraphEntry,
+  VideoQualityPreference,
 } from './BunnyStreamPlayer.types';
 import type { HostComponent } from 'react-native';
 
@@ -24,6 +25,18 @@ import { sourceIdentityKey } from './sourceIdentity';
 const NativeVodView = BunnyStreamPlayerNativeComponent as unknown as HostComponent<VodNativeProps>;
 const NativeLiveView =
   BunnyLiveStreamPlayerNativeComponent as unknown as HostComponent<LiveNativeProps>;
+
+/** Serializes a {@link VideoQualityPreference} for the native bridge. */
+const serializeVideoQuality = (quality: VideoQualityPreference): string => {
+  if (quality === 'auto') return JSON.stringify({ mode: 'auto' });
+  if ('maxBitrate' in quality) {
+    return JSON.stringify({ mode: 'bitrate', bitrate: quality.maxBitrate });
+  }
+  if ('maxWidth' in quality) {
+    return JSON.stringify({ mode: 'size', width: quality.maxWidth, height: quality.maxHeight });
+  }
+  return JSON.stringify({ mode: 'height', height: quality.maxHeight });
+};
 
 /**
  * `BunnyStreamPlayer` renders the native Bunny Stream player for VOD or live
@@ -84,6 +97,10 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       mute: () => runVodCommand((view) => NativeCommands.mute(view)),
       unmute: () => runVodCommand((view) => NativeCommands.unmute(view)),
       enterPiP: () => runVodCommand((view) => NativeCommands.enterPiP(view)),
+      setVideoQuality: (quality: VideoQualityPreference) =>
+        runVodCommand((view) =>
+          NativeCommands.setVideoQuality(view, serializeVideoQuality(quality)),
+        ),
     }));
 
     // A source identity change remounts the native host so the previous player

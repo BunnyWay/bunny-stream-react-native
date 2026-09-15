@@ -51,6 +51,7 @@ export type {
   UseResumePositionOptions,
   UseResumePositionResult,
   ResumePositionStorage,
+  VideoQualityPreference,
 } from './player';
 
 export {

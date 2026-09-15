@@ -92,6 +92,7 @@ export function useBunnyStreamPlayer(
       mute: () => ref.current?.mute(),
       unmute: () => ref.current?.unmute(),
       enterPiP: () => ref.current?.enterPiP(),
+      setVideoQuality: (quality) => ref.current?.setVideoQuality(quality),
     }),
     [],
   );

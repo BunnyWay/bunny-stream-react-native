@@ -74,6 +74,20 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                                                             resolve:resolve];
 }
 
+- (void)fetchVideoHeatmapData:(double)libraryId
+                      videoId:(NSString *)videoId
+                        token:(NSString *)token
+                      expires:(NSNumber *)expires
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoHeatmapDataWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                  token:token
+                                                                expires:expires
+                                                                resolve:resolve];
+}
+
 - (void)fetchVideoStatistics:(double)libraryId
                      videoId:(NSString *)videoId
                     dateFrom:(NSString *)dateFrom
@@ -96,6 +110,16 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                        reject:(RCTPromiseRejectBlock)reject
 {
   [[BunnyStreamApiModuleImpl shared] fetchVideoResolutionsWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                resolve:resolve];
+}
+
+- (void)fetchVideoStorageSize:(double)libraryId
+                       videoId:(NSString *)videoId
+                       resolve:(RCTPromiseResolveBlock)resolve
+                        reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoStorageSizeWithLibraryId:libraryId
                                                                 videoId:videoId
                                                                 resolve:resolve];
 }
@@ -445,6 +469,16 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
 }
 
 // MARK: - LiveStreamRepository: operational state and thumbnails
+
+- (void)pollLiveStream:(double)libraryId
+              streamId:(NSString *)streamId
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] pollLiveStreamWithLibraryId:libraryId
+                                                        streamId:streamId
+                                                         resolve:resolve];
+}
 
 - (void)getLiveStreamStatus:(double)libraryId
                    streamId:(NSString *)streamId

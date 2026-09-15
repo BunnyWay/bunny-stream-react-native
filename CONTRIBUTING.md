@@ -72,7 +72,7 @@ The example app resolves the library from `src/` via Metro, so changes to TypeSc
 
 Try to keep changes scoped to the area they affect. Write code identifiers, file names, comments, API documentation, error messages, branch names, and commit messages in English.
 
-During closed native SDK testing, the exact Android and iOS commits are pinned in `native-sdk-baselines.json`. Set `BUNNY_STREAM_ANDROID_SDK_PATH` or `BUNNY_STREAM_IOS_SDK_PATH` only when the checkouts are not in their default sibling locations, then verify them with:
+The Android SDK is consumed as a public Maven Central artifact (`net.bunny:player/api/recording`) at the version pinned in `native-sdk-baselines.json` — no local Android checkout is required to build. During closed iOS SDK testing, the exact iOS commit is pinned in `native-sdk-baselines.json`. Set `BUNNY_STREAM_IOS_SDK_PATH` only when the checkout is not in its default sibling location, then verify it with:
 
 ```sh
 yarn native-baselines:check

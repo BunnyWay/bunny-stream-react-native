@@ -25,8 +25,8 @@ type NativeViewRef = React.ElementRef<HostComponent<NativeProps>> | null;
  * - **Android:** Quality is hard-coded by the SDK (1080p30, ~9.3 Mbps) and
  *   the `quality` prop is ignored. `startBroadcast` simulates the built-in
  *   start button when `hideDefaultControls` is `false`; when controls are
- *   hidden, it resolves with an `InvalidState` error (TODO(Android SDK): expose
- *   a public start method).
+ *   hidden, it resolves with an `InvalidState` error (the Android SDK exposes
+ *   no public start method — verified in 4.0.0).
  *
  * @example
  * ```tsx

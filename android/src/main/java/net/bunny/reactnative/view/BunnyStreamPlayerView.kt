@@ -19,6 +19,7 @@ import android.widget.TextView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.PlayerView
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
@@ -559,8 +560,9 @@ class BunnyStreamPlayerView(
    * ensures the full controller (bottom bar + center) is visible and the 5 s
    * auto-hide timer starts at the right moment.
    *
-   * TODO(Android SDK): remove this adapter after `controlsEnabled = true`
-   * shows and lays out the controller itself in the public Android SDK.
+   * Workaround for a Media3 layout quirk (still present in SDK 4.0.0): after
+   * the engine is replaced, `useController = true` does not re-measure the
+   * controller view, leaving it at zero size until the next touch.
    */
   private fun restoreNativeControllerLayout() {
     postDelayed({
@@ -770,6 +772,51 @@ class BunnyStreamPlayerView(
     } catch (e: Exception) {
       Log.w(TAG, "Failed to enter PiP: ${e.message}")
     }
+  }
+
+  /**
+   * Applies a video-quality constraint on the engine (Phase 8 — Android-only).
+   *
+   * The SDK exposes the media3 engine through the public
+   * `BunnyPlayer.currentPlayer`, documented as the escape hatch for "direct
+   * control over tracks, quality, volume or speed". We set
+   * [TrackSelectionParameters] on it: a max size/bitrate caps the adaptive
+   * track selection, "auto" clears the constraint.
+   *
+   * The JSON payload mirrors the JS `VideoQualityPreference` union:
+   * `{"mode":"auto"}` | `{"mode":"height","height":720}` |
+   * `{"mode":"bitrate","bitrate":N}` | `{"mode":"size","width":W,"height":H}`.
+   * While casting, [currentPlayer] is the cast player — the constraint is a
+   * no-op there and reapplies when playback returns to the local engine.
+   */
+  fun setVideoQuality(qualityJson: String) {
+    val engine = DefaultBunnyPlayer.getInstance(context).currentPlayer ?: return
+    val params = try {
+      val obj = JSONObject(qualityJson)
+      when (obj.optString("mode")) {
+        "auto" -> engine.trackSelectionParameters.buildUpon()
+          .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
+          .setMaxVideoBitrate(Int.MAX_VALUE)
+          .build()
+        "height" -> engine.trackSelectionParameters.buildUpon()
+          .setMaxVideoSize(Int.MAX_VALUE, obj.getInt("height"))
+          .build()
+        "bitrate" -> engine.trackSelectionParameters.buildUpon()
+          .setMaxVideoBitrate(obj.getInt("bitrate"))
+          .build()
+        "size" -> engine.trackSelectionParameters.buildUpon()
+          .setMaxVideoSize(obj.getInt("width"), obj.getInt("height"))
+          .build()
+        else -> {
+          Log.w(TAG, "setVideoQuality: unknown mode in $qualityJson")
+          return
+        }
+      }
+    } catch (e: Exception) {
+      Log.w(TAG, "setVideoQuality: invalid payload $qualityJson: ${e.message}")
+      return
+    }
+    engine.trackSelectionParameters = params
   }
 
   /** Walks the context chain to find the hosting [Activity], or null. */
