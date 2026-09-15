@@ -4,9 +4,14 @@ export type {
   BunnyStreamPlayerRef,
   BunnyStreamSource,
   BunnyVodPlayerRef,
+  Chapter,
+  ChaptersUpdatedEvent,
   LiveErrorEvent,
   LiveStateChangeEvent,
   LiveVideoSizeChangeEvent,
+  Moment,
+  MomentsUpdatedEvent,
+  PlaybackPosition,
   PlayerBufferingEvent,
   PlayerErrorEvent,
   PlayerPlaybackErrorEvent,
@@ -16,8 +21,14 @@ export type {
   PlayerProgressEvent,
   PlayerReadyEvent,
   PlayerStateChangeEvent,
+  PlayerType,
+  PlayerTypeChangeEvent,
   PlayerVideoSizeChangeEvent,
   PlayerVolumeChangeEvent,
+  ResumeConfig,
+  ResumePositionAvailableEvent,
+  RetentionGraphEntry,
+  RetentionGraphUpdatedEvent,
 } from './BunnyStreamPlayer.types';
 export { useBunnyStreamPlayer } from './hooks/useBunnyStreamPlayer';
 export type {
@@ -27,4 +38,20 @@ export type {
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
 } from './hooks/useBunnyStreamPlayer.types';
+export { useResumePosition } from './hooks/useResumePosition';
+export type {
+  ResumePositionStorage,
+  UseResumePositionOptions,
+  UseResumePositionResult,
+} from './hooks/useResumePosition';
+export { isRunningOnTV } from './isRunningOnTV';
+export { getPlaybackSpeeds } from './playbackSpeeds';
+export {
+  cleanupExpiredResumePositions,
+  clearAllResumePositions,
+  clearResumePosition,
+  exportResumePositions,
+  getAllResumePositions,
+  importResumePositions,
+} from './resumePositions';
 export { sourceIdentityKey } from './sourceIdentity';

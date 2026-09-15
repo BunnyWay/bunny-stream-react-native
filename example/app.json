@@ -27,6 +27,10 @@
     }
   },
   "android": {
-    "icons": "android/app/src/main/res"
+    "icons": "android/app/src/main/res",
+    "permissions": [
+      { "android:name": "android.permission.CAMERA" },
+      { "android:name": "android.permission.RECORD_AUDIO" }
+    ]
   }
 }

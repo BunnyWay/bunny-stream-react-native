@@ -64,23 +64,40 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             onPress={() => navigation.navigate('VideoUpload')}
           />
           <View style={styles.divider} />
-          <HomeOption title="Camera upload" badge="Coming soon" disabled onPress={() => {}} />
+          <HomeOption
+            title="Camera upload"
+            subtitle={hasConfig ? 'Record and broadcast live' : 'Not configured'}
+            disabled={!hasConfig}
+            onPress={() => {
+              (async () => {
+                const stored = await loadSettings();
+                const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
+                const libId = parseInt(libIdStr, 10);
+                if (!isNaN(libId)) {
+                  navigation.navigate('Camera', { mode: 'new', libraryId: libId });
+                }
+              })();
+            }}
+          />
         </View>
 
         <Text style={styles.sectionTitle}>Resume Positions</Text>
         <View style={styles.card}>
           <HomeOption
-            title="Resume Position Settings"
-            badge="Coming soon"
-            disabled
-            onPress={() => {}}
+            title="Manage Resume Positions"
+            subtitle="List, export, import, delete"
+            onPress={() => {
+              const libId = parseInt(BUNNY_LIBRARY_ID ?? '', 10);
+              if (!isNaN(libId)) {
+                navigation.navigate('ResumePositions', { libraryId: libId });
+              }
+            }}
           />
           <View style={styles.divider} />
           <HomeOption
-            title="Manage Resume Positions"
-            badge="Coming soon"
-            disabled
-            onPress={() => {}}
+            title="Resume Settings"
+            subtitle="Retention, thresholds, enable/disable"
+            onPress={() => navigation.navigate('ResumeSettings')}
           />
         </View>
 

@@ -4,7 +4,17 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
   __esModule: true,
-  default: { initialize: jest.fn() },
+  default: {
+    initialize: jest.fn(),
+    isRunningOnTV: jest.fn(() => false),
+    getPlaybackSpeeds: jest.fn(async () => []),
+    getAllSavedPositions: jest.fn(async () => '[]'),
+    clearSavedPosition: jest.fn(async () => undefined),
+    clearAllSavedPositions: jest.fn(async () => undefined),
+    exportPositions: jest.fn(async () => '[]'),
+    importPositions: jest.fn(async () => false),
+    cleanupExpiredPositions: jest.fn(async () => undefined),
+  },
 }));
 jest.mock('../specs/NativeBunnyStreamApi', () => ({
   __esModule: true,
@@ -31,6 +41,10 @@ jest.mock('../specs/BunnyLiveStreamPlayerNativeComponent', () => ({
   __esModule: true,
   default: 'BunnyLiveStreamPlayerView',
 }));
+jest.mock('../specs/BunnyStreamBroadcasterNativeComponent', () => ({
+  __esModule: true,
+  default: 'BunnyStreamBroadcasterView',
+}));
 
 describe('public package API', () => {
   it('exports the intentional runtime surface', () => {
@@ -38,7 +52,10 @@ describe('public package API', () => {
 
     expect(Object.keys(publicApi).sort()).toEqual(
       [
+        'BUNNY_REFERER',
+        'BunnyImage',
         'BunnyStreamApi',
+        'BunnyStreamBroadcaster',
         'BunnyStreamPlayer',
         'BunnyStreamUpload',
         'LiveStreamStatusEnum',
@@ -47,15 +64,26 @@ describe('public package API', () => {
         'NativeBunnyStreamUpload',
         'TRANSITIONAL_VIDEO_STATUSES',
         'VideoStatusEnum',
+        'bunnyImageSource',
+        'cleanupExpiredResumePositions',
+        'clearAllResumePositions',
+        'clearResumePosition',
         'errorOrNull',
+        'exportResumePositions',
         'fold',
+        'getAllResumePositions',
         'getOrNull',
+        'getPlaybackSpeeds',
+        'importResumePositions',
         'initialize',
+        'isBunnyCdnUrl',
+        'isRunningOnTV',
         'liveStreamStatusLabel',
         'map',
         'sourceIdentityKey',
         'useBunnyImage',
         'useBunnyStreamPlayer',
+        'useResumePosition',
         'videoStatusLabel',
       ].sort(),
     );

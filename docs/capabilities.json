@@ -114,7 +114,7 @@
       "ios": "supported",
       "reactNative": "partial",
       "phase": "phase-7",
-      "notes": "Native controls work; programmatic commands and events are not exposed."
+      "notes": "Native controls work. RN adds: onPlayerTypeChange event (Android-only cast handover, 'default'/'cast') and enterPiP() command (Android-only; requires android:supportsPictureInPicture=\"true\" on the host activity). Programmatic cast start/stop, AirPlay state, and fullscreen commands are not exposed by either SDK's public API."
     },
     {
       "id": "player.watermark",
@@ -138,10 +138,55 @@
       "id": "player.resume",
       "area": "Resume position",
       "android": "supported",
-      "ios": "unsupported",
-      "reactNative": "unsupported",
+      "ios": "supported",
+      "reactNative": "supported",
       "phase": "phase-6",
-      "notes": "A shared public native API is required."
+      "notes": "Android uses the native SDK PlaybackPositionManager (resumeConfig prop + onResumePositionAvailable event). iOS uses a JS-side fallback (useResumePosition hook with AsyncStorage). Platform persistence differs."
+    },
+    {
+      "id": "player.skip",
+      "area": "Skip forward/backward",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "phase-6",
+      "notes": "JS-side implementation via seekTo + position tracking. Configurable offset (default 10s)."
+    },
+    {
+      "id": "player.chapters-moments",
+      "area": "Chapters and moments events",
+      "android": "supported",
+      "ios": "unsupported",
+      "reactNative": "partial",
+      "phase": "phase-6",
+      "notes": "Android: onChaptersUpdated/onMomentsUpdated events from native player. iOS: fetch via API client (getVideo). Player-view events not available."
+    },
+    {
+      "id": "player.retention-graph",
+      "area": "Retention graph events",
+      "android": "supported",
+      "ios": "unsupported",
+      "reactNative": "partial",
+      "phase": "phase-6",
+      "notes": "Android: onRetentionGraphUpdated event from native player. iOS: fetch via API client (getVideoHeatmap). Player-view event not available."
+    },
+    {
+      "id": "player.resume-management",
+      "area": "Resume position management (list/clear/export/import/cleanup)",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "phase-7",
+      "notes": "Platform-agnostic JS API (getAllResumePositions, clearResumePosition, clearAllResumePositions, exportResumePositions, importResumePositions, cleanupExpiredResumePositions). Android delegates to the native PlaybackPositionManager via TurboModule; iOS runs against the pluggable AsyncStorage used by useResumePosition. Export uses the normalized PlaybackPosition JSON shape on both platforms."
+    },
+    {
+      "id": "player.playback-speeds-query",
+      "area": "Playback speed list query",
+      "android": "supported",
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "phase-7",
+      "notes": "getPlaybackSpeeds() queries the native engine on Android (allowedSpeeds → dashboard playerSettings → SDK defaults). iOS has no public speed API — returns the SDK's hardcoded list [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]."
     },
     {
       "id": "api.videos-basic",
@@ -192,19 +237,28 @@
       "id": "api.thumbnails-captions",
       "area": "Video thumbnails and captions management",
       "android": "supported",
-      "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-4",
-      "notes": "Requires native mappers and stable public TypeScript models."
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "current",
+      "notes": "setThumbnail (remote URL), fetchNewVideo, addCaption, and deleteCaption are shared. uploadThumbnail is Android-only (iOS OpenAPI client has no VOD file-upload endpoint). refetchVideo is Android-native; iOS falls back to getVideo."
     },
     {
-      "id": "api.encoding-ai",
-      "area": "Encoding, storage, and AI operations",
+      "id": "api.encoding-storage",
+      "area": "Encoding, repackage, and resolution management",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-4",
-      "notes": "Destructive operations require explicit API semantics."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "reencodeVideo, reencodeUsingCodec (h264/vp9/hevc/av1), repackageVideo, and deleteResolutions (with dryRun) are shared. deleteAllResolutions flag is Android-only."
+    },
+    {
+      "id": "api.ai-operations",
+      "area": "AI smart generation and transcription",
+      "android": "supported",
+      "ios": "partial",
+      "reactNative": "partial",
+      "phase": "current",
+      "notes": "transcribeVideo is shared (generateChapters/generateMoments are Android-only). smartGenerate is Android-only; iOS OpenAPI client does not expose this operation."
     },
     {
       "id": "upload.basic",
@@ -229,27 +283,72 @@
       "area": "Camera live broadcaster",
       "android": "supported",
       "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Fabric component backed by native capture pipelines. New VOD recording and existing live stream sources are supported. Camera and microphone permissions must be requested by the host app before mounting."
+    },
+    {
+      "id": "broadcaster.commands",
+      "area": "Broadcaster commands",
+      "android": "partial",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "stopBroadcast, switchCamera, setMuted, and toggleMute are shared. startBroadcast is supported natively on iOS. On Android the public SDK has no start method; the bridge simulates the built-in start button when hideDefaultControls is false, and resolves with an InvalidState error when controls are hidden (TODO(Android SDK): expose a public start method)."
+    },
+    {
+      "id": "broadcaster.quality",
+      "area": "Broadcast quality configuration",
+      "android": "unsupported",
+      "ios": "supported",
+      "reactNative": "partial",
+      "phase": "current",
+      "notes": "iOS maps the quality prop to BroadcastQuality (resolution, frameRate, videoBitrate, audioBitrate). Android hard-codes 1080p30 (~9.3 Mbps video, 64 kbps audio); the quality prop is accepted but ignored."
+    },
+    {
+      "id": "broadcaster.events",
+      "area": "Broadcaster state and ingest events",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "State (idle/preparing/live), elapsed time, camera position, mute state, ingest endpoint state (primary/backup, connecting/live/offline), reconnecting, reconnect failed, failover, and terminal error events are shared."
+    },
+    {
+      "id": "broadcaster.reconnect-failover",
+      "area": "Reconnect and failover",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Both platforms retry with 1/2/4/8/8s backoff up to 5 attempts, alternating primary and backup ingest. Proactive failover after two consecutive not-live polls. dualPublish publishes to both endpoints simultaneously with independent 5s reconnect on Android."
+    },
+    {
+      "id": "broadcaster.background",
+      "area": "Background and interruption policy",
+      "android": "unsupported",
+      "ios": "unsupported",
       "reactNative": "unsupported",
-      "phase": "phase-5",
-      "notes": "Planned as a Fabric component backed by native capture pipelines."
+      "phase": "backlog",
+      "notes": "Neither native SDK exposes a public background-broadcast or interruption-resume API. The broadcaster is foreground-only; host apps must stop the broadcast on app backgrounding."
     },
     {
       "id": "image.cached",
       "area": "Cached Bunny image loading",
       "android": "supported",
       "ios": "supported",
-      "reactNative": "partial",
+      "reactNative": "supported",
       "phase": "phase-7",
-      "notes": "The current hook converts images to data URIs and bypasses native caches."
+      "notes": "BunnyImage component and bunnyImageSource() helper inject the Referer header into the platform image pipeline (Fresco/RCTImageLoader) — native cache, no base64. The deprecated useBunnyImage hook remains for compatibility."
     },
     {
       "id": "platform.android-tv",
       "area": "Android TV",
       "android": "supported",
       "ios": "platform-only",
-      "reactNative": "unsupported",
+      "reactNative": "partial",
       "phase": "phase-7",
-      "notes": "Product scope must decide whether the mobile package includes TV support."
+      "notes": "useNativeTvPlayer prop (Android-only) routes through the SDK's playVideoWithTVDetection — launches the TV activity when the consumer app also depends on the net.bunny:tv artifact, falls back to the embedded player otherwise. isRunningOnTV() reports leanback support. The iOS SDK does not support tvOS."
     },
     {
       "id": "distribution.public-native-packages",

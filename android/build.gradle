@@ -76,6 +76,9 @@ dependencies {
   // so BunnyStreamApi and the live-stream domain models are on the compile
   // classpath of the bridge (used by the live host and the TurboModule).
   implementation "net.bunny:api:${bunnyStreamSdkVersion}"
+  // recording provides the camera upload / live broadcast view
+  // (BunnyStreamCameraUpload) used by the broadcaster Fabric component.
+  implementation "net.bunny:recording:${bunnyStreamSdkVersion}"
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
   implementation "androidx.media3:media3-common:1.10.1"

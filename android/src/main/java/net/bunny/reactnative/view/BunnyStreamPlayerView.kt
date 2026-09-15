@@ -1,8 +1,16 @@
 package net.bunny.reactnative.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.PictureInPictureParams
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Rect
+import android.os.Build
+import android.util.Log
+import android.util.Rational
 import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
@@ -14,9 +22,16 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.media3.ui.PlayerControlView
 import androidx.media3.ui.PlayerView
 import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
+import net.bunny.bunnystreamplayer.PlayerType
 import net.bunny.bunnystreamplayer.ui.BunnyPlayer
 import net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer
 import net.bunny.bunnystreamplayer.ui.widget.BunnyPlayerView
+import net.bunny.api.playback.PlaybackPosition
+import net.bunny.api.playback.ResumeConfig
+import net.bunny.api.playback.ResumePositionListener
+import net.bunny.bunnystreamplayer.model.Chapter
+import net.bunny.bunnystreamplayer.model.Moment
+import net.bunny.bunnystreamplayer.model.RetentionGraphEntry
 import net.bunny.reactnative.R
 import net.bunny.reactnative.adapter.PlayerEventListener
 import net.bunny.reactnative.commands.CommandQueue
@@ -25,6 +40,9 @@ import net.bunny.reactnative.commands.PlayerCommand
 import net.bunny.reactnative.events.FabricEventEmitter
 import net.bunny.reactnative.ownership.BunnyPlayerLease
 import net.bunny.reactnative.state.BunnyStreamPlayerProps
+import net.bunny.reactnative.state.toJsonString
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.ceil
 
 /**
@@ -232,6 +250,55 @@ class BunnyStreamPlayerView(
         )
       }
     }
+
+    // Phase 6 — chapters, moments, retention graph (Android-only events).
+    // Codegen does not support arrays in event payloads, so the lists are
+    // serialized as JSON strings and deserialized on the JS side.
+    player.onChaptersUpdated = { chapters ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onChaptersUpdated") {
+            mapOf("chapters" to chapters.chaptersToJson())
+          },
+        )
+      }
+    }
+    player.onMomentsUpdated = { moments ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onMomentsUpdated") {
+            mapOf("moments" to moments.momentsToJson())
+          },
+        )
+      }
+    }
+    player.onRetentionGraphUpdated = { points ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onRetentionGraphUpdated") {
+            mapOf("points" to points.retentionToJson())
+          },
+        )
+      }
+    }
+
+    // Phase 7 — cast handover. The SDK fires this when playback moves between
+    // the local engine and a Chromecast CastPlayer (Android-only; iOS never
+    // surfaces AirPlay/external-playback state).
+    player.onPlayerTypeChanged = { playerType ->
+      if (generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onPlayerTypeChange") {
+            mapOf(
+              "playerType" to when (playerType) {
+                PlayerType.CAST_PLAYER -> "cast"
+                else -> "default"
+              },
+            )
+          },
+        )
+      }
+    }
   }
 
   /** Generation captured when the current source started loading. */
@@ -256,6 +323,9 @@ class BunnyStreamPlayerView(
   private var pendingExpires: Long? = null
   private var pendingAutoPlay: Boolean = true
   private var pendingControls: Boolean = true
+  private var pendingResumeConfig: String? = null
+  private var resumeConfigEnabled: Boolean = false
+  private var pendingUseNativeTvPlayer: Boolean = false
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
@@ -294,6 +364,14 @@ class BunnyStreamPlayerView(
     pendingControls = value
   }
 
+  fun setResumeConfig(value: String?) {
+    pendingResumeConfig = value
+  }
+
+  fun setUseNativeTvPlayer(value: Boolean) {
+    pendingUseNativeTvPlayer = value
+  }
+
   // --- Prop application (called from ViewManager.onAfterUpdatedTransaction) ---
 
   /**
@@ -313,6 +391,7 @@ class BunnyStreamPlayerView(
       expires = pendingExpires,
       autoPlay = pendingAutoPlay,
       controls = pendingControls,
+      useNativeTvPlayer = pendingUseNativeTvPlayer,
     )
 
     val oldProps = committedProps
@@ -334,6 +413,10 @@ class BunnyStreamPlayerView(
     if (!sourceChanged && oldProps.controls != newProps.controls) {
       applyControls(newProps.controls)
     }
+
+    // Phase 6 — resume position: enable/disable the native SDK's
+    // PlaybackPositionManager based on the resumeConfig prop.
+    applyResumeConfig()
   }
 
   /**
@@ -348,13 +431,25 @@ class BunnyStreamPlayerView(
     commandQueue.reset()
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
-    player.playVideo(
-      videoId = props.videoId,
-      libraryId = props.libraryId,
-      videoTitle = "",
-      token = props.token,
-      expires = props.expires,
-    )
+    if (props.useNativeTvPlayer) {
+      // Phase 7 — Android TV: `playVideoWithTVDetection` launches the
+      // `net.bunny:tv` activity via reflection on leanback devices when the
+      // artifact is on the classpath; falls back to `playVideo` otherwise.
+      player.playVideoWithTVDetection(
+        videoId = props.videoId,
+        libraryId = props.libraryId,
+        token = props.token,
+        expires = props.expires,
+      )
+    } else {
+      player.playVideo(
+        videoId = props.videoId,
+        libraryId = props.libraryId,
+        videoTitle = "",
+        token = props.token,
+        expires = props.expires,
+      )
+    }
     if (!props.autoPlay) {
       commandQueue.enqueue(PlayerCommand.Pause)
     }
@@ -395,6 +490,57 @@ class BunnyStreamPlayerView(
   /** Applies controller visibility through the public SDK 4.0.0 property. */
   private fun applyControls(showControls: Boolean) {
     player.controlsEnabled = showControls
+  }
+
+  /**
+   * Enables or disables the native SDK resume position manager based on the
+   * `resumeConfig` prop. When the prop is a JSON string, parses it into a
+   * [ResumeConfig] and calls [BunnyStreamPlayer.enableResumePosition]. When
+   * null/empty, disables resume position if it was previously enabled.
+   */
+  private fun applyResumeConfig() {
+    val json = pendingResumeConfig
+    if (json.isNullOrBlank()) {
+      if (resumeConfigEnabled) {
+        player.disableResumePosition()
+        resumeConfigEnabled = false
+      }
+      return
+    }
+    if (resumeConfigEnabled) {
+      // Already enabled — SDK does not support updating config on the fly.
+      return
+    }
+    val config = parseResumeConfig(json) ?: ResumeConfig()
+    val em = emitter
+    player.enableResumePosition(config) { position, confirmResume ->
+      if (em != null && generationToken.isActive(playbackGeneration)) {
+        em.dispatch(
+          net.bunny.reactnative.state.RnEvent("onResumePositionAvailable") {
+            mapOf("position" to position.toJsonString())
+          },
+        )
+      }
+      // Auto-confirm: the JS side decides whether to seek via seekTo.
+      confirmResume(false)
+    }
+    resumeConfigEnabled = true
+  }
+
+  private fun parseResumeConfig(json: String): ResumeConfig? {
+    return try {
+      val obj = JSONObject(json)
+      ResumeConfig(
+        retentionDays = obj.optInt("retentionDays", 7),
+        minimumWatchTime = obj.optLong("minimumWatchMs", 30_000L),
+        resumeThreshold = obj.optDouble("resumeThreshold", 0.05).toFloat(),
+        nearEndThreshold = obj.optDouble("nearEndThreshold", 0.95).toFloat(),
+        enableAutoSave = obj.optBoolean("enableAutoSave", true),
+        saveInterval = obj.optLong("saveIntervalMs", 10_000L),
+      )
+    } catch (_: Exception) {
+      null
+    }
   }
 
   /**
@@ -521,13 +667,16 @@ class BunnyStreamPlayerView(
    * `autoPlay` is excluded — it controls playback state, not source.
    */
   private fun sourceRelevantProps(props: BunnyStreamPlayerProps) =
-    SourceKey(props.videoId, props.libraryId, props.token, props.expires)
+    SourceKey(props.videoId, props.libraryId, props.token, props.expires, props.useNativeTvPlayer)
 
   private data class SourceKey(
     val videoId: String,
     val libraryId: Long?,
     val token: String?,
     val expires: Long?,
+    // Toggling TV detection must reload so the routing takes effect for the
+    // current source.
+    val useNativeTvPlayer: Boolean,
   )
 
   // --- Commands (called by ViewManager, dispatched to player) ---
@@ -592,6 +741,45 @@ class BunnyStreamPlayerView(
   /** Unmutes the engine via the public SDK view API. */
   fun unmute() {
     player.unmute()
+  }
+
+  /**
+   * Enters picture-in-picture on the host activity (Phase 7 — Android-only).
+   *
+   * The SDK view keeps its own PiP button private, but entering PiP is an
+   * `Activity` API — the SDK's lifecycle observer keeps playback alive in PiP
+   * regardless of who triggered the transition. Requires API 26+ and the host
+   * activity to declare `android:supportsPictureInPicture="true"`. No-op when
+   * unsupported or no host activity is reachable.
+   */
+  fun enterPiP() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    val activity = findHostActivity() ?: run {
+      Log.w(TAG, "Cannot enter PiP — no host Activity")
+      return
+    }
+    if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+    try {
+      val params = PictureInPictureParams.Builder()
+        .setAspectRatio(Rational(16, 9))
+        // The system animates the shrink from this rect instead of the whole
+        // activity (same hint the SDK's private enterPip uses).
+        .setSourceRectHint(Rect().also(::getGlobalVisibleRect))
+        .build()
+      activity.enterPictureInPictureMode(params)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to enter PiP: ${e.message}")
+    }
+  }
+
+  /** Walks the context chain to find the hosting [Activity], or null. */
+  private fun findHostActivity(): Activity? {
+    var ctx: Context? = context
+    while (ctx is ContextWrapper) {
+      if (ctx is Activity) return ctx
+      ctx = ctx.baseContext
+    }
+    return null
   }
 
   /**
@@ -665,9 +853,58 @@ class BunnyStreamPlayerView(
     player.onPlaybackSpeedChanged = null
     player.onVideoSizeChanged = null
     player.onPlaybackError = null
+    // Phase 6 — detach chapters/moments/retention/resume callbacks.
+    player.onChaptersUpdated = null
+    player.onMomentsUpdated = null
+    player.onRetentionGraphUpdated = null
+    // Phase 7 — detach the cast handover callback.
+    player.onPlayerTypeChanged = null
+    if (resumeConfigEnabled) {
+      player.disableResumePosition()
+      resumeConfigEnabled = false
+    }
   }
 
   companion object {
+    private const val TAG = "BunnyStreamPlayerView"
     private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
   }
+}
+
+// --- Phase 6: model → JSON serializers for Fabric events ---
+// Codegen does not support arrays in event payloads, so lists are serialized
+// as JSON strings and deserialized on the JS side.
+
+private fun List<Chapter>.chaptersToJson(): String {
+  val arr = JSONArray()
+  for (chapter in this) {
+    arr.put(JSONObject().apply {
+      put("startTimeMs", chapter.startTimeMs)
+      put("endTimeMs", chapter.endTimeMs)
+      put("title", chapter.title)
+    })
+  }
+  return arr.toString()
+}
+
+private fun List<Moment>.momentsToJson(): String {
+  val arr = JSONArray()
+  for (moment in this) {
+    arr.put(JSONObject().apply {
+      put("label", moment.label)
+      put("timestampMs", moment.timestamp)
+    })
+  }
+  return arr.toString()
+}
+
+private fun List<RetentionGraphEntry>.retentionToJson(): String {
+  val arr = JSONArray()
+  for (entry in this) {
+    arr.put(JSONObject().apply {
+      put("x", entry.x)
+      put("y", entry.y)
+    })
+  }
+  return arr.toString()
 }

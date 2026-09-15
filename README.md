@@ -33,6 +33,143 @@ These are the floors declared in `peerDependencies` / `engines` in `package.json
 
 This repository contains the TypeScript contract, Android and iOS native bridges, build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), and an example app for development. See the generated [capability matrix](./docs/CAPABILITIES.md) for current platform support and planned delivery phases.
 
+### Camera broadcaster (Phase 5)
+
+`BunnyStreamBroadcaster` is a Fabric component that hosts the native Bunny Stream camera capture pipeline. It supports recording a new VOD or broadcasting to an existing live stream.
+
+```tsx
+import { BunnyStreamBroadcaster } from 'bunny-stream-react-native';
+
+<BunnyStreamBroadcaster
+  accessKey="access-key"
+  source={{ type: 'live', libraryId: 123, streamId: 'stream-id' }}
+  cameraPosition="back"
+  onStateChange={(e) => console.log('state:', e.state)}
+  onError={(e) => console.warn('error:', e.message)}
+/>
+```
+
+**Permissions:** Camera and microphone permissions must be requested by the host app before mounting the broadcaster. Neither native SDK requests these permissions itself.
+
+**Platform differences:**
+
+- **iOS:** `startBroadcast`, `stopBroadcast`, `switchCamera`, `setMuted`, and `toggleMute` are supported natively via `BunnyBroadcastController`. Quality is fully configurable through the `quality` prop (mapped to `BroadcastQuality`).
+- **Android:** `stopBroadcast`, `switchCamera`, `setMuted`, and `toggleMute` are supported. `startBroadcast` is **not** supported natively — the public SDK has no start method. The bridge simulates the built-in start button when `hideDefaultControls` is `false`; when controls are hidden, `startBroadcast` resolves with an `InvalidState` error. Quality is hard-coded by the SDK (1080p30, ~9.3 Mbps video, 64 kbps audio); the `quality` prop is accepted but ignored.
+
+**Reconnect and failover:** Both platforms retry with 1/2/4/8/8s backoff up to 5 attempts, alternating primary and backup ingest endpoints. Proactive failover occurs after two consecutive not-live polls. `dualPublish` publishes to both endpoints simultaneously with independent 5s reconnect on Android.
+
+**Background policy:** The broadcaster is foreground-only. Neither native SDK exposes a public background-broadcast or interruption-resume API. Host apps must stop the broadcast on app backgrounding.
+
+### Extended player controls (Phase 6)
+
+Phase 6 adds skip, chapters/moments/retention events, and resume position.
+
+**Skip forward/backward** (both platforms, JS-side):
+
+```tsx
+playerRef.current?.skipForward();    // +10s (configurable)
+playerRef.current?.skipBackward();   // -10s (configurable)
+```
+
+**Chapters, moments, retention graph** (Android-only player events):
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId }}
+  onChaptersUpdated={(e) => setChapters(e.nativeEvent.chapters)}
+  onMomentsUpdated={(e) => setMoments(e.nativeEvent.moments)}
+  onRetentionGraphUpdated={(e) => setRetention(e.nativeEvent.points)}
+/>
+```
+
+> **iOS:** The native player view does not expose these events. Fetch chapters/moments via `BunnyStreamApi.getVideo` and the retention/heatmap via `BunnyStreamApi.getVideoHeatmap`.
+
+**Resume position:**
+
+- **Android:** Native SDK `PlaybackPositionManager` via the `resumeConfig` prop. The `onResumePositionAvailable` event fires when a saved position is available; the host decides whether to seek.
+- **iOS:** JS-side fallback via the `useResumePosition` hook with `AsyncStorage`. Tracks progress, persists positions, and restores on player readiness.
+
+```tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useResumePosition } from 'bunny-stream-react-native';
+
+const { restoredPosition, savePosition, clearPosition, getAllPositions } = useResumePosition({
+  playerRef,
+  videoId: 'video-id',
+  videoTitle: 'My Video',
+  storage: AsyncStorage,
+  config: { retentionDays: 7, minimumWatchMs: 30_000 },
+});
+```
+
+**Resume confirmation UX:** return `false` from `onPositionAvailable` (iOS hook) or handle `onResumePositionAvailable` (Android prop) to show a "Resume / Start Over" prompt instead of auto-seeking — the example app demonstrates this pattern.
+
+**Resume management** (platform-agnostic; Android delegates to the native `PlaybackPositionManager`, iOS uses the pluggable storage):
+
+```tsx
+import {
+  getAllResumePositions,
+  clearResumePosition,
+  clearAllResumePositions,
+  exportResumePositions,
+  importResumePositions,
+  cleanupExpiredResumePositions,
+} from 'bunny-stream-react-native';
+
+const positions = await getAllResumePositions(AsyncStorage); // storage arg is iOS-only
+await clearResumePosition('video-id', AsyncStorage);
+await clearAllResumePositions(AsyncStorage);
+const json = await exportResumePositions(AsyncStorage); // normalized PlaybackPosition[] JSON
+await importResumePositions(json, AsyncStorage);
+await cleanupExpiredResumePositions(AsyncStorage, 7 /* retentionDays, iOS-only arg */);
+```
+
+**Playback speed list** — `getPlaybackSpeeds()` queries the native engine on Android (respects `allowedSpeeds` and dashboard `playerSettings`); on iOS it returns the SDK's hardcoded list `[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]`:
+
+```tsx
+import { getPlaybackSpeeds } from 'bunny-stream-react-native';
+
+const speeds = await getPlaybackSpeeds();
+```
+
+See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
+
+### Images, TV, and cast/PiP (Phase 7)
+
+**BunnyImage** — image component that renders Bunny CDN thumbnails through the native image pipeline (Fresco on Android, `RCTImageLoader` on iOS). Injects the `Referer` header that CDN hotlink protection requires; no JS `fetch` + base64, so lists stay cheap.
+
+```tsx
+import { BunnyImage, bunnyImageSource } from 'bunny-stream-react-native';
+
+<BunnyImage source={video.thumbnailUrl} style={{ width: 160, height: 90 }} />
+<Image source={bunnyImageSource(video.thumbnailUrl)} /> // or with plain Image
+```
+
+`useBunnyImage` is deprecated — it converts images to `data:` URIs in JS and bypasses native caches.
+
+**Android TV** — opt-in via the `useNativeTvPlayer` prop (Android-only). Routes through the SDK's `playVideoWithTVDetection`: on leanback devices it launches the dedicated TV player activity when the consumer app also depends on the `net.bunny:tv` artifact (published separately); otherwise it falls back to the embedded player.
+
+```tsx
+<BunnyStreamPlayer source={{ type: 'vod', videoId }} useNativeTvPlayer />
+```
+
+`isRunningOnTV()` reports the leanback system feature (always `false` on iOS — the iOS SDK does not support tvOS).
+
+**Cast handover** — `onPlayerTypeChange` (Android-only) fires when playback moves between the device and a Chromecast receiver:
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId }}
+  onPlayerTypeChange={(e) => setIsCasting(e.nativeEvent.playerType === 'cast')}
+/>
+```
+
+> **iOS:** AirPlay state is internal to the SDK — this event never fires.
+
+**PiP** — `playerRef.current?.enterPiP()` enters picture-in-picture on Android (API 26+, requires `android:supportsPictureInPicture="true"` on the host activity). No-op on iOS — the SDK exposes no public PiP API.
+
+> Programmatic cast start/stop and fullscreen commands are not exposed by either SDK's public API; the native buttons inside the player controls already work.
+
 Planned roadmap:
 
 1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)
