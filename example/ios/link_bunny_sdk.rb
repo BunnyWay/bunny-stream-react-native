@@ -203,8 +203,13 @@ if File.exist?(generated_info_plist)
     "This app uses the camera to record and broadcast video to Bunny Stream."
   plist_doc["NSMicrophoneUsageDescription"] =
     "This app uses the microphone to capture audio during recording and broadcasting."
+  # The "Audio, AirPlay, and Picture in Picture" background mode maps to the
+  # `audio` UIBackgroundModes value — required for AVPictureInPictureController
+  # to start (see PictureInPictureManager in the iOS SDK).
+  modes = plist_doc["UIBackgroundModes"] ||= []
+  modes << "audio" unless modes.include?("audio")
   Xcodeproj::Plist.write_to_path(plist_doc, generated_info_plist)
-  puts "[BunnyStream] Patched Info.plist with camera and microphone usage descriptions"
+  puts "[BunnyStream] Patched Info.plist with usage descriptions + audio background mode"
 else
   warn "[BunnyStream] Generated Info.plist not found, skipping usage description patch"
 end

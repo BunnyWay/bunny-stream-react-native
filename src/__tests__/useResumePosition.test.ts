@@ -84,6 +84,43 @@ describe('useResumePosition', () => {
     expect(playerRef.current?.seekTo).toHaveBeenCalledWith(45_000);
   });
 
+  it('does not re-fire onPositionAvailable when the callback identity changes', async () => {
+    setPlatform('ios');
+    const storage = makeMemoryStorage();
+    const position: PlaybackPosition = {
+      videoId: 'v1',
+      positionMs: 45_000,
+      durationMs: 120_000,
+      watchPercentage: 0.375,
+      timestamp: Date.now(),
+    };
+    await storage.setItem('@bunny_resume_positions:v1', JSON.stringify(position));
+    const playerRef = makeFakeRef();
+    const onPositionAvailable = jest.fn(() => false);
+    // Mimics the PlayerScreen usage: an inline callback gets a new identity
+    // on every render. The restore effect must not re-run because of it.
+    const { rerender } = await renderHook(
+      ({ cb }: { cb: (pos: PlaybackPosition) => boolean }) =>
+        useResumePosition({
+          playerRef,
+          videoId: 'v1',
+          storage,
+          onPositionAvailable: cb,
+        }),
+      { initialProps: { cb: onPositionAvailable } },
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onPositionAvailable).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      rerender({ cb: jest.fn(() => false) });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(onPositionAvailable).toHaveBeenCalledTimes(1);
+  });
+
   it('does not save positions below minimumWatchMs', async () => {
     setPlatform('ios');
     const storage = makeMemoryStorage();

@@ -102,6 +102,12 @@ export function useResumePosition(options: UseResumePositionOptions): UseResumeP
   const [restoredPosition, setRestoredPosition] = React.useState<PlaybackPosition | null>(null);
   const lastSaveRef = React.useRef(0);
 
+  // Keep the callback in a ref — callers commonly pass an inline function,
+  // and depending on its identity would re-run the restore effect (and thus
+  // re-fire `onPositionAvailable`) on every render.
+  const onPositionAvailableRef = React.useRef(onPositionAvailable);
+  onPositionAvailableRef.current = onPositionAvailable;
+
   // Restore on mount / videoId change (iOS only).
   React.useEffect(() => {
     if (Platform.OS === 'android') return;
@@ -115,7 +121,7 @@ export function useResumePosition(options: UseResumePositionOptions): UseResumeP
         return;
       }
       setRestoredPosition(position);
-      const shouldSeek = onPositionAvailable?.(position);
+      const shouldSeek = onPositionAvailableRef.current?.(position);
       if (shouldSeek !== false) {
         playerRef.current?.seekTo(position.positionMs);
       }
@@ -123,7 +129,7 @@ export function useResumePosition(options: UseResumePositionOptions): UseResumeP
     return () => {
       cancelled = true;
     };
-  }, [videoId, storage, resolvedConfig.retentionDays, onPositionAvailable, playerRef]);
+  }, [videoId, storage, resolvedConfig.retentionDays, playerRef]);
 
   const savePosition = React.useCallback(
     async (positionMs: number, durationMs: number) => {
