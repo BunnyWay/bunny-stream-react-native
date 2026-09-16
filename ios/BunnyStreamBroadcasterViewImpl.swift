@@ -57,34 +57,46 @@ import UIKit
     guard let accessKey = pendingAccessKey, !accessKey.isEmpty else { return }
 
     if !isConfigured {
-      configureView(accessKey: accessKey)
       isConfigured = true
-    }
-
-    // Start broadcast if autoStart is set.
-    if pendingAutoStart {
-      controller.startBroadcast()
-      pendingAutoStart = false
+      configureView(accessKey: accessKey)
     }
   }
 
   private func configureView(accessKey: String) {
+    if let streamId = pendingStreamId, !streamId.isEmpty {
+      // Live broadcast to an existing stream. `BunnyStreamCameraUploadView`
+      // needs a real `BunnyLiveStream` — the SDK reads `streamKey` and the
+      // ingest URLs from it, so a placeholder cannot publish. The public
+      // `LiveStreamRepository` resolves it by id.
+      let libraryId = pendingLibraryId
+      Task { [weak self] in
+        do {
+          let stream = try await BunnyStreamAPI(accessKey: accessKey)
+            .liveStreams
+            .getLiveStream(libraryId: libraryId, streamId: streamId)
+          await MainActor.run {
+            self?.attachView(accessKey: accessKey, liveStream: stream)
+          }
+        } catch {
+          await MainActor.run {
+            self?.isConfigured = false
+            self?.onError?("Failed to load live stream: \(error.localizedDescription)" as NSString)
+          }
+        }
+      }
+    } else {
+      // New VOD recording — no stream to resolve.
+      attachView(accessKey: accessKey, liveStream: nil)
+    }
+  }
+
+  private func attachView(accessKey: String, liveStream: BunnyLiveStream?) {
     let quality = parseQuality(pendingQualityJson)
     let cameraPos = pendingCameraPosition == "front"
       ? BunnyCameraPosition.front : .back
 
-    // Build the SwiftUI view based on source type.
     let swiftUIView: AnyView
-    if let streamId = pendingStreamId, !streamId.isEmpty {
-      // Live broadcast to an existing stream.
-      // TODO(iOS SDK): BunnyStreamCameraUploadView expects a BunnyLiveStream
-      // object. The bridge doesn't have one — we pass a minimal placeholder.
-      // This will be resolved when the SDK exposes a live-stream init that
-      // accepts just streamId + libraryId.
-      let liveStream = BunnyLiveStream(
-        id: streamId,
-        libraryId: Int64(pendingLibraryId)
-      )
+    if let liveStream {
       swiftUIView = AnyView(
         BunnyStreamCameraUploadView(
           liveStream: liveStream,
@@ -95,7 +107,6 @@ import UIKit
         )
       )
     } else {
-      // New VOD recording.
       swiftUIView = AnyView(
         BunnyStreamCameraUploadView(
           accessKey: accessKey,
@@ -196,6 +207,13 @@ import UIKit
           break
         }
       }
+    }
+
+    // autoStart is deferred to here — on the live path the view only exists
+    // after the stream fetch completes.
+    if pendingAutoStart {
+      controller.startBroadcast()
+      pendingAutoStart = false
     }
   }
 

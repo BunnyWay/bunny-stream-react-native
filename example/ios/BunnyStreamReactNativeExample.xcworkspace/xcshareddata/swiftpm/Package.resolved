@@ -1,6 +1,14 @@
 {
-  "originHash" : "22abe03d429a124ca10a983d3c17b3528af6e7a56ee810022b912aff212ff5c7",
+  "originHash" : "e20557e25b29515391725bbfdbe1fa84272e32dd822859eb1da4b019ddaee159",
   "pins" : [
+    {
+      "identity" : "bunny-stream-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/BunnyWay/bunny-stream-ios",
+      "state" : {
+        "revision" : "4158e2e1c1416d99aa0e4a39eb85a0ac8df0e570"
+      }
+    },
     {
       "identity" : "bytesparser",
       "kind" : "remoteSourceControl",
@@ -87,8 +95,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-http-types",
       "state" : {
-        "revision" : "db774a277f60063a32d854f2980299caf06da041",
-        "version" : "1.6.0"
+        "revision" : "bff4b6903cdc99dda49649dd52f46c11cfd3ed50",
+        "version" : "1.8.0"
       }
     },
     {

@@ -43,9 +43,9 @@ jobs:
 
       - name: Checkout pinned iOS SDK
         env:
-          GH_TOKEN: ${{ secrets.BUNNY_NATIVE_SDKS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          gh repo clone BunnyWay/bunny-stream-ios-private native/ios -- --no-checkout
+          gh repo clone BunnyWay/bunny-stream-ios native/ios -- --no-checkout
           git -C native/ios fetch --depth=1 origin "${{ needs.baselines.outputs.ios_commit }}"
           git -C native/ios checkout --detach "${{ needs.baselines.outputs.ios_commit }}"
 

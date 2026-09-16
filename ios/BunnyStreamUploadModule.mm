@@ -73,6 +73,11 @@ RCT_EXPORT_MODULE("BunnyStreamUpload")
   [[BunnyStreamUploadModuleImpl shared] getUploadStateWithUploadId:uploadId resolve:resolve];
 }
 
+- (void)restoreUploads
+{
+  [[BunnyStreamUploadModuleImpl shared] restoreUploads];
+}
+
 // MARK: - Event emitter stubs
 
 - (void)addListener:(NSString *)eventName
