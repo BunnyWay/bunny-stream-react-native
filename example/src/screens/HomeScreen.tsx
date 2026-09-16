@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '../components/Header';
 import { HomeOption } from '../components/HomeOption';
@@ -16,6 +17,7 @@ type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const [hasConfig, setHasConfig] = React.useState(false);
   const [directPlayVisible, setDirectPlayVisible] = React.useState(false);
+  const insets = useSafeAreaInsets();
 
   React.useEffect(() => {
     (async () => {
@@ -33,7 +35,10 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <>
       <Header title="BunnyStream Demo" subtitle="React Native" />
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      >
         <Text style={styles.sectionTitle}>Playback</Text>
         <View style={styles.card}>
           <HomeOption
