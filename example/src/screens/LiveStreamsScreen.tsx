@@ -24,7 +24,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  BunnyImage,
   BunnyStreamApi,
   BunnyStreamUpload,
   LiveStreamStatusEnum,
@@ -35,6 +34,7 @@ import {
   type UploadEvent,
 } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { pickImage, pickVideo } from '../media/picker';
 import { loadSettings } from '../storage/storage';
@@ -1311,11 +1311,13 @@ function LiveStreamEditorModal({
   );
 }
 
-/** Renders a remote thumbnail URL through BunnyImage (Referer + native cache). */
+/** Renders a remote thumbnail URL through `useBunnyImage` — the Bunny CDN
+ * requires a `Referer` header that native image pipelines drop, so the hook
+ * fetches through JS and renders a `data:` URI. */
 function ThumbnailPreview({ url }: { url: string }) {
   return (
     <View style={createStyles.thumbnailPreviewBox}>
-      <BunnyImage source={url} style={createStyles.thumbnailPreview} resizeMode="cover" />
+      <BunnyThumbnail url={url} style={createStyles.thumbnailPreview} resizeMode="cover" />
       <Text style={createStyles.thumbnailPreviewHint}>Remote image URL</Text>
     </View>
   );
