@@ -125,3 +125,53 @@ Oba publiczne SDK dodały obsługę blokad (geo-blocking, hotlink protection, wy
 - **iOS bez tagu** — pin na commit działa, ale README/hosting dokumentacji powinno jawnie opisać wersjonowanie; rozważyć prośbę o tag `2.0.0`/`4.0.0` do właścicieli repo.
 - Publiczne repo Android ma dodatkowe fixy ponad baseline (m.in. "resume the ended stream's recording where it stopped", "No internet connection" message) — warto przetestować live→VOD recovery w clean-consumer test.
 - Nie udostępniać prywatnych repo w żadnym artefakcie release; `.github/workflows` wrappera odwołujące się do prywatnych repo (`closed-test-native.yml`) wymagają aktualizacji w Fazie 8D.
+
+## 8. Stan po wyrównaniu iOS (wykonane)
+
+| Obszar | Stan |
+| --- | --- |
+| Podspec → publiczny SwiftPM | `https://github.com/BunnyWay/bunny-stream-ios` z `requirement: { kind: 'revision', revision: '4158e2e…' }`; `BUNNY_STREAM_IOS_SDK_PATH` nadal przełącza na lokalny checkout dla dev |
+| Autoplay VOD | Naprawione w bridge: `player.play()` po `.readyToPlay` gdy `autoPlay` (KVO + natychmiastowa ścieżka — pokryty race) |
+| Live `dvrEnabled` | Pobierane z `LiveStreamRepository.getLiveStream` w `reloadPlayer`, dołączane do każdego `onLiveStateChange`; usunięty filtr `platform !== 'ios'` w `normalizeLiveStateEvent` |
+| Broadcaster (istniejący stream) | Placeholder `BunnyLiveStream(id:libraryId:)` zastąpiony fetch `getLiveStream` przed init view — SDK dostaje prawdziwy `streamKey`/ingest; błąd fetch → `onError` |
+| `restoreUploads` | Nowa metoda speca: iOS wymusza lazy `TUSVideoUploader` (`make` → `start()` przywraca cache) + emituje snapshot eventów z `uploadTracker.uploads`; Android no-op (ograniczenie platformy) |
+| Heatmap | `fetchVideoHeatmap` już działało przez generated `getVideoHeatmap`; `fetchVideoHeatmapData`/`fetchVideoStorageSize` zostają `InvalidState` — iOS generated client nie ma endpointów `/play/heatmap` i `/storage` |
+| CI | `closed-test-native.yml` clone'uje publiczne repo bez tokenu |
+
+## 9. Co dodać do repozytoriów SDK dla pełnego pokrycia RN
+
+Lista zweryfikowana na `bunny-stream-android@4.0.0` i `bunny-stream-ios@4158e2e`. Kolejność ≈ priorytet dla tego projektu.
+
+### 9.1 `bunny-stream-ios`
+
+1. **Publiczny VOD controller/delegate** — `play`/`pause`/`seekTo`/`seekBy`, eventy stanu, `currentTime`/`duration`, callback błędu ze strukturyzowanym `PlaybackFailureInfo` (w tym `isBlocked`). Dziś bridge szuka `AVPlayerLayer` w hierarchii widoków + KVO — kruche, może się zepsuć przy refaktorze SDK.
+2. **Publiczny live controller** — `play`/`pause`/`seek`/`snapToLiveEdge`/`isAtLiveEdge` są `internal` → live komendy z JS zablokowane.
+3. **Publiczne API programowe PiP / AirPlay / fullscreen** — `PictureInPictureManager`, `AirPlayView`, fullscreen są `internal`; `enterPiP()` z JS to no-op.
+4. **Publiczna selekcja jakości i tracków VOD** — enumeracja + wybór jakości/captions/audio (`preferredPeakBitRate` osiągalne tylko przez workaround AVPlayer).
+5. **`getLiveStream` na potrzeby broadcastu** — rozwiązane w bridge przez fetch; mile widziany init `BunnyStreamCameraUploadView(streamId:libraryId:accessKey:)` robiący resolve wewnętrznie.
+6. **Endpointy `/play/heatmap` i `/storage` w generated client / domain repo** — `fetchVideoHeatmapData` i `fetchVideoStorageSize` zwracają `InvalidState` na iOS.
+7. **`regenerateStreamKey` w domain `LiveStreamRepository`** — jest tylko generated op.
+8. **Resume position API** — `PlaybackPositionManager` nie istnieje na iOS; JS fallback zostaje, ale natywne API dałoby parity.
+9. **Tag/release semver** — wymagane do pinu wersją zamiast commit SHA przed publikacją paczki.
+
+### 9.2 `bunny-stream-android`
+
+1. **Publiczny live controller** — `BunnyLiveStreamPlayerViewModel` nie wystawia `play`/`pause`/`seek`/`jump-to-live` → live komendy z JS zablokowane.
+2. **Publiczny event/callback `PlaybackFailureInfo` na VOD** — `onPlaybackFailureInfo` jest `internal`; JS nie dostaje `isBlocked`/`isNetwork` (geoblock nierozróżnialny z innych błędów).
+3. **`regenerateStreamKey` w domain `LiveStreamRepository`** — brak w 4.0.0.
+4. **Publiczny `startBroadcast`/`mute toggle` na broadcasterze** — bridge klika natywny przycisk (workaround), mute niedostępne.
+5. **Watermark na Androidzie** — brak odpowiednika iOS `PlayerWatermark` (feature #11 w live-features).
+6. **Programmatic cast control** — cast działa przez natywny UI; komendy connect/disconnect z JS wymagają publicznego API.
+7. **Trailer asset endpoints** (`live-features` #10) — `preStreamTrailerVideoId` działa, ale brak osobnych operacji upload/list/delete dla assetów trailera (parity z iOS).
+8. **Bug live speed** — `loadSavedSpeed()` odpala się na live `STATE_READY` mimo `playbackSpeeds=[1.0]` w UI; workaround pollingu w bridge zostaje do czasu fixu upstream.
+9. **TUS resumable across process death** — wymaga host-owned foreground service; obecnie platform limitation, możliwe tylko jeśli SDK dostarczy service.
+
+### 9.3 Rozwiązane po stronie wrappera (nie wymagają zmian w SDK)
+
+- iOS autoplay po `.readyToPlay`, iOS `dvrEnabled` z publicznego repo, broadcaster resolve przez `getLiveStream`, iOS TUS `restoreUploads`, Android quality selection przez `currentPlayer.trackSelectionParameters`, Android PiP (manifest hosta), Cast/AirPlay przez natywne kontrolki, image loader z `Referer` (JS `useBunnyImage`).
+
+### 9.4 Wspólne / decyzje produktowe
+
+- `BunnyStreamApi.create` multi-instance (Android ma, iOS nie) — wymaga przeprojektowania `initialize` w RN; backlog.
+- Theming (`PlayerIcons`/`iconSet`/`fontFamily`) — publiczne w obu SDK, celowo niewystawione; do dodania bez zmian SDK.
+- CMCD — inherited; ewentualna konfiguracja wymaga API w SDK.

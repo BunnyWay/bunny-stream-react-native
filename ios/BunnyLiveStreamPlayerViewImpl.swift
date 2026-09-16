@@ -16,8 +16,10 @@ import BunnyStreamPlayer
 ///   (only when `(error as? BunnyLiveStreamError)?.isPermanent == true`).
 /// - `onVideoSizeChange` is **not emitted** because the SDK does not expose
 ///   this callback for live (Plan-iOS.md §12.2).
-/// - TODO(iOS SDK): Emit video size and `dvrEnabled` after the public live
-///   callback exposes those values.
+/// - `dvrEnabled` is not part of the public playback state either, so the
+///   bridge fetches it once per mount from `LiveStreamRepository` (the public
+///   `BunnyLiveStream` model carries it) and attaches it to every
+///   `onLiveStateChange` payload.
 /// - Recreates the hosted view only when the source identity changes.
 @MainActor
 @objc public final class BunnyLiveStreamPlayerViewImpl: UIView {
@@ -33,6 +35,11 @@ import BunnyStreamPlayer
   private var hostingController: UIHostingController<AnyView>?
   private var currentProps = Props()
   private var isMounted = false
+
+  /// `dvrEnabled` for the current stream, fetched once in `reloadPlayer`
+  /// (the SDK's public live playback state does not carry it).
+  private var dvrEnabled = false
+  private var loadGeneration = 0
 
   /// Closure called when a live state change should be emitted to JS.
   /// Payload: state, isLive, reason, targetEpochMs, title, videoId, message, dvrEnabled.
@@ -120,9 +127,29 @@ import BunnyStreamPlayer
     }
     hostingController = host
     isMounted = true
+
+    // `dvrEnabled` is missing from the public live playback state — fetch it
+    // once from the repository. Failure leaves the default (false).
+    dvrEnabled = false
+    loadGeneration += 1
+    let generation = loadGeneration
+    let libraryId = currentProps.libraryId
+    let streamId = currentProps.streamId
+    Task { [weak self] in
+      guard let stream = try? await BunnyStreamAPI(accessKey: accessKey)
+        .liveStreams
+        .getLiveStream(libraryId: libraryId, streamId: streamId)
+      else { return }
+      await MainActor.run {
+        guard let self, self.loadGeneration == generation else { return }
+        self.dvrEnabled = stream.dvrEnabled
+      }
+    }
   }
 
   private func removeHostingController() {
+    loadGeneration += 1
+    dvrEnabled = false
     hostingController?.willMove(toParent: nil)
     hostingController?.view.removeFromSuperview()
     hostingController?.removeFromParent()
@@ -179,7 +206,7 @@ import BunnyStreamPlayer
       payload.title,
       payload.videoId,
       payload.message,
-      false
+      dvrEnabled
     )
   }
 
@@ -204,7 +231,8 @@ import BunnyStreamPlayer
   }
 
   /// Maps every value currently exposed by `BunnyLiveStreamPlaybackState` to
-  /// the shared Codegen payload. `dvrEnabled` remains unavailable in the SDK.
+  /// the shared Codegen payload. `dvrEnabled` is attached separately from the
+  /// repository fetch in `reloadPlayer` (the playback state does not carry it).
   private func mapLiveState(_ state: BunnyLiveStreamPlaybackState) -> LiveStatePayload {
     switch state {
     case .loading:

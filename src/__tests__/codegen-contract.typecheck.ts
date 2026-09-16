@@ -91,10 +91,7 @@ type EventPayload<K extends keyof BunnyStreamPlayerProps> =
 
 type PublicApiMethods = keyof typeof BunnyStreamApi;
 type NativeApiMethods = Exclude<keyof ApiSpec, keyof TurboModule>;
-type PublicUploadMethods = Exclude<
-  keyof typeof BunnyStreamUpload,
-  'addUploadListener' | 'restoreUploads'
->;
+type PublicUploadMethods = Exclude<keyof typeof BunnyStreamUpload, 'addUploadListener'>;
 type NativeUploadMethods = Exclude<
   keyof UploadSpec,
   keyof TurboModule | 'addListener' | 'removeListeners'

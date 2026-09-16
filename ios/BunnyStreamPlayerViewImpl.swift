@@ -430,6 +430,12 @@ import BunnyStreamPlayer
             let durationMs = self.currentDurationMs(player)
             self.onReady?(self.currentProps.videoId, durationMs)
             self.onPlaybackStateChange?("ready", 0)
+            // The public SDK no longer starts playback on appear ("playback
+            // starts when the viewer taps the play button"), so honor the
+            // `autoPlay` prop here — once per item, before any user pause.
+            if self.currentProps.autoPlay, player.rate == 0 {
+              player.play()
+            }
           }
         case .failed:
           self.emitPlaybackFailure(it.error, player: player)
@@ -448,6 +454,11 @@ import BunnyStreamPlayer
         let durationMs = currentDurationMs(player)
         onReady?(currentProps.videoId, durationMs)
         onPlaybackStateChange?("ready", 0)
+        // Same autoPlay bridge as the KVO path above — the public SDK removed
+        // play-on-appear, so the wrapper starts playback itself.
+        if currentProps.autoPlay, player.rate == 0 {
+          player.play()
+        }
       }
     case .failed:
       emitPlaybackFailure(item.error, player: player)

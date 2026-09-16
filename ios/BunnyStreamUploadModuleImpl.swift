@@ -151,6 +151,28 @@ import React
     resolve(okEnvelope(stateDict(from: status, videoId: videoId)))
   }
 
+  /// Reattaches to TUS uploads restored from the persistent cache.
+  ///
+  /// `TUSVideoUploader.make` calls `start()` internally, which restores
+  /// stored uploads into `uploadTracker.uploads`. Touching `tusUploader`
+  /// runs that restoration; the Combine subscription then publishes the
+  /// restored entries to the tracker observer. We additionally emit an
+  /// explicit snapshot per entry so JS always learns each `uploadId`,
+  /// even for uploads whose status never changes again.
+  @objc public func restoreUploads() {
+    let uploader = tusUploader
+    DispatchQueue.main.async { [weak self, uploader] in
+      guard let self else { return }
+      for (info, status) in uploader.uploadTracker.uploads {
+        let uploadId = info.uuid.uuidString
+        let videoId = info.videoUUID.uuidString
+        self.videoIdToUploadId[videoId] = uploadId
+        self.lastStates[uploadId] = status
+        self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+      }
+    }
+  }
+
   // MARK: - Codegen event emitter stubs
 
   @objc public func addListener(_ eventName: String) {
