@@ -8,10 +8,9 @@
     "defaultLocalPath": "../bunny-stream-android"
   },
   "ios": {
-    "repository": "BunnyWay/bunny-stream-ios-private",
-    "branch": "feature/ios-liveStream",
-    "commit": "8e222bb4b8a9d7bae951cb36fa5e6c5a149b540e",
-    "swiftPackageVersion": "0.0.0",
-    "defaultLocalPath": "../bunny-stream-ios-private"
+    "repository": "BunnyWay/bunny-stream-ios",
+    "ref": "main",
+    "commit": "4158e2e1c1416d99aa0e4a39eb85a0ac8df0e570",
+    "defaultLocalPath": "../bunny-stream-ios"
   }
 }

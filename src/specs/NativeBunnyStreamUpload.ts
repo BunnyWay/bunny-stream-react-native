@@ -61,6 +61,16 @@ export interface Spec extends TurboModule {
    */
   getUploadState(uploadId: string): Promise<Object>;
 
+  /**
+   * Reattaches to TUS uploads that survived an app relaunch. On iOS this
+   * initializes the TUS uploader, which restores stored uploads from the
+   * persistent cache; restored entries are emitted through
+   * `bunnyStreamUploadEvent` so JS can learn their `uploadId`s.
+   * No-op on Android (TUS can't survive process death without a
+   * host-owned foreground service).
+   */
+  restoreUploads(): void;
+
   // — Event subscription —
 
   /**

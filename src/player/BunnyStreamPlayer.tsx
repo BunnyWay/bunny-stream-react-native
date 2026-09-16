@@ -10,7 +10,6 @@ import type {
 import type { HostComponent } from 'react-native';
 
 import * as React from 'react';
-import { Platform } from 'react-native';
 
 import { normalizeLiveStateEvent } from '../internal/liveStateEvent';
 import BunnyLiveStreamPlayerNativeComponent, {
@@ -147,9 +146,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
     if (source.type === 'live') {
       const nativeOnLiveStateChange: LiveNativeProps['onLiveStateChange'] = onLiveStateChange
         ? (event) => {
-            // TODO(iOS SDK): Preserve `dvrEnabled` on iOS after the public live callback
-            // exposes it. Codegen serialises a missing boolean as false on the iOS bridge.
-            const nativeEvent = normalizeLiveStateEvent(event.nativeEvent, Platform.OS);
+            const nativeEvent = normalizeLiveStateEvent(event.nativeEvent);
             onLiveStateChange({ nativeEvent });
           }
         : undefined;
