@@ -180,6 +180,17 @@ end
 
 # Configure signing for App Store distribution on the ReactTestApp target
 # only (not SPM packages, which don't support provisioning profiles).
+# Debug gets just the team so automatic development signing works on
+# physical devices (xcodebuild fails with "requires a development team"
+# without it).
+debug_config = target.build_configurations.find { |c| c.name == "Debug" }
+if debug_config
+  debug_config.build_settings["DEVELOPMENT_TEAM"] = "GX6PPA6X9F"
+  puts "[BunnyStream] Configured Debug signing: automatic + team GX6PPA6X9F"
+else
+  warn "[BunnyStream] Debug configuration not found on ReactTestApp target — skipping team config"
+end
+
 release_config = target.build_configurations.find { |c| c.name == "Release" }
 if release_config
   release_config.build_settings["CODE_SIGN_STYLE"] = "Manual"

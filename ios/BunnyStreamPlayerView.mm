@@ -261,9 +261,11 @@ using namespace facebook::react;
   [_impl unmute];
 }
 
-// Phase 7 — no-op: the iOS SDK exposes no public PiP API.
+// Implemented via a bridge-owned AVPictureInPictureController on the
+// discovered AVPlayerLayer (the SDK's PictureInPictureManager is internal).
 - (void)enterPiP
 {
+  [_impl enterPiP];
 }
 
 // Phase 8 — no-op: programmatic quality selection is not bridged on iOS.
