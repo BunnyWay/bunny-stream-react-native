@@ -6,7 +6,6 @@ import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
-  BunnyImage,
   BunnyStreamApi,
   TRANSITIONAL_VIDEO_STATUSES,
   VideoStatusEnum,
@@ -16,6 +15,7 @@ import {
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { loadSettings } from '../storage/storage';
 import { colors } from '../theme/colors';
@@ -237,9 +237,9 @@ function processingLabel(video: Video): string {
   return progress >= 1 && progress < 100 ? `Processing ${progress}%` : 'Processing';
 }
 
-/** Renders a single video card. `BunnyImage` injects the Referer header the
- * Bunny CDN requires and renders through the native image pipeline (no base64
- * data URIs), which keeps the list cheap. */
+/** Renders a single video card. `BunnyThumbnail` wraps `useBunnyImage` — the
+ * Bunny CDN requires a `Referer` header that native image pipelines drop, so
+ * the hook fetches through JS and renders a `data:` URI. */
 function VideoCard({
   video,
   thumbnailUrl,
@@ -255,7 +255,7 @@ function VideoCard({
     <TouchableOpacity style={videoCardStyles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={videoCardStyles.thumbnailContainer}>
         {thumbnailUrl ? (
-          <BunnyImage source={thumbnailUrl} style={videoCardStyles.thumbnail} resizeMode="cover" />
+          <BunnyThumbnail url={thumbnailUrl} style={videoCardStyles.thumbnail} resizeMode="cover" />
         ) : (
           <View style={videoCardStyles.thumbnailPlaceholder} />
         )}

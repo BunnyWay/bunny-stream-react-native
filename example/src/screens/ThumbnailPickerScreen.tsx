@@ -12,13 +12,9 @@ import {
   View,
 } from 'react-native';
 
-import {
-  BunnyImage,
-  BunnyStreamApi,
-  fold,
-  type LiveStreamThumbnail,
-} from 'bunny-stream-react-native';
+import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
@@ -116,7 +112,7 @@ function ThumbnailTile({ item, onPick }: { item: LiveStreamThumbnail; onPick: ()
   return (
     <TouchableOpacity style={thumbStyles.tile} onPress={onPick} disabled={!url} activeOpacity={0.7}>
       {url ? (
-        <BunnyImage source={url} style={thumbStyles.image} resizeMode="cover" />
+        <BunnyThumbnail url={url} style={thumbStyles.image} resizeMode="cover" />
       ) : (
         <View style={thumbStyles.placeholder}>
           <Text style={thumbStyles.placeholderText}>No preview</Text>
