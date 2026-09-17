@@ -214,6 +214,11 @@ if File.exist?(generated_info_plist)
     "This app uses the camera to record and broadcast video to Bunny Stream."
   plist_doc["NSMicrophoneUsageDescription"] =
     "This app uses the microphone to capture audio during recording and broadcasting."
+  # react-native-image-picker references PhotoLibrary APIs — App Store /
+  # TestFlight reject uploads without this key even if only document-picker
+  # paths are exercised.
+  plist_doc["NSPhotoLibraryUsageDescription"] =
+    "This app lets you pick videos from your photo library to upload to Bunny Stream."
   # The "Audio, AirPlay, and Picture in Picture" background mode maps to the
   # `audio` UIBackgroundModes value — required for AVPictureInPictureController
   # to start (see PictureInPictureManager in the iOS SDK).
