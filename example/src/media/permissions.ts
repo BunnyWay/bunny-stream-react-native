@@ -57,31 +57,3 @@ export async function requestBroadcastPermissions(): Promise<boolean> {
     return false;
   }
 }
-
-/**
- * Checks whether camera and microphone permissions are already granted
- * without prompting the user.
- *
- * On Android, checks both permissions via `PermissionsAndroid.check`.
- * On iOS, returns `true` (the native SDK handles the permission prompt).
- */
-export async function checkBroadcastPermissions(): Promise<boolean> {
-  if (Platform.OS !== 'android') {
-    return true;
-  }
-
-  const PermissionsAndroid = await getPermissionsAndroid();
-  if (!PermissionsAndroid) {
-    return false;
-  }
-
-  try {
-    const cameraGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
-    const audioGranted = await PermissionsAndroid.check(
-      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-    );
-    return cameraGranted && audioGranted;
-  } catch {
-    return false;
-  }
-}

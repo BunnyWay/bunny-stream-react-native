@@ -221,16 +221,16 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       >
         <View style={styles.modalButtons}>
           <TouchableOpacity
-            style={[styles.errorButton, { flex: 1, marginRight: 8 }]}
+            style={[styles.primaryButton, { flex: 1, marginRight: 8 }]}
             onPress={handleDeleteConfirm}
           >
-            <Text style={styles.errorButtonText}>Delete</Text>
+            <Text style={styles.primaryButtonText}>Delete</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.errorButton, { flex: 1, backgroundColor: colors.disabled }]}
+            style={[styles.primaryButton, { flex: 1, backgroundColor: colors.disabled }]}
             onPress={() => setDeleteStream(null)}
           >
-            <Text style={styles.errorButtonText}>Cancel</Text>
+            <Text style={styles.primaryButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </Dialog>
