@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { PlaybackPosition } from 'bunny-stream-react-native';
 
@@ -25,9 +25,9 @@ import {
   importResumePositions,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { loadResumeSettings } from '../storage/resumeSettings';
-import { colors } from '../theme/colors';
+import { Header } from '../../components/Header';
+import { loadResumeSettings } from '../../storage/resumeSettings';
+import { colors } from '../../theme/colors';
 
 type ResumePositionsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumePositions'>;
 

@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY } from '@env';
@@ -23,10 +23,10 @@ import {
   type IngestState,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { requestBroadcastPermissions } from '../media/permissions';
-import { loadSettings } from '../storage/storage';
-import { colors } from '../theme/colors';
+import { Header } from '../../components/Header';
+import { requestBroadcastPermissions } from '../../media/permissions';
+import { loadSettings } from '../../storage/settings';
+import { colors } from '../../theme/colors';
 
 type CameraScreenProps = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 

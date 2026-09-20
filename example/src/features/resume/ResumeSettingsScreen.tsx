@@ -1,18 +1,18 @@
-import type { RootStackParamList } from '../navigation/types';
-import type { ResumeSettings } from '../storage/resumeSettings';
+import type { RootStackParamList } from '../../navigation/types';
+import type { ResumeSettings } from '../../storage/resumeSettings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { Header } from '../components/Header';
+import { Header } from '../../components/Header';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
   saveResumeSettings,
-} from '../storage/resumeSettings';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+} from '../../storage/resumeSettings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type ResumeSettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumeSettings'>;
 

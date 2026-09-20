@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
@@ -14,10 +14,10 @@ import {
 
 import { BunnyStreamApi, type VideoCodec } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { pickImage } from '../media/picker';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { Header } from '../../components/Header';
+import { pickImage } from '../../media/picker';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type VideoManagementScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoManagement'>;
 

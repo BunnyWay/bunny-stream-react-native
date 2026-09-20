@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY } from '@env';
@@ -29,15 +29,15 @@ import {
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { ResumeDialog } from '../components/ResumeDialog';
+import { Header } from '../../components/Header';
+import { ResumeDialog } from '../../components/ResumeDialog';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
   toResumeConfig,
-} from '../storage/resumeSettings';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+} from '../../storage/resumeSettings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
