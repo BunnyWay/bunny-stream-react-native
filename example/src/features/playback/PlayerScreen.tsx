@@ -238,16 +238,16 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
               Video ID: {videoId}
             </Text>
             <TouchableOpacity
-              style={styles.errorButton}
+              style={styles.primaryButton}
               onPress={() => setPlaybackAttempt((n) => n + 1)}
             >
-              <Text style={styles.errorButtonText}>Retry</Text>
+              <Text style={styles.primaryButtonText}>Retry</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.errorButton, playerScreenStyles.errorButtonSecondary]}
+              style={[styles.primaryButton, playerScreenStyles.primaryButtonSecondary]}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.errorButtonText}>Go Back</Text>
+              <Text style={styles.primaryButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -393,7 +393,7 @@ const playerScreenStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  errorButtonSecondary: {
+  primaryButtonSecondary: {
     marginTop: 8,
     backgroundColor: colors.onPrimary15,
   },

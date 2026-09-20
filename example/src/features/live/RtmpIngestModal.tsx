@@ -66,8 +66,8 @@ export function RtmpIngestModal({
       </View>
 
       <View style={styles.modalButtons}>
-        <TouchableOpacity style={[styles.errorButton, { flex: 1 }]} onPress={onClose}>
-          <Text style={styles.errorButtonText}>Done</Text>
+        <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={onClose}>
+          <Text style={styles.primaryButtonText}>Done</Text>
         </TouchableOpacity>
       </View>
     </Dialog>

@@ -184,13 +184,13 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
     fontFamily: 'monospace',
   },
-  errorButton: {
+  primaryButton: {
     backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 24,
   },
-  errorButtonText: {
+  primaryButtonText: {
     color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
@@ -349,26 +349,6 @@ export const styles = StyleSheet.create({
     marginTop: 32,
     fontSize: 14,
   },
-  videoIdRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  videoIdText: {
-    fontSize: 15,
-    color: colors.onSurface,
-    flex: 1,
-  },
-  removeButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  removeButtonText: {
-    fontSize: 18,
-    color: colors.onSurfaceVariant,
-  },
   addButton: {
     backgroundColor: colors.primary,
     borderRadius: 8,
@@ -386,10 +366,5 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    color: colors.onSurfaceVariant,
-    marginTop: 12,
-    fontSize: 14,
   },
 });

@@ -31,8 +31,8 @@ export function ListStateView({
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.errorMessage}>{state.message}</Text>
-        <TouchableOpacity style={styles.errorButton} onPress={onRetry}>
-          <Text style={styles.errorButtonText}>Retry</Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={onRetry}>
+          <Text style={styles.primaryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
