@@ -27,6 +27,8 @@
     "ios",
     "cpp",
     "*.podspec",
+    "app.plugin.js",
+    "plugin/build",
     "react-native.config.js",
     "native-sdk-baselines.json",
     "docs/CAPABILITIES.md",
@@ -43,8 +45,9 @@
   ],
   "scripts": {
     "example": "yarn workspace bunny-stream-react-native-example",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib plugin/build",
+    "prepare": "bob build && yarn plugin:build",
+    "plugin:build": "tsc -p plugin/tsconfig.json",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
@@ -120,6 +123,7 @@
     "typescript-eslint": "^8.59.1"
   },
   "peerDependencies": {
+    "expo": ">=52.0.0",
     "react": ">=18.0.0",
     "react-native": ">=0.71.0"
   },
@@ -241,5 +245,13 @@
       "release-it"
     ],
     "version": "0.63.0"
+  },
+  "dependencies": {
+    "@expo/config-plugins": ">=9.0.0 <60.0.0"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    }
   }
 }
