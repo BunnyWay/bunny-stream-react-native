@@ -287,3 +287,29 @@ Przejrzano całe repozytorium (biblioteka `src/`, `example/`, `docs/`, `plans/`,
 - `example-expo/` — osobna apka, 3 pliki, nie wymaga reorganizacji.
 - Zmiany w samej bibliotece (`src/` roota).
 - Refaktor logiki ekranów (hooki, wspólne fetchowanie) — świadomie odkładamy; example ma pokazywać API biblioteki wprost, nie wzorce architektoniczne.
+
+## 10. Status wdrożenia (2026-09-20) — ✅ ukończone
+
+Wszystkie 7 commitów wdrożone na branchu `fixes`:
+
+1. ✅ Przeniesienie ekranów do `features/`, `storage.ts` → `settings.ts`, usunięcie `types.ts`.
+2. ✅ `navigation/RootNavigator.tsx` wydzielony z `App.tsx`.
+3. ✅ `LiveStreamsScreen.tsx` (1704 → ~290 linii) + `LiveStreamCard`, `LiveStreamEditorModal`,
+   `RtmpIngestModal`, `constants.ts`, `time.ts`.
+4. ✅ `utils/format.ts` (formatTime/formatDuration/formatTimestamp/formatBytes),
+   `loadLibraryConfig()` — migracja ~8 kopii rozwiązywania konfiguracji.
+5. ✅ 8 wspólnych komponentów w `components/`; ~950 linii duplikacji usunięte
+   (commit: −947/+380 w migracji).
+6. ✅ `colors.ts` rozszerzone o ~30 tokenów semantycznych (status, neutralne, scrimy,
+   hairline, warianty alfa); **0 literałów kolorów** poza `theme/colors.ts`.
+   Ujednolicono 2 czerwienie błędów i 3 scrimy; `Black20Color()` usunięte.
+7. ✅ Martwe eksporty (`checkBroadcastPermissions`), 5 kluczy stylów, `live-features.md`,
+   `.DS_Store`, `example/build`+`dist`; `errorButton` → `primaryButton`;
+   `live-features-updated.md` → `plans/`.
+
+Weryfikacja końcowa: `typecheck` (root + example) ✅, `eslint` ✅, `jest` 157/157 ✅,
+`capabilities:check` ✅. `native-baselines:check` pominięty — wymaga zsynchronizowanego
+checkoutu sąsiedniego repo `bunny-stream-android` (środowiskowe, niezwiązane ze zmianami).
+
+Pozostawione świadomie: paleta (`Orange80`, `Blue80`, `Black20`…) jako mirror `Color.kt`,
+eksporty `index.ts` biblioteki (publiczne API).
