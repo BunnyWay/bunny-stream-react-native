@@ -70,11 +70,6 @@ const QUALITY_PRESETS: { label: string; value: BroadcastQuality }[] = [
   },
 ];
 
-interface EventLogEntry {
-  id: number;
-  text: string;
-}
-
 export function CameraScreen({ navigation, route }: CameraScreenProps) {
   const { mode, libraryId } = route.params;
   const streamId = mode === 'live' ? route.params.streamId : undefined;
@@ -90,11 +85,9 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
   const [elapsed, setElapsed] = React.useState<string>('');
   const [primaryIngest, setPrimaryIngest] = React.useState<IngestState | null>(null);
   const [backupIngest, setBackupIngest] = React.useState<IngestState | null>(null);
-  const [eventLog, setEventLog] = React.useState<EventLogEntry[]>([]);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
   const broadcasterRef = React.useRef<BunnyStreamBroadcasterRef>(null);
-  const logIdRef = React.useRef(0);
 
   React.useEffect(() => {
     (async () => {
@@ -105,73 +98,33 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
     })();
   }, []);
 
-  const addLog = React.useCallback((text: string) => {
-    const entry: EventLogEntry = { id: logIdRef.current++, text };
-    setEventLog((prev) => [entry, ...prev].slice(0, 20));
+  const handleStateChange = React.useCallback((event: { state: BroadcastState }) => {
+    setBroadcastState(event.state);
   }, []);
-
-  const handleStateChange = React.useCallback(
-    (event: { state: BroadcastState }) => {
-      setBroadcastState(event.state);
-      addLog(`state=${event.state}`);
-    },
-    [addLog],
-  );
 
   const handleElapsedTime = React.useCallback((event: { elapsedMs: number; formatted: string }) => {
     setElapsed(event.formatted);
   }, []);
 
-  const handleCameraChange = React.useCallback(
-    (event: { position: CameraPosition }) => {
-      setCameraPosition(event.position);
-      addLog(`camera=${event.position}`);
-    },
-    [addLog],
-  );
+  const handleCameraChange = React.useCallback((event: { position: CameraPosition }) => {
+    setCameraPosition(event.position);
+  }, []);
 
-  const handleMuteChange = React.useCallback(
-    (event: { muted: boolean }) => {
-      setMuted(event.muted);
-      addLog(`muted=${event.muted}`);
-    },
-    [addLog],
-  );
+  const handleMuteChange = React.useCallback((event: { muted: boolean }) => {
+    setMuted(event.muted);
+  }, []);
 
   const handleIngestStateChange = React.useCallback(
     (event: { endpoint: IngestEndpoint; state: IngestState }) => {
       if (event.endpoint === 'primary') setPrimaryIngest(event.state);
       else setBackupIngest(event.state);
-      addLog(`ingest ${event.endpoint}=${event.state}`);
     },
-    [addLog],
+    [],
   );
 
-  const handleReconnecting = React.useCallback(
-    (event: { attempt: number; usingBackup: boolean }) => {
-      addLog(`reconnecting attempt=${event.attempt} usingBackup=${event.usingBackup}`);
-    },
-    [addLog],
-  );
-
-  const handleReconnectFailed = React.useCallback(() => {
-    addLog('reconnectFailed');
-  }, [addLog]);
-
-  const handleFailover = React.useCallback(
-    (event: { usingBackup: boolean }) => {
-      addLog(`failover usingBackup=${event.usingBackup}`);
-    },
-    [addLog],
-  );
-
-  const handleError = React.useCallback(
-    (event: { message: string }) => {
-      setErrorMsg(event.message);
-      addLog(`error: ${event.message}`);
-    },
-    [addLog],
-  );
+  const handleError = React.useCallback((event: { message: string }) => {
+    setErrorMsg(event.message);
+  }, []);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -255,9 +208,6 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
           onCameraChange={handleCameraChange}
           onMuteChange={handleMuteChange}
           onIngestStateChange={handleIngestStateChange}
-          onReconnecting={handleReconnecting}
-          onReconnectFailed={handleReconnectFailed}
-          onFailover={handleFailover}
           onError={handleError}
           style={cameraStyles.preview}
         />
@@ -377,18 +327,6 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
             <Text style={cameraStyles.actionSecondaryText}>{muted ? 'Unmute' : 'Mute'}</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Event log */}
-        <Text style={cameraStyles.sectionLabel}>Event log</Text>
-        {eventLog.length === 0 ? (
-          <Text style={cameraStyles.emptyLog}>No events yet.</Text>
-        ) : (
-          eventLog.map((entry) => (
-            <Text key={entry.id} style={cameraStyles.logEntry} numberOfLines={1}>
-              {entry.text}
-            </Text>
-          ))
-        )}
       </ScrollView>
     </View>
   );
@@ -612,16 +550,5 @@ const cameraStyles = StyleSheet.create({
   errorText: {
     color: '#d32f2f',
     fontSize: 13,
-  },
-  emptyLog: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-    fontStyle: 'italic',
-  },
-  logEntry: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: colors.onSurfaceVariant,
-    paddingVertical: 2,
   },
 });
