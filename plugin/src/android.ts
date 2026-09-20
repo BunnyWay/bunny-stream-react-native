@@ -16,7 +16,7 @@ const REQUIRED_PERMISSIONS = ['android.permission.CAMERA', 'android.permission.R
 
 /** Android SDK requires API 26+; the Kotlin metadata in SDK 4.0.0 needs >= 2.2.20. */
 const MIN_SDK_VERSION = '26';
-const MIN_KOTLIN_VERSION = '2.2.20';
+export const MIN_KOTLIN_VERSION = '2.2.20';
 
 export function mergeConfigChanges(existing: string | undefined): string {
   const current = new Set(
@@ -86,6 +86,27 @@ type GradlePropertyItem = {
   key?: string;
   value?: unknown;
 };
+
+/**
+ * Expo templates declare `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')`
+ * in the app buildscript *without* a version — it resolves transitively from
+ * react-native-gradle-plugin (e.g. 2.1.x on RN 0.86). Subprojects then inherit
+ * that compiler through the buildscript classloader, which cannot read the
+ * Kotlin 2.3 metadata shipped by the Bunny Stream Android SDK's kotlin-stdlib.
+ * Pinning the classpath to the minimum required version fixes it.
+ */
+export function ensureKotlinGradlePluginVersion(
+  buildGradle: string,
+  kotlinVersion: string,
+): string {
+  return buildGradle.replace(
+    /classpath\(\s*['"]org\.jetbrains\.kotlin:kotlin-gradle-plugin(?::([^'"]+))?['"]\s*\)/g,
+    (match, existing: string | undefined) =>
+      existing && compareVersions(existing, kotlinVersion) >= 0
+        ? match
+        : `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}')`,
+  );
+}
 
 export function compareVersions(a: string, b: string): number {
   const pa = a.split('.').map(Number);

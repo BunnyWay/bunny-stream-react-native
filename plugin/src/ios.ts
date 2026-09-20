@@ -39,11 +39,20 @@ rm -rf "\${CONFIGURATION_BUILD_DIR}/GoogleInteractiveMediaAds.xcframework-ios.si
 `;
 
 const EMBED_INPUT_PATHS = [
-  '${BUILT_PRODUCTS_DIR}/BunnyStreamReactNative/GoogleInteractiveMediaAds.framework',
+  '"${BUILT_PRODUCTS_DIR}/BunnyStreamReactNative/GoogleInteractiveMediaAds.framework"',
 ];
 const EMBED_OUTPUT_PATHS = [
-  '${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GoogleInteractiveMediaAds.framework',
+  '"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GoogleInteractiveMediaAds.framework"',
 ];
+
+/**
+ * The `xcode` pbx writer stores string values verbatim, so a multi-line
+ * shellScript must be written in the escaped single-line form Xcode itself
+ * uses (`"...\n..."` with escaped quotes) rather than literal newlines.
+ */
+function toPbxQuoted(script: string): string {
+  return `"${script.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`;
+}
 
 export function applyBunnyStreamInfoPlist(
   plist: Record<string, unknown>,
@@ -87,7 +96,12 @@ interface XcodeProjectLike {
     buildPhaseType: string,
     comment: string,
     target: string,
-    optionsOrFolderType?: string,
+    optionsOrFolderType?: {
+      inputPaths?: string[];
+      outputPaths?: string[];
+      shellPath?: string;
+      shellScript?: string;
+    },
     subfolderPath?: string,
   ): void;
   hash: {
@@ -124,26 +138,25 @@ export function ensureEmbedSwiftPmFrameworksPhase(project: XcodeProjectLike): vo
     (phase) => phase?.name === `"${EMBED_PHASE_NAME}"` || phase?.name === EMBED_PHASE_NAME,
   );
   if (existing) {
-    existing.shellScript = JSON.stringify(EMBED_FRAMEWORKS_SCRIPT);
+    existing.shellScript = toPbxQuoted(EMBED_FRAMEWORKS_SCRIPT);
     existing.inputPaths = EMBED_INPUT_PATHS;
     existing.outputPaths = EMBED_OUTPUT_PATHS;
+    existing.shellPath = '/bin/sh';
     return;
   }
 
-  const before = new Set(Object.keys(shellScriptPhases(project)));
   project.addBuildPhase(
     [],
     'PBXShellScriptBuildPhase',
     EMBED_PHASE_NAME,
     findApplicationTargetUuid(project),
-    'shell_script',
+    {
+      inputPaths: EMBED_INPUT_PATHS,
+      outputPaths: EMBED_OUTPUT_PATHS,
+      shellPath: '/bin/sh',
+      // pbxShellScriptBuildPhaseObj only escapes quotes — escape newlines
+      // ourselves so the stored value stays a single-line quoted string.
+      shellScript: EMBED_FRAMEWORKS_SCRIPT.replace(/\n/g, '\\n'),
+    },
   );
-  for (const [uuid, phase] of Object.entries(shellScriptPhases(project))) {
-    if (before.has(uuid) || uuid.endsWith('_comment')) continue;
-    phase.name = `"${EMBED_PHASE_NAME}"`;
-    phase.shellPath = '/bin/sh';
-    phase.shellScript = JSON.stringify(EMBED_FRAMEWORKS_SCRIPT);
-    phase.inputPaths = EMBED_INPUT_PATHS;
-    phase.outputPaths = EMBED_OUTPUT_PATHS;
-  }
 }

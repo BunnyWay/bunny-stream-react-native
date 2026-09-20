@@ -6,6 +6,7 @@ import {
   withAppBuildGradle,
   withGradleProperties,
   withInfoPlist,
+  withProjectBuildGradle,
   withXcodeProject,
 } from '@expo/config-plugins';
 
@@ -13,6 +14,8 @@ import {
   applyBunnyStreamAndroidManifest,
   applyBunnyStreamGradleProperties,
   ensureCoreLibraryDesugaring,
+  ensureKotlinGradlePluginVersion,
+  MIN_KOTLIN_VERSION,
 } from './android';
 import { applyBunnyStreamInfoPlist, ensureEmbedSwiftPmFrameworksPhase } from './ios';
 import { withSpmUuidFix } from './spm';
@@ -34,6 +37,13 @@ const withBunnyStream: ConfigPlugin<BunnyStreamPluginProps | void> = (config, pr
   });
   config = withGradleProperties(config, (c) => {
     c.modResults = applyBunnyStreamGradleProperties(c.modResults);
+    return c;
+  });
+  config = withProjectBuildGradle(config, (c) => {
+    c.modResults.contents = ensureKotlinGradlePluginVersion(
+      c.modResults.contents,
+      MIN_KOTLIN_VERSION,
+    );
     return c;
   });
   config = withInfoPlist(config, (c) => {

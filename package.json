@@ -61,7 +61,8 @@
     "example:start": "yarn example start",
     "example:ios": "yarn example ios",
     "example:android": "yarn example android",
-    "example:typecheck": "yarn example typecheck"
+    "example:typecheck": "yarn example typecheck",
+    "example:expo": "yarn workspace bunny-stream-react-native-example-expo"
   },
   "keywords": [
     "react-native",
@@ -128,7 +129,8 @@
     "react-native": ">=0.71.0"
   },
   "workspaces": [
-    "example"
+    "example",
+    "example-expo"
   ],
   "packageManager": "yarn@4.11.0",
   "react-native-builder-bob": {
@@ -196,6 +198,7 @@
     },
     "modulePathIgnorePatterns": [
       "<rootDir>/example/node_modules",
+      "<rootDir>/example-expo/node_modules",
       "<rootDir>/lib/"
     ],
     "testPathIgnorePatterns": [

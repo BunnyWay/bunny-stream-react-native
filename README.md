@@ -236,7 +236,7 @@ The package ships an Expo config plugin (`app.plugin.js`). Because the library c
 
 The plugin applies the host-app configuration the native SDKs need:
 
-- **Android:** `CAMERA`/`RECORD_AUDIO` permissions, `supportsPictureInPicture` + `configChanges` on `MainActivity` (required for `enterPiP()`), core library desugaring in `android/app/build.gradle` (required by the SDK's media3/IMA dependencies), and `android.minSdkVersion=26` / `android.kotlinVersion=2.2.20` floors in `gradle.properties` (only raised, never lowered).
+- **Android:** `CAMERA`/`RECORD_AUDIO` permissions, `supportsPictureInPicture` + `configChanges` on `MainActivity` (required for `enterPiP()`), core library desugaring in `android/app/build.gradle` (required by the SDK's media3/IMA dependencies), `android.minSdkVersion=26` / `android.kotlinVersion=2.2.20` floors in `gradle.properties` (only raised, never lowered), and a pinned `kotlin-gradle-plugin` version in the root `build.gradle` (the Expo template declares it versionless, which resolves to a compiler too old for the SDK's Kotlin metadata).
 - **iOS:** camera/microphone/photo-library usage descriptions, `UIBackgroundModes=audio` (required for `enterPiP()`), an "Embed SwiftPM Frameworks" build phase that copies `GoogleInteractiveMediaAds.framework` into the app bundle, and a backport of the upstream `spm.rb` UUID-collision fix for React Native < 0.88 (applied to `node_modules` during `prebuild`).
 
 | Prop | Default | Notes |
@@ -249,6 +249,8 @@ The plugin applies the host-app configuration the native SDKs need:
 | `desugarJdkLibsVersion` | `"2.1.5"` | Android desugar dependency |
 
 Bare React Native apps that also use Expo modules (no `prebuild` step) must apply the same changes by hand — the plugin only runs during Continuous Native Generation. `BUNNY_STREAM_IOS_SDK_PATH` works unchanged (the podspec reads it during `pod install`).
+
+The iOS SDK generates its API client with the `swift-openapi-generator` build-tool plugin. `expo run:ios`, Xcode and EAS Build handle this correctly out of the box. If you drive `xcodebuild` yourself, pass only `-destination` — do **not** add `-sdk iphonesimulator`, which makes Xcode compile plugin executables for the destination platform and fails with `_OpenAPIGeneratorCore is only to be used by swift-openapi-generator itself`.
 
 ## Related SDKs
 
