@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
@@ -34,12 +34,12 @@ import {
   type UploadEvent,
 } from 'bunny-stream-react-native';
 
-import { BunnyThumbnail } from '../components/BunnyThumbnail';
-import { Header } from '../components/Header';
-import { pickImage, pickVideo } from '../media/picker';
-import { loadSettings } from '../storage/storage';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { BunnyThumbnail } from '../../components/BunnyThumbnail';
+import { Header } from '../../components/Header';
+import { pickImage, pickVideo } from '../../media/picker';
+import { loadSettings } from '../../storage/settings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type LiveStreamsScreenProps = NativeStackScreenProps<RootStackParamList, 'LiveStreams'>;
 

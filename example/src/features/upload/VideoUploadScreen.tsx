@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_LIBRARY_ID } from '@env';
@@ -21,11 +21,11 @@ import {
   type UploadMode,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { pickVideo } from '../media/picker';
-import { loadSettings } from '../storage/storage';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { Header } from '../../components/Header';
+import { pickVideo } from '../../media/picker';
+import { loadSettings } from '../../storage/settings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type VideoUploadScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoUpload'>;
 

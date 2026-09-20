@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
@@ -7,9 +7,9 @@ import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { initialize } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { loadSettings, saveSettings } from '../storage/storage';
-import { styles } from '../theme/styles';
+import { Header } from '../../components/Header';
+import { loadSettings, saveSettings } from '../../storage/settings';
+import { styles } from '../../theme/styles';
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 

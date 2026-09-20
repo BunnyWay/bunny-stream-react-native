@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_LIBRARY_ID } from '@env';
@@ -6,11 +6,11 @@ import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Header } from '../components/Header';
-import { HomeOption } from '../components/HomeOption';
-import { DirectVideoPlayModal } from '../screens/DirectVideoPlayModal';
-import { loadSettings } from '../storage/storage';
-import { styles } from '../theme/styles';
+import { Header } from '../../components/Header';
+import { loadSettings } from '../../storage/settings';
+import { styles } from '../../theme/styles';
+import { DirectVideoPlayModal } from './DirectVideoPlayModal';
+import { HomeOption } from './HomeOption';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 

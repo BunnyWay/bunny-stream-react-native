@@ -10,20 +10,20 @@ import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-c
 import { initialize } from 'bunny-stream-react-native';
 
 import { ScreenWrapper } from './components/ScreenWrapper';
-import { CameraScreen } from './screens/CameraScreen';
-import { HomeScreen } from './screens/HomeScreen';
-import { LivePlayerScreen } from './screens/LivePlayerScreen';
-import { LiveStreamsScreen } from './screens/LiveStreamsScreen';
-import { PlayerScreen } from './screens/PlayerScreen';
-import { ResumePositionsScreen } from './screens/ResumePositionsScreen';
-import { ResumeSettingsScreen } from './screens/ResumeSettingsScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { ThumbnailPickerScreen } from './screens/ThumbnailPickerScreen';
-import { TrailerPickerScreen } from './screens/TrailerPickerScreen';
-import { VideoListScreen } from './screens/VideoListScreen';
-import { VideoManagementScreen } from './screens/VideoManagementScreen';
-import { VideoUploadScreen } from './screens/VideoUploadScreen';
-import { loadSettings } from './storage/storage';
+import { HomeScreen } from './features/home/HomeScreen';
+import { LivePlayerScreen } from './features/live/LivePlayerScreen';
+import { LiveStreamsScreen } from './features/live/LiveStreamsScreen';
+import { ThumbnailPickerScreen } from './features/live/ThumbnailPickerScreen';
+import { TrailerPickerScreen } from './features/live/TrailerPickerScreen';
+import { PlayerScreen } from './features/playback/PlayerScreen';
+import { VideoListScreen } from './features/playback/VideoListScreen';
+import { VideoManagementScreen } from './features/playback/VideoManagementScreen';
+import { ResumePositionsScreen } from './features/resume/ResumePositionsScreen';
+import { ResumeSettingsScreen } from './features/resume/ResumeSettingsScreen';
+import { SettingsScreen } from './features/settings/SettingsScreen';
+import { CameraScreen } from './features/upload/CameraScreen';
+import { VideoUploadScreen } from './features/upload/VideoUploadScreen';
+import { loadSettings } from './storage/settings';
 import { styles } from './theme/styles';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

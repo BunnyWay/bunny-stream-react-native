@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { styles } from '../theme/styles';
+import { styles } from '../../theme/styles';
 
 type HomeOptionProps = {
   title: string;

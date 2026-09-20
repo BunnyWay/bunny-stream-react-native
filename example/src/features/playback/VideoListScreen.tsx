@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
@@ -15,11 +15,11 @@ import {
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
-import { BunnyThumbnail } from '../components/BunnyThumbnail';
-import { Header } from '../components/Header';
-import { loadSettings } from '../storage/storage';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { BunnyThumbnail } from '../../components/BunnyThumbnail';
+import { Header } from '../../components/Header';
+import { loadSettings } from '../../storage/settings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type VideoListScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoList'>;
 

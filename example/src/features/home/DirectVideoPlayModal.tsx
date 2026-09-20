@@ -6,8 +6,8 @@ import {
   loadDirectPlayValues,
   saveDirectPlayValues,
   parseVideoIdsFromEnv,
-} from '../storage/storage';
-import { styles } from '../theme/styles';
+} from '../../storage/settings';
+import { styles } from '../../theme/styles';
 
 type DirectVideoPlayModalProps = {
   visible: boolean;
