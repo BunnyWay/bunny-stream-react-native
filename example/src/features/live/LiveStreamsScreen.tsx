@@ -12,7 +12,7 @@ import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
 import { ListStateView } from '../../components/ListStateView';
 import { loadLibraryConfig } from '../../storage/settings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { LiveStreamCard } from './LiveStreamCard';
 import { LiveStreamEditorModal } from './LiveStreamEditorModal';
@@ -262,13 +262,13 @@ const fabStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
   },
   fabIcon: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 28,
     fontWeight: '400',
     marginTop: -2,

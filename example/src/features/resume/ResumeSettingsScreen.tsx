@@ -120,7 +120,7 @@ export function ResumeSettingsScreen({ navigation }: ResumeSettingsScreenProps) 
         </Text>
 
         <View style={styles.saveButtonContainer}>
-          <Button title="Save" onPress={handleSave} color="#FD8D32" />
+          <Button title="Save" onPress={handleSave} color={colors.primary} />
         </View>
       </ScrollView>
     </>

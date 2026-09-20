@@ -9,7 +9,7 @@ import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-rea
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { Header } from '../../components/Header';
 import { ListStateView } from '../../components/ListStateView';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
 type ThumbnailPickerScreenProps = NativeStackScreenProps<RootStackParamList, 'ThumbnailPicker'>;
@@ -123,7 +123,7 @@ const thumbStyles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -131,17 +131,17 @@ const thumbStyles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   placeholder: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    color: '#888',
+    color: colors.neutral,
     fontSize: 12,
   },
   timestamp: {

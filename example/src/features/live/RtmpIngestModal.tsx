@@ -87,7 +87,7 @@ const rtmpStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surfaceSunken,
     borderRadius: 8,
     padding: 12,
   },
@@ -105,7 +105,7 @@ const rtmpStyles = StyleSheet.create({
     borderRadius: 6,
   },
   copyButtonText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 12,
     fontWeight: '600',
   },

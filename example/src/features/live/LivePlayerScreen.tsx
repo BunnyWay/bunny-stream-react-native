@@ -19,7 +19,7 @@ import { Header } from '../../components/Header';
 import { PropertiesCard } from '../../components/PropertiesCard';
 import { StatusBanner } from '../../components/StatusBanner';
 import { StatusPill } from '../../components/StatusPill';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatTimestamp } from '../../utils/format';
 import { LIVE_STATUS_COLORS } from './constants';
@@ -60,7 +60,9 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   }, [streamId, libraryId, liveStateKind]);
 
   const status = stream?.status as LiveStreamStatus | undefined;
-  const statusColor = status ? (LIVE_STATUS_COLORS[status] ?? '#aaa') : '#aaa';
+  const statusColor = status
+    ? (LIVE_STATUS_COLORS[status] ?? colors.neutralLight)
+    : colors.neutralLight;
 
   return (
     <View style={styles.playerContainer}>
@@ -83,7 +85,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {loading ? (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={colors.onPrimary} />
           </View>
         ) : null}
       </View>
@@ -109,7 +111,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
             <StatusPill
               label={status ? liveStreamStatusLabel(status) : '—'}
               backgroundColor={statusColor}
-              color="#FFFFFF"
+              color={colors.onPrimary}
               rounded
               style={cardStyles.statusPill}
               textStyle={cardStyles.statusPillText}
@@ -247,7 +249,7 @@ const cardStyles = StyleSheet.create({
     padding: 16,
     marginTop: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

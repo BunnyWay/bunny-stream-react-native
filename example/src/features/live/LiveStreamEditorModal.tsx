@@ -390,7 +390,7 @@ export function LiveStreamEditorModal({
             value={title}
             onChangeText={setTitle}
             placeholder="Stream title"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.placeholder}
           />
 
           <Text style={createStyles.label}>Description</Text>
@@ -399,7 +399,7 @@ export function LiveStreamEditorModal({
             value={description}
             onChangeText={setDescription}
             placeholder="Optional description"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.placeholder}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -438,7 +438,7 @@ export function LiveStreamEditorModal({
                 value={scheduledStart}
                 onChangeText={setScheduledStart}
                 placeholder="2026-01-15T18:00:00Z"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -449,7 +449,7 @@ export function LiveStreamEditorModal({
                 value={scheduledEnd}
                 onChangeText={setScheduledEnd}
                 placeholder="2026-01-15T20:00:00Z"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -482,7 +482,7 @@ export function LiveStreamEditorModal({
                 value={dvrWindow}
                 onChangeText={setDvrWindow}
                 placeholder="12:00:00"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -510,7 +510,7 @@ export function LiveStreamEditorModal({
                 value={trailerVideoId}
                 onChangeText={setTrailerVideoId}
                 placeholder="Video GUID from your library"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -577,7 +577,7 @@ export function LiveStreamEditorModal({
                   if (v.trim()) setThumbnailLocalUri(null);
                 }}
                 placeholder="https://example.com/poster.jpg"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -631,7 +631,7 @@ export function LiveStreamEditorModal({
                 value={output.url}
                 onChangeText={(v) => updateRtmpRow(rtmpOutputs, setRtmpOutputs, i, { url: v })}
                 placeholder="rtmp://live.example.com/app"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -642,7 +642,7 @@ export function LiveStreamEditorModal({
                 value={output.key}
                 onChangeText={(v) => updateRtmpRow(rtmpOutputs, setRtmpOutputs, i, { key: v })}
                 placeholder="Optional stream key"
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.placeholder}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -703,7 +703,7 @@ const createStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: colors.hairlineStrong,
   },
   headerTitle: {
     fontSize: 17,
@@ -720,7 +720,7 @@ const createStyles = StyleSheet.create({
     color: colors.primary,
   },
   textDisabled: {
-    color: '#bbb',
+    color: colors.disabled,
   },
   scroll: {
     flex: 1,
@@ -752,7 +752,7 @@ const createStyles = StyleSheet.create({
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: colors.hairlineStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -760,7 +760,7 @@ const createStyles = StyleSheet.create({
     color: colors.onSurface,
   },
   inputError: {
-    borderColor: '#d32f2f',
+    borderColor: colors.error,
   },
   textArea: {
     minHeight: 80,
@@ -769,7 +769,7 @@ const createStyles = StyleSheet.create({
     marginTop: 8,
   },
   fieldError: {
-    color: '#d32f2f',
+    color: colors.error,
     fontSize: 12,
     marginTop: 4,
   },
@@ -777,14 +777,14 @@ const createStyles = StyleSheet.create({
     marginTop: 12,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: colors.hairline,
   },
   removeButton: {
     alignSelf: 'flex-start',
     marginTop: 8,
   },
   removeButtonText: {
-    color: '#d32f2f',
+    color: colors.error,
     fontSize: 14,
   },
   addButton: {
@@ -850,18 +850,18 @@ const createStyles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#d32f2f',
+    borderColor: colors.error,
   },
   pickedValueClearText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#d32f2f',
+    color: colors.error,
   },
   thumbnailPreviewBox: {
     marginTop: 10,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   thumbnailPreview: {
     width: '100%',

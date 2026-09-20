@@ -21,7 +21,7 @@ import { ListStateView } from '../../components/ListStateView';
 import { OutlineButton } from '../../components/OutlineButton';
 import { StatusPill } from '../../components/StatusPill';
 import { loadLibraryConfig } from '../../storage/settings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatDuration } from '../../utils/format';
 
@@ -268,11 +268,11 @@ function VideoCard({
           {encodingState(video) === 'processing' ? (
             <StatusPill
               label={processingLabel(video)}
-              backgroundColor="rgba(126, 87, 194, 0.12)"
-              color="#7E57C2"
+              backgroundColor={colors.processingTint}
+              color={colors.processing}
             />
           ) : encodingState(video) === 'failed' ? (
-            <StatusPill label="Failed" backgroundColor="rgba(211, 47, 47, 0.12)" color="#D32F2F" />
+            <StatusPill label="Failed" backgroundColor={colors.errorTint} color={colors.error} />
           ) : null}
           <StatusPill label={formatDuration(video.lengthSeconds)} />
         </View>
@@ -296,7 +296,7 @@ const videoCardStyles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -304,7 +304,7 @@ const videoCardStyles = StyleSheet.create({
   thumbnailContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   thumbnail: {
     width: '100%',
@@ -313,7 +313,7 @@ const videoCardStyles = StyleSheet.create({
   },
   thumbnailPlaceholder: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   info: {
     padding: 12,

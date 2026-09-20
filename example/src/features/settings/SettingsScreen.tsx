@@ -9,6 +9,7 @@ import { initialize } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
 import { loadSettings, saveSettings } from '../../storage/settings';
+import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -65,7 +66,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           secureTextEntry
         />
         <View style={styles.saveButtonContainer}>
-          <Button title="Save" onPress={handleSave} color="#FD8D32" />
+          <Button title="Save" onPress={handleSave} color={colors.primary} />
         </View>
       </ScrollView>
     </>

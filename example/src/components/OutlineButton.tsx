@@ -49,7 +49,7 @@ const buttonStyles = StyleSheet.create({
     borderColor: colors.primary,
   },
   danger: {
-    borderColor: '#d32f2f',
+    borderColor: colors.error,
   },
   disabled: {
     opacity: 0.4,

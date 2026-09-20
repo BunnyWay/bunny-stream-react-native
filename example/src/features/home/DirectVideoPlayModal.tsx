@@ -8,6 +8,7 @@ import {
   saveDirectPlayValues,
   parseVideoIdsFromEnv,
 } from '../../storage/settings';
+import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
 type DirectVideoPlayModalProps = {
@@ -62,7 +63,7 @@ export function DirectVideoPlayModal({ visible, onClose, onPlay }: DirectVideoPl
         value={videoId}
         onChangeText={setVideoId}
         placeholder="e.g. abc-123-def"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         autoCapitalize="none"
         autoCorrect={false}
       />
@@ -73,13 +74,15 @@ export function DirectVideoPlayModal({ visible, onClose, onPlay }: DirectVideoPl
         value={libraryId}
         onChangeText={setLibraryId}
         placeholder="e.g. 12345"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         keyboardType="numeric"
       />
 
       <View style={styles.modalButtons}>
         <TouchableOpacity onPress={onClose} style={{ flex: 1, paddingVertical: 10 }}>
-          <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>Cancel</Text>
+          <Text style={{ fontSize: 16, color: colors.neutralDark, textAlign: 'center' }}>
+            Cancel
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handlePlay}
@@ -90,7 +93,7 @@ export function DirectVideoPlayModal({ visible, onClose, onPlay }: DirectVideoPl
             style={{
               fontSize: 16,
               fontWeight: '600',
-              color: canPlay ? '#25588f' : '#ccc',
+              color: canPlay ? colors.onSurfaceVariant : colors.disabled,
               textAlign: 'center',
             }}
           >

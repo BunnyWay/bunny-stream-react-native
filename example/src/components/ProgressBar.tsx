@@ -28,7 +28,7 @@ const progressStyles = StyleSheet.create({
   track: {
     width: '100%',
     height: 4,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
+    backgroundColor: colors.onSurface15,
     borderRadius: 2,
     overflow: 'hidden',
   },

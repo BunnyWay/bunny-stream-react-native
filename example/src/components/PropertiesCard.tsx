@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../theme/colors';
+import { Black, colors } from '../theme/colors';
 
 /**
  * Card listing label/value metadata rows — mirrors the Android demo's
@@ -38,7 +38,7 @@ const cardStyles = StyleSheet.create({
     padding: 16,
     marginTop: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -57,7 +57,7 @@ const cardStyles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: colors.hairline,
   },
   label: {
     fontSize: 13,
