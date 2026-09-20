@@ -27,6 +27,7 @@ export default defineConfig([
       'example/android/**',
       'example/ios/**',
       'example/dist/**',
+      'plugin/build/**',
     ],
   },
   {
@@ -106,6 +107,7 @@ export default defineConfig([
       '**/babel.config.js',
       '**/metro.config.js',
       '**/react-native.config.js',
+      '**/app.plugin.js',
       'example/index.js',
     ],
     rules: {
