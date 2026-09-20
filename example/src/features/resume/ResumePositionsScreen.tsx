@@ -28,7 +28,7 @@ import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';
 import { loadResumeSettings } from '../../storage/resumeSettings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { formatTime, formatTimestamp } from '../../utils/format';
 
 type ResumePositionsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumePositions'>;
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -235,14 +235,14 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '600' },
   buttonDanger: {
-    backgroundColor: 'rgba(176, 0, 32, 0.1)',
+    backgroundColor: colors.errorTint,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 12,
   },
-  buttonTextDanger: { color: '#B00020', fontSize: 14, fontWeight: '600' },
+  buttonTextDanger: { color: colors.error, fontSize: 14, fontWeight: '600' },
   emptyText: {
     fontSize: 14,
     color: colors.onSurfaceVariant,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(24, 61, 109, 0.1)',
+    borderBottomColor: colors.onSurface10,
   },
   positionInfo: { flex: 1 },
   positionTitle: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   jsonInput: {
     borderWidth: 1,
-    borderColor: 'rgba(24, 61, 109, 0.2)',
+    borderColor: colors.onSurface20,
     borderRadius: 8,
     padding: 10,
     minHeight: 120,

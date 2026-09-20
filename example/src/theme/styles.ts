@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { colors } from './colors';
+import { Black, colors } from './colors';
 
 export const styles = StyleSheet.create({
   container: {
@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 12,
-    shadowColor: Black20Color(),
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -85,7 +85,7 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.onSurfaceVariant,
-    backgroundColor: 'rgba(37, 88, 143, 0.1)',
+    backgroundColor: colors.onSurfaceVariant10,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -106,7 +106,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.onSurface,
     borderWidth: 1,
-    borderColor: 'rgba(24, 61, 109, 0.15)',
+    borderColor: colors.onSurface15,
   },
   saveButtonContainer: {
     marginTop: 16,
@@ -119,13 +119,13 @@ export const styles = StyleSheet.create({
   player: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: Black20Color(),
+    backgroundColor: Black,
   },
   playerWrapper: {
     width: '100%',
     aspectRatio: 16 / 9,
     position: 'relative',
-    backgroundColor: Black20Color(),
+    backgroundColor: Black,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -145,7 +145,7 @@ export const styles = StyleSheet.create({
   },
   transitionalText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: colors.onPrimary85,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: colors.scrimHeavy,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -173,13 +173,13 @@ export const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.onPrimary80,
     textAlign: 'center',
     marginBottom: 20,
   },
   errorVideoId: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: colors.onPrimary60,
     textAlign: 'center',
     marginBottom: 20,
     fontFamily: 'monospace',
@@ -285,7 +285,7 @@ export const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -334,7 +334,7 @@ export const styles = StyleSheet.create({
     marginBottom: 0,
     color: colors.onSurface,
     borderWidth: 1,
-    borderColor: 'rgba(24, 61, 109, 0.15)',
+    borderColor: colors.onSurface15,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -393,8 +393,3 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
-// Helper to avoid re-evaluating rgba at module load for shadow color.
-function Black20Color() {
-  return '#000000';
-}

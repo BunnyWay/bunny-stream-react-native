@@ -4,12 +4,12 @@ import { colors } from '../../theme/colors';
 
 /** Status pill color mapping — mirrors the Android demo's LiveStatusCard. */
 export const LIVE_STATUS_COLORS: Record<string, string> = {
-  [LiveStreamStatusEnum.RUNNING]: '#e53935',
+  [LiveStreamStatusEnum.RUNNING]: colors.live,
   [LiveStreamStatusEnum.SCHEDULED]: colors.primary,
-  [LiveStreamStatusEnum.CREATED]: '#888',
-  [LiveStreamStatusEnum.PREVIEW]: '#888',
-  [LiveStreamStatusEnum.ENDED]: '#aaa',
+  [LiveStreamStatusEnum.CREATED]: colors.neutral,
+  [LiveStreamStatusEnum.PREVIEW]: colors.neutral,
+  [LiveStreamStatusEnum.ENDED]: colors.neutralLight,
   [LiveStreamStatusEnum.VOD_PROCESSING]: colors.primary,
-  [LiveStreamStatusEnum.ERROR]: '#d32f2f',
-  [LiveStreamStatusEnum.UNKNOWN]: '#aaa',
+  [LiveStreamStatusEnum.ERROR]: colors.error,
+  [LiveStreamStatusEnum.UNKNOWN]: colors.neutralLight,
 };

@@ -15,7 +15,7 @@ import {
 
 import { Header } from '../../components/Header';
 import { ListStateView } from '../../components/ListStateView';
-import { colors } from '../../theme/colors';
+import { Black, colors, Orange40 } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
 type TrailerPickerScreenProps = NativeStackScreenProps<RootStackParamList, 'TrailerPicker'>;
@@ -126,7 +126,7 @@ const pickerStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -151,7 +151,7 @@ const pickerStyles = StyleSheet.create({
   },
   warning: {
     fontSize: 11,
-    color: '#CB670D',
+    color: Orange40,
     marginTop: 4,
   },
 });

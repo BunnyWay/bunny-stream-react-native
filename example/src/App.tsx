@@ -7,6 +7,7 @@ import { initialize } from 'bunny-stream-react-native';
 import { ScreenWrapper } from './components/ScreenWrapper';
 import { RootNavigator } from './navigation/RootNavigator';
 import { loadLibraryConfig } from './storage/settings';
+import { colors } from './theme/colors';
 import { styles } from './theme/styles';
 
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
       <ScreenWrapper style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FD8D32" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <RootNavigator />

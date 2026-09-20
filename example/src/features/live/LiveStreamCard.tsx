@@ -6,7 +6,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LiveStreamStatusEnum, liveStreamStatusLabel } from 'bunny-stream-react-native';
 
 import { StatusPill } from '../../components/StatusPill';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { formatTimestamp } from '../../utils/format';
 import { LIVE_STATUS_COLORS } from './constants';
 
@@ -33,7 +33,7 @@ export function LiveStreamCard({
   onGoLive: () => void;
 }) {
   const status = stream.status as LiveStreamStatus;
-  const statusColor = LIVE_STATUS_COLORS[status] ?? '#aaa';
+  const statusColor = LIVE_STATUS_COLORS[status] ?? colors.neutralLight;
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   // Watch is enabled only when the stream has an HLS playback URL.
@@ -114,7 +114,7 @@ export function LiveStreamCard({
             <StatusPill
               label={liveStreamStatusLabel(status)}
               backgroundColor={statusColor}
-              color="#FFFFFF"
+              color={colors.onPrimary}
               rounded
               textStyle={cardStyles.pillTextLight}
             />
@@ -183,7 +183,7 @@ const cardStyles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 12,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -225,10 +225,10 @@ const cardStyles = StyleSheet.create({
     marginLeft: 8,
   },
   playButtonDisabled: {
-    backgroundColor: 'rgba(24, 61, 109, 0.2)',
+    backgroundColor: colors.onSurface20,
   },
   playIcon: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 16,
     marginLeft: 2,
   },
@@ -247,7 +247,7 @@ const cardStyles = StyleSheet.create({
   // Overflow menu modal
   menuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: colors.scrimLight,
     justifyContent: 'flex-end',
   },
   menuSheet: {
@@ -265,9 +265,9 @@ const cardStyles = StyleSheet.create({
     color: colors.onSurface,
   },
   menuItemTextDestructive: {
-    color: '#d32f2f',
+    color: colors.error,
   },
   menuItemTextDisabled: {
-    color: '#bbb',
+    color: colors.disabled,
   },
 });

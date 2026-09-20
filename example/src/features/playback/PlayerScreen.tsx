@@ -39,7 +39,7 @@ import {
   loadResumeSettings,
   toResumeConfig,
 } from '../../storage/resumeSettings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatBytes, formatDuration, formatTime } from '../../utils/format';
 
@@ -192,7 +192,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
       <View style={styles.playerWrapper}>
         {isTransitional ? (
           <View style={styles.transitionalOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={colors.onPrimary} />
             <Text style={styles.transitionalText}>
               {videoStatusLabel(videoMeta?.status as VideoStatus)} — playback starts automatically
               once encoding finishes.
@@ -219,7 +219,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
         {loading && !isTransitional ? (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={colors.onPrimary} />
           </View>
         ) : null}
 
@@ -383,19 +383,19 @@ const playerScreenStyles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.scrimDark,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   castChipText: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 12,
     fontWeight: '600',
   },
   errorButtonSecondary: {
     marginTop: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: colors.onPrimary15,
   },
   toggleRow: {
     paddingHorizontal: 16,
@@ -413,7 +413,7 @@ const metaStyles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

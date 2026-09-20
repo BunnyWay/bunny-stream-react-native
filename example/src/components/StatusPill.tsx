@@ -13,7 +13,7 @@ import { colors } from '../theme/colors';
 export function StatusPill({
   label,
   color = colors.onSurfaceVariant,
-  backgroundColor = 'rgba(37, 88, 143, 0.1)',
+  backgroundColor = colors.onSurfaceVariant10,
   rounded,
   style,
   textStyle,

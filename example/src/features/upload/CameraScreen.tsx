@@ -28,7 +28,7 @@ import { StatusBanner } from '../../components/StatusBanner';
 import { ToggleRow } from '../../components/ToggleRow';
 import { requestBroadcastPermissions } from '../../media/permissions';
 import { loadLibraryConfig } from '../../storage/settings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 
 type CameraScreenProps = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 
@@ -322,7 +322,8 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
 }
 
 function IngestBadge({ label, state }: { label: string; state: IngestState | null }) {
-  const color = state === 'live' ? '#2e7d32' : state === 'connecting' ? '#f9a825' : '#999';
+  const color =
+    state === 'live' ? colors.success : state === 'connecting' ? colors.warning : colors.neutral;
   return (
     <View style={[cameraStyles.ingestBadge, { backgroundColor: color }]}>
       <Text style={cameraStyles.ingestBadgeText}>{label}</Text>
@@ -333,7 +334,7 @@ function IngestBadge({ label, state }: { label: string; state: IngestState | nul
 const cameraStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: Black,
   },
   loadingContainer: {
     flex: 1,
@@ -384,24 +385,24 @@ const cameraStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#666',
+    backgroundColor: colors.neutralDark,
   },
   stateBadgeLive: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: colors.error,
   },
   stateBadgePreparing: {
-    backgroundColor: '#f9a825',
+    backgroundColor: colors.warning,
   },
   stateBadgeText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
   elapsedText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 14,
     fontFamily: 'monospace',
-    textShadowColor: '#000',
+    textShadowColor: Black,
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
@@ -417,7 +418,7 @@ const cameraStyles = StyleSheet.create({
     alignItems: 'center',
   },
   ingestBadgeText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -484,10 +485,10 @@ const cameraStyles = StyleSheet.create({
     alignItems: 'center',
   },
   actionDanger: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: colors.error,
   },
   actionPrimaryText: {
-    color: '#fff',
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '700',
   },

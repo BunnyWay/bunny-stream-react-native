@@ -27,7 +27,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { ToggleRow } from '../../components/ToggleRow';
 import { pickVideo } from '../../media/picker';
 import { loadLibraryConfig } from '../../storage/settings';
-import { colors } from '../../theme/colors';
+import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatBytes } from '../../utils/format';
 
@@ -358,7 +358,7 @@ function UploadRowCard({
         <StatusPill
           label={row.status}
           backgroundColor={STATUS_PILL_BG[row.status]}
-          color="#FFFFFF"
+          color={colors.onPrimary}
           textStyle={uploadStyles.statusPillText}
         />
       </View>
@@ -420,7 +420,7 @@ const uploadStyles = StyleSheet.create({
     marginTop: 12,
   },
   errorText: {
-    color: '#d32f2f',
+    color: colors.error,
     fontSize: 13,
   },
   card: {
@@ -428,7 +428,7 @@ const uploadStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -475,8 +475,8 @@ const uploadStyles = StyleSheet.create({
 // Status pill background colors keyed by row status.
 const STATUS_PILL_BG: Record<UploadRow['status'], string> = {
   uploading: colors.primary,
-  paused: '#888',
-  completed: '#2e7d32',
-  cancelled: '#aaa',
-  failed: '#d32f2f',
+  paused: colors.neutral,
+  completed: colors.success,
+  cancelled: colors.neutralLight,
+  failed: colors.error,
 };
