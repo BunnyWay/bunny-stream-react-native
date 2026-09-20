@@ -2,8 +2,9 @@ import type { LiveStream } from 'bunny-stream-react-native';
 
 import Clipboard from '@react-native-clipboard/clipboard';
 import * as React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Dialog } from '../../components/Dialog';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
@@ -48,34 +49,28 @@ export function RtmpIngestModal({
   };
 
   return (
-    <Modal visible={stream != null} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>RTMP Ingest</Text>
-
-          <View style={rtmpStyles.section}>
-            <Text style={rtmpStyles.sectionTitle}>Stream key</Text>
-            {copyableRow('Stream key', streamKey ?? null)}
-          </View>
-
-          <View style={rtmpStyles.section}>
-            <Text style={rtmpStyles.sectionTitle}>Primary ingest URL</Text>
-            {copyableRow('Primary URL', primaryUrl ?? null)}
-          </View>
-
-          <View style={rtmpStyles.section}>
-            <Text style={rtmpStyles.sectionTitle}>Backup ingest URL</Text>
-            {copyableRow('Backup URL', backupUrl ?? null)}
-          </View>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={[styles.errorButton, { flex: 1 }]} onPress={onClose}>
-              <Text style={styles.errorButtonText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+    <Dialog visible={stream != null} title="RTMP Ingest" onClose={onClose}>
+      <View style={rtmpStyles.section}>
+        <Text style={rtmpStyles.sectionTitle}>Stream key</Text>
+        {copyableRow('Stream key', streamKey ?? null)}
       </View>
-    </Modal>
+
+      <View style={rtmpStyles.section}>
+        <Text style={rtmpStyles.sectionTitle}>Primary ingest URL</Text>
+        {copyableRow('Primary URL', primaryUrl ?? null)}
+      </View>
+
+      <View style={rtmpStyles.section}>
+        <Text style={rtmpStyles.sectionTitle}>Backup ingest URL</Text>
+        {copyableRow('Backup URL', backupUrl ?? null)}
+      </View>
+
+      <View style={styles.modalButtons}>
+        <TouchableOpacity style={[styles.errorButton, { flex: 1 }]} onPress={onClose}>
+          <Text style={styles.errorButtonText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    </Dialog>
   );
 }
 

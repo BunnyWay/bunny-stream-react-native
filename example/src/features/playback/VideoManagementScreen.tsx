@@ -15,6 +15,8 @@ import {
 import { BunnyStreamApi, type VideoCodec } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { OutlineButton } from '../../components/OutlineButton';
+import { StatusBanner } from '../../components/StatusBanner';
 import { pickImage } from '../../media/picker';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
@@ -192,11 +194,11 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
         </Text>
 
         {status ? (
-          <View
-            style={[mgmtStyles.statusBox, status.ok ? mgmtStyles.statusOk : mgmtStyles.statusErr]}
-          >
-            <Text style={mgmtStyles.statusText}>{status.message}</Text>
-          </View>
+          <StatusBanner
+            message={status.message}
+            variant={status.ok ? 'success' : 'error'}
+            style={mgmtStyles.statusBox}
+          />
         ) : null}
 
         {busy ? (
@@ -342,12 +344,13 @@ function ActionButton({
   danger?: boolean;
 }) {
   return (
-    <TouchableOpacity
-      style={[mgmtStyles.actionButton, danger && mgmtStyles.actionButtonDanger]}
+    <OutlineButton
+      label={label}
       onPress={onPress}
-    >
-      <Text style={mgmtStyles.actionButtonText}>{label}</Text>
-    </TouchableOpacity>
+      danger={danger}
+      style={mgmtStyles.actionButton}
+      textStyle={mgmtStyles.actionButtonText}
+    />
   );
 }
 
@@ -373,19 +376,7 @@ const mgmtStyles = StyleSheet.create({
     marginBottom: 16,
   },
   statusBox: {
-    borderRadius: 8,
-    padding: 12,
     marginBottom: 12,
-  },
-  statusOk: {
-    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-  },
-  statusErr: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   busyRow: {
     flexDirection: 'row',
@@ -416,19 +407,11 @@ const mgmtStyles = StyleSheet.create({
   actionButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
     alignItems: 'center',
     marginBottom: 8,
   },
-  actionButtonDanger: {
-    borderColor: '#d32f2f',
-  },
   actionButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
   },
   subLabel: {
     fontSize: 13,

@@ -4,19 +4,13 @@ import type { LiveStream, LiveStreamStatus } from 'bunny-stream-react-native';
 
 import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
-import {
-  FlatList,
-  Modal,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BunnyStreamApi, LiveStreamStatusEnum, fold } from 'bunny-stream-react-native';
 
+import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
 import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
@@ -172,16 +166,11 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>No live streams in this library.</Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadStreams}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No live streams in this library."
+            onRetry={loadStreams}
+          />
         }
         contentContainerStyle={[isEmpty ? listStyles.emptyList : listStyles.list]}
       />
@@ -224,36 +213,27 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       />
 
       {/* Delete confirmation modal */}
-      <Modal
+      <Dialog
         visible={deleteStream != null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDeleteStream(null)}
+        title="Delete live stream?"
+        subtitle={`"${deleteStream?.title}" will be permanently deleted. Recorded VODs remain in the library.`}
+        onClose={() => setDeleteStream(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete live stream?</Text>
-            <Text style={styles.modalSubtitle}>
-              "{deleteStream?.title}" will be permanently deleted. Recorded VODs remain in the
-              library.
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.errorButton, { flex: 1, marginRight: 8 }]}
-                onPress={handleDeleteConfirm}
-              >
-                <Text style={styles.errorButtonText}>Delete</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.errorButton, { flex: 1, backgroundColor: colors.disabled }]}
-                onPress={() => setDeleteStream(null)}
-              >
-                <Text style={styles.errorButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <View style={styles.modalButtons}>
+          <TouchableOpacity
+            style={[styles.errorButton, { flex: 1, marginRight: 8 }]}
+            onPress={handleDeleteConfirm}
+          >
+            <Text style={styles.errorButtonText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.errorButton, { flex: 1, backgroundColor: colors.disabled }]}
+            onPress={() => setDeleteStream(null)}
+          >
+            <Text style={styles.errorButtonText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </Dialog>
 
       {/* RTMP ingest details modal */}
       <RtmpIngestModal stream={rtmpStream} onClose={() => setRtmpStream(null)} />

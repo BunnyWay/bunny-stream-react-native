@@ -275,16 +275,7 @@ export const styles = StyleSheet.create({
     color: colors.primary,
   },
   positionBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
-    borderRadius: 2,
     marginVertical: 8,
-  },
-  positionBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
   },
   positionText: {
     fontSize: 13,

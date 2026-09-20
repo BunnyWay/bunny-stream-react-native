@@ -5,6 +5,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { LiveStreamStatusEnum, liveStreamStatusLabel } from 'bunny-stream-react-native';
 
+import { StatusPill } from '../../components/StatusPill';
 import { colors } from '../../theme/colors';
 import { formatTimestamp } from '../../utils/format';
 import { LIVE_STATUS_COLORS } from './constants';
@@ -110,24 +111,16 @@ export function LiveStreamCard({
           </Text>
 
           <View style={cardStyles.pillRow}>
-            <View style={[cardStyles.pill, { backgroundColor: statusColor }]}>
-              <Text style={cardStyles.pillTextLight}>{liveStreamStatusLabel(status)}</Text>
-            </View>
-            {stream.isPublic ? (
-              <View style={cardStyles.pill}>
-                <Text style={cardStyles.pillText}>Public</Text>
-              </View>
-            ) : null}
-            {stream.dvrEnabled ? (
-              <View style={cardStyles.pill}>
-                <Text style={cardStyles.pillText}>DVR</Text>
-              </View>
-            ) : null}
-            {stream.recordVod ? (
-              <View style={cardStyles.pill}>
-                <Text style={cardStyles.pillText}>VOD</Text>
-              </View>
-            ) : null}
+            <StatusPill
+              label={liveStreamStatusLabel(status)}
+              backgroundColor={statusColor}
+              color="#FFFFFF"
+              rounded
+              textStyle={cardStyles.pillTextLight}
+            />
+            {stream.isPublic ? <StatusPill label="Public" rounded /> : null}
+            {stream.dvrEnabled ? <StatusPill label="DVR" rounded /> : null}
+            {stream.recordVod ? <StatusPill label="VOD" rounded /> : null}
           </View>
 
           {stream.scheduledStartTime ? (
@@ -215,21 +208,8 @@ const cardStyles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
-  pill: {
-    backgroundColor: 'rgba(37, 88, 143, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 50,
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.onSurfaceVariant,
-  },
   pillTextLight: {
-    fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   scheduled: {
     fontSize: 12,

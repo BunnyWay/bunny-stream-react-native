@@ -2,15 +2,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
   BunnyStreamApi,
@@ -22,6 +14,7 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
@@ -88,22 +81,11 @@ export function TrailerPickerScreen({ navigation, route }: TrailerPickerScreenPr
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'loading' ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>
-              No videos in this library to use as a trailer.
-            </Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadVideos}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No videos in this library to use as a trailer."
+            onRetry={loadVideos}
+          />
         }
         contentContainerStyle={isEmpty ? pickerStyles.emptyList : pickerStyles.list}
       />

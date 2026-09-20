@@ -23,6 +23,9 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { OutlineButton } from '../../components/OutlineButton';
+import { StatusBanner } from '../../components/StatusBanner';
+import { ToggleRow } from '../../components/ToggleRow';
 import { requestBroadcastPermissions } from '../../media/permissions';
 import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
@@ -243,11 +246,7 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
         style={cameraStyles.controls}
         contentContainerStyle={cameraStyles.controlsContent}
       >
-        {errorMsg ? (
-          <View style={cameraStyles.errorBox}>
-            <Text style={cameraStyles.errorText}>{errorMsg}</Text>
-          </View>
-        ) : null}
+        {errorMsg ? <StatusBanner message={errorMsg} style={cameraStyles.errorSpacing} /> : null}
 
         {/* Quality picker (iOS only) */}
         {Platform.OS === 'ios' ? (
@@ -283,17 +282,12 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
 
         {/* Dual publish toggle (live only) */}
         {isLive ? (
-          <View style={cameraStyles.toggleRow}>
-            <Text style={cameraStyles.toggleLabel}>Dual publish (primary + backup)</Text>
-            <TouchableOpacity
-              style={[cameraStyles.toggleButton, dualPublish && cameraStyles.toggleButtonActive]}
-              onPress={() => setDualPublish((v) => !v)}
-            >
-              <Text style={[cameraStyles.toggleText, dualPublish && cameraStyles.toggleTextActive]}>
-                {dualPublish ? 'ON' : 'OFF'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ToggleRow
+            label="Dual publish (primary + backup)"
+            value={dualPublish}
+            onValueChange={setDualPublish}
+            style={cameraStyles.toggleRow}
+          />
         ) : null}
 
         {/* Action buttons */}
@@ -313,18 +307,14 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
               <Text style={cameraStyles.actionPrimaryText}>Stop</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={cameraStyles.actionSecondary}
+          <OutlineButton
+            label="Switch camera"
             onPress={() => broadcasterRef.current?.switchCamera()}
-          >
-            <Text style={cameraStyles.actionSecondaryText}>Switch camera</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={cameraStyles.actionSecondary}
+          />
+          <OutlineButton
+            label={muted ? 'Unmute' : 'Mute'}
             onPress={() => broadcasterRef.current?.toggleMute()}
-          >
-            <Text style={cameraStyles.actionSecondaryText}>{muted ? 'Unmute' : 'Mute'}</Text>
-          </TouchableOpacity>
+          />
         </View>
       </ScrollView>
     </View>
@@ -478,33 +468,7 @@ const cameraStyles = StyleSheet.create({
     color: colors.onPrimary,
   },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 12,
-  },
-  toggleLabel: {
-    fontSize: 14,
-    color: colors.onSurface,
-    flex: 1,
-  },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  toggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  toggleTextActive: {
-    color: colors.onPrimary,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -527,27 +491,7 @@ const cameraStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  actionSecondary: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    alignItems: 'center',
-  },
-  actionSecondaryText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+  errorSpacing: {
     marginBottom: 12,
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 13,
   },
 });

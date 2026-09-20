@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -25,7 +24,9 @@ import {
   importResumePositions,
 } from 'bunny-stream-react-native';
 
+import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
+import { OutlineButton } from '../../components/OutlineButton';
 import { loadResumeSettings } from '../../storage/resumeSettings';
 import { colors } from '../../theme/colors';
 import { formatTime, formatTimestamp } from '../../utils/format';
@@ -140,30 +141,19 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
                   </Text>
                   <Text style={styles.positionDate}>{formatTimestamp(pos.timestamp)}</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => void handleDelete(pos)}
-                >
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
+                <OutlineButton label="Delete" onPress={() => void handleDelete(pos)} danger />
               </TouchableOpacity>
             ))
           )}
 
           <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
+            <OutlineButton
+              label="Export"
               onPress={() => void handleExport()}
               disabled={allPositions.length === 0}
-            >
-              <Text style={styles.actionButtonText}>Export</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => setImportVisible(true)}>
-              <Text style={styles.actionButtonText}>Import</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => void handleCleanup()}>
-              <Text style={styles.actionButtonText}>Cleanup</Text>
-            </TouchableOpacity>
+            />
+            <OutlineButton label="Import" onPress={() => setImportVisible(true)} />
+            <OutlineButton label="Cleanup" onPress={() => void handleCleanup()} />
           </View>
           {allPositions.length > 0 ? (
             <TouchableOpacity style={styles.buttonDanger} onPress={() => void handleClearAll()}>
@@ -174,59 +164,38 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
       </ScrollView>
 
       {/* Export dialog — selectable JSON payload */}
-      <Modal
+      <Dialog
         visible={exportedJson !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setExportedJson(null)}
+        title="Export positions"
+        onClose={() => setExportedJson(null)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Export positions</Text>
-            <TextInput
-              style={styles.jsonInput}
-              value={exportedJson ?? ''}
-              multiline
-              editable={false}
-            />
-            <TouchableOpacity style={styles.button} onPress={() => setExportedJson(null)}>
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        <TextInput style={styles.jsonInput} value={exportedJson ?? ''} multiline editable={false} />
+        <TouchableOpacity style={styles.button} onPress={() => setExportedJson(null)}>
+          <Text style={styles.buttonText}>Close</Text>
+        </TouchableOpacity>
+      </Dialog>
 
       {/* Import dialog — paste a JSON array of PlaybackPosition */}
-      <Modal
+      <Dialog
         visible={importVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setImportVisible(false)}
+        title="Import positions"
+        onClose={() => setImportVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Import positions</Text>
-            <TextInput
-              style={styles.jsonInput}
-              value={importText}
-              onChangeText={setImportText}
-              multiline
-              placeholder='[{"videoId":"…","positionMs":…,"durationMs":…,"timestamp":…}]'
-              placeholderTextColor={colors.onSurfaceVariant}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => setImportVisible(false)}>
-                <Text style={styles.actionButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={() => void handleImport()}>
-                <Text style={styles.actionButtonText}>Import</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <TextInput
+          style={styles.jsonInput}
+          value={importText}
+          onChangeText={setImportText}
+          multiline
+          placeholder='[{"videoId":"…","positionMs":…,"durationMs":…,"timestamp":…}]'
+          placeholderTextColor={colors.onSurfaceVariant}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <View style={styles.actionsRow}>
+          <OutlineButton label="Cancel" onPress={() => setImportVisible(false)} />
+          <OutlineButton label="Import" onPress={() => void handleImport()} />
         </View>
-      </Modal>
+      </Dialog>
     </View>
   );
 }
@@ -291,42 +260,11 @@ const styles = StyleSheet.create({
   positionTitle: { fontSize: 14, fontWeight: '600', color: colors.onSurface },
   positionDetail: { fontSize: 13, color: colors.onSurfaceVariant, marginTop: 2 },
   positionDate: { fontSize: 12, color: colors.onSurfaceVariant, marginTop: 2, opacity: 0.7 },
-  deleteButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(176, 0, 32, 0.1)',
-  },
-  deleteButtonText: { color: '#B00020', fontSize: 13, fontWeight: '600' },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
     marginTop: 12,
-  },
-  actionButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(24, 61, 109, 0.1)',
-  },
-  actionButtonText: { color: colors.primary, fontSize: 13, fontWeight: '600' },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.onSurface,
-    marginBottom: 12,
   },
   jsonInput: {
     borderWidth: 1,

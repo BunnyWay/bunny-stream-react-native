@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -21,6 +20,11 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { OutlineButton } from '../../components/OutlineButton';
+import { ProgressBar } from '../../components/ProgressBar';
+import { StatusBanner } from '../../components/StatusBanner';
+import { StatusPill } from '../../components/StatusPill';
+import { ToggleRow } from '../../components/ToggleRow';
 import { pickVideo } from '../../media/picker';
 import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
@@ -293,15 +297,12 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListHeaderComponent={
           <View>
-            <View style={uploadStyles.settingsRow}>
-              <View style={uploadStyles.settingsText}>
-                <Text style={uploadStyles.settingsLabel}>Use TUS resumable upload</Text>
-                <Text style={uploadStyles.settingsHint}>
-                  Pause/resume works on both platforms; basic uploader ignores pause on Android.
-                </Text>
-              </View>
-              <Switch value={useTus} onValueChange={setUseTus} />
-            </View>
+            <ToggleRow
+              label="Use TUS resumable upload"
+              subtitle="Pause/resume works on both platforms; basic uploader ignores pause on Android."
+              value={useTus}
+              onValueChange={setUseTus}
+            />
 
             <TouchableOpacity
               style={[styles.addButton, busy && uploadStyles.buttonDisabled]}
@@ -315,11 +316,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
               )}
             </TouchableOpacity>
 
-            {error ? (
-              <View style={uploadStyles.errorBox}>
-                <Text style={uploadStyles.errorText}>{error}</Text>
-              </View>
-            ) : null}
+            {error ? <StatusBanner message={error} style={uploadStyles.errorSpacing} /> : null}
           </View>
         }
         ListEmptyComponent={
@@ -358,9 +355,12 @@ function UploadRowCard({
         <Text style={uploadStyles.rowTitle} numberOfLines={1}>
           {row.title || 'Untitled'}
         </Text>
-        <View style={[uploadStyles.statusPill, STATUS_PILL_BG[row.status]]}>
-          <Text style={uploadStyles.statusPillText}>{row.status}</Text>
-        </View>
+        <StatusPill
+          label={row.status}
+          backgroundColor={STATUS_PILL_BG[row.status]}
+          color="#FFFFFF"
+          textStyle={uploadStyles.statusPillText}
+        />
       </View>
 
       {row.videoId ? (
@@ -371,9 +371,7 @@ function UploadRowCard({
 
       {row.status === 'uploading' || row.status === 'paused' ? (
         <View style={uploadStyles.progressBlock}>
-          <View style={uploadStyles.progressTrack}>
-            <View style={[uploadStyles.progressFill, { width: `${percent}%` }]} />
-          </View>
+          <ProgressBar progress={row.progress} />
           <Text style={uploadStyles.progressText}>
             {percent}%{' '}
             {row.totalBytes > 0
@@ -391,29 +389,17 @@ function UploadRowCard({
 
       <View style={uploadStyles.actionsRow}>
         {canPause ? (
-          <TouchableOpacity style={uploadStyles.actionButton} onPress={onPauseResume}>
-            <Text style={uploadStyles.actionButtonText}>
-              {row.status === 'paused' ? 'Resume' : 'Pause'}
-            </Text>
-          </TouchableOpacity>
+          <OutlineButton
+            label={row.status === 'paused' ? 'Resume' : 'Pause'}
+            onPress={onPauseResume}
+          />
         ) : null}
-        {canControl ? (
-          <TouchableOpacity
-            style={[uploadStyles.actionButton, uploadStyles.actionButtonDanger]}
-            onPress={onCancel}
-          >
-            <Text style={uploadStyles.actionButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        ) : null}
+        {canControl ? <OutlineButton label="Cancel" onPress={onCancel} danger /> : null}
         {row.status === 'failed' && row.error && !row.error.isTerminal ? (
-          <TouchableOpacity style={uploadStyles.actionButton} onPress={onRetry}>
-            <Text style={uploadStyles.actionButtonText}>Retry</Text>
-          </TouchableOpacity>
+          <OutlineButton label="Retry" onPress={onRetry} />
         ) : null}
         {row.status === 'completed' && row.videoId ? (
-          <TouchableOpacity style={uploadStyles.actionButton} onPress={onPlay}>
-            <Text style={uploadStyles.actionButtonText}>Play</Text>
-          </TouchableOpacity>
+          <OutlineButton label="Play" onPress={onPlay} />
         ) : null}
       </View>
     </View>
@@ -427,32 +413,10 @@ const uploadStyles = StyleSheet.create({
   emptyList: {
     flexGrow: 1,
   },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  settingsText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  settingsLabel: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  settingsHint: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
-  },
   buttonDisabled: {
     opacity: 0.5,
   },
-  errorBox: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+  errorSpacing: {
     marginTop: 12,
   },
   errorText: {
@@ -488,30 +452,12 @@ const uploadStyles = StyleSheet.create({
     color: colors.onSurfaceVariant,
     marginBottom: 8,
   },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
   statusPillText: {
-    fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
     textTransform: 'capitalize',
   },
   progressBlock: {
     marginTop: 8,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
   },
   progressText: {
     fontSize: 12,
@@ -524,30 +470,13 @@ const uploadStyles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-  actionButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  actionButtonDanger: {
-    borderColor: '#d32f2f',
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
 });
 
-// Status pill background colors keyed by row status. Kept outside
-// StyleSheet.create because StyleSheet's return type doesn't allow arbitrary
-// string-keyed lookups.
-const STATUS_PILL_BG: Record<UploadRow['status'], { backgroundColor: string }> = {
-  uploading: { backgroundColor: colors.primary },
-  paused: { backgroundColor: '#888' },
-  completed: { backgroundColor: '#2e7d32' },
-  cancelled: { backgroundColor: '#aaa' },
-  failed: { backgroundColor: '#d32f2f' },
+// Status pill background colors keyed by row status.
+const STATUS_PILL_BG: Record<UploadRow['status'], string> = {
+  uploading: colors.primary,
+  paused: '#888',
+  completed: '#2e7d32',
+  cancelled: '#aaa',
+  failed: '#d32f2f',
 };

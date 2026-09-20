@@ -16,6 +16,9 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { PropertiesCard } from '../../components/PropertiesCard';
+import { StatusBanner } from '../../components/StatusBanner';
+import { StatusPill } from '../../components/StatusPill';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatTimestamp } from '../../utils/format';
@@ -93,20 +96,24 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {/* Terminal live error */}
         {state.liveError ? (
-          <View style={playerStyles.errorPanel}>
-            <Text style={playerStyles.errorText}>Live error: {state.liveError}</Text>
-          </View>
+          <StatusBanner
+            message={`Live error: ${state.liveError}`}
+            style={playerStyles.errorSpacing}
+          />
         ) : null}
 
         {/* Status card — mirrors Android demo's LiveStatusCard */}
         <View style={cardStyles.statusCard}>
           <View style={cardStyles.statusRow}>
             <Text style={cardStyles.cardTitle}>Status</Text>
-            <View style={[cardStyles.statusPill, { backgroundColor: statusColor }]}>
-              <Text style={cardStyles.statusPillText}>
-                {status ? liveStreamStatusLabel(status) : '—'}
-              </Text>
-            </View>
+            <StatusPill
+              label={status ? liveStreamStatusLabel(status) : '—'}
+              backgroundColor={statusColor}
+              color="#FFFFFF"
+              rounded
+              style={cardStyles.statusPill}
+              textStyle={cardStyles.statusPillText}
+            />
             {liveState?.reason ? (
               <Text style={cardStyles.reasonText}>({liveState.reason})</Text>
             ) : null}
@@ -115,20 +122,20 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         </View>
 
         {/* Properties card — mirrors Android demo's LiveStreamPropertiesCard */}
-        {stream ? <PropertiesCard stream={stream} videoSize={videoSize} /> : null}
+        {stream ? (
+          <PropertiesCard title="Properties" rows={liveStreamRows(stream, videoSize)} />
+        ) : null}
       </ScrollView>
     </View>
   );
 }
 
-/** Metadata properties card — mirrors the Android demo's LiveStreamPropertiesCard. */
-function PropertiesCard({
-  stream,
-  videoSize,
-}: {
-  stream: LiveStream;
-  videoSize: { width: number; height: number } | null;
-}) {
+/** Builds the metadata rows for the shared PropertiesCard — mirrors the
+ * Android demo's LiveStreamPropertiesCard. */
+function liveStreamRows(
+  stream: LiveStream,
+  videoSize: { width: number; height: number } | null,
+): { label: string; value: string }[] {
   const rows: { label: string; value: string }[] = [
     { label: 'Stream ID', value: stream.id },
     { label: 'Library ID', value: String(stream.videoLibraryId) },
@@ -175,17 +182,7 @@ function PropertiesCard({
     rows.push({ label: 'RTMP outputs', value: String(stream.rtmpOutputs.length) });
   }
 
-  return (
-    <View style={cardStyles.propsCard}>
-      <Text style={cardStyles.cardTitle}>Properties</Text>
-      {rows.map((row, i) => (
-        <View key={i} style={cardStyles.propRow}>
-          <Text style={cardStyles.propLabel}>{row.label}</Text>
-          <Text style={cardStyles.propValue}>{row.value}</Text>
-        </View>
-      ))}
-    </View>
-  );
+  return rows;
 }
 
 /**
@@ -219,15 +216,8 @@ function CountdownDisplay({ targetEpochMs, title }: { targetEpochMs: number; tit
 }
 
 const playerStyles = StyleSheet.create({
-  errorPanel: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+  errorSpacing: {
     margin: 16,
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 13,
   },
 });
 
@@ -262,17 +252,6 @@ const cardStyles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  propsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
   cardTitle: {
     fontSize: 14,
     fontWeight: '600',
@@ -287,10 +266,8 @@ const cardStyles = StyleSheet.create({
   statusPill: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 50,
   },
   statusPillText: {
-    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -302,23 +279,5 @@ const cardStyles = StyleSheet.create({
     fontSize: 12,
     color: colors.onSurfaceVariant,
     marginTop: 8,
-  },
-  propRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-  },
-  propLabel: {
-    fontSize: 13,
-    color: colors.onSurfaceVariant,
-  },
-  propValue: {
-    fontSize: 13,
-    color: colors.onSurface,
-    fontWeight: '500',
-    maxWidth: '60%',
-    textAlign: 'right',
   },
 });
