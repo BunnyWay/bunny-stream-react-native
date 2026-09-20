@@ -25,5 +25,5 @@
     "target": "ESNext",
     "verbatimModuleSyntax": true
   },
-  "exclude": ["example/**", "lib/**"]
+  "exclude": ["example/**", "example-expo/**", "lib/**"]
 }

@@ -3,6 +3,7 @@ import type { AndroidConfig } from '@expo/config-plugins';
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  ensureKotlinGradlePluginVersion,
   applyBunnyStreamAndroidManifest,
   applyBunnyStreamGradleProperties,
   compareVersions,
@@ -136,6 +137,37 @@ describe('applyBunnyStreamGradleProperties', () => {
   });
 });
 
+describe('ensureKotlinGradlePluginVersion', () => {
+  const expoTemplate = `buildscript {
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}`;
+
+  it('pins the versionless Expo classpath entry', () => {
+    const out = ensureKotlinGradlePluginVersion(expoTemplate, '2.2.20');
+    expect(out).toContain("classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20')");
+    expect(out).toContain('com.facebook.react:react-native-gradle-plugin');
+  });
+
+  it('raises a lower pinned version and keeps a higher one', () => {
+    const lower = `classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")`;
+    const higher = `classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0')`;
+    expect(ensureKotlinGradlePluginVersion(lower, '2.2.20')).toContain(
+      'kotlin-gradle-plugin:2.2.20',
+    );
+    expect(ensureKotlinGradlePluginVersion(higher, '2.2.20')).toContain(
+      'kotlin-gradle-plugin:2.3.0',
+    );
+  });
+
+  it('leaves unrelated build files untouched', () => {
+    expect(ensureKotlinGradlePluginVersion('buildscript {}', '2.2.20')).toBe('buildscript {}');
+  });
+});
+
 describe('compareVersions', () => {
   it('compares dotted versions numerically', () => {
     expect(compareVersions('0.87.9', '0.88.0')).toBeLessThan(0);
@@ -213,9 +245,15 @@ describe('ensureEmbedSwiftPmFrameworksPhase', () => {
       added,
       project: {
         getFirstTarget: () => ({ uuid: 'appTarget' }),
-        addBuildPhase: (_files: string[], type: string, comment: string, _target: string) => {
+        addBuildPhase: (
+          _files: string[],
+          type: string,
+          comment: string,
+          _target: string,
+          options?: Record<string, unknown>,
+        ) => {
           const uuid = `phase${added.length}`;
-          objects.PBXShellScriptBuildPhase![uuid] = { isa: type, name: comment };
+          objects.PBXShellScriptBuildPhase![uuid] = { isa: type, name: `"${comment}"`, ...options };
           added.push(objects.PBXShellScriptBuildPhase![uuid]!);
         },
         hash: { project: { objects } },
@@ -228,9 +266,9 @@ describe('ensureEmbedSwiftPmFrameworksPhase', () => {
     ensureEmbedSwiftPmFrameworksPhase(project);
     const phase = Object.values(project.hash.project.objects.PBXShellScriptBuildPhase!)[0]!;
     expect(phase.name).toBe(`"${EMBED_PHASE_NAME}"`);
-    expect(JSON.parse(phase.shellScript as string)).toContain(
-      'GoogleInteractiveMediaAds.framework',
-    );
+    expect(phase.shellScript as string).toContain('GoogleInteractiveMediaAds.framework');
+    expect(phase.shellScript as string).not.toContain('\n');
+    expect(phase.shellPath).toBe('/bin/sh');
   });
 
   it('refreshes an existing phase instead of duplicating', () => {

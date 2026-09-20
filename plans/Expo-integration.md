@@ -31,7 +31,7 @@ zdublowało warstwę natywną bez korzyści.
 | `android:supportsPictureInPicture="true"` + `android:configChanges="keyboard\|keyboardHidden\|orientation\|screenLayout\|screenSize\|smallestScreenSize\|uiMode"` na MainActivity | regex-patch wygenerowanego manifestu RNTA przed mergerem | `withAndroidManifest` — w Expo manifest jest prawdziwym plikiem, patch jest trywialny (bez hacku RNTA) |
 | `CAMERA`, `RECORD_AUDIO` | `app.json` → permissions RNTA | `withAndroidManifest` / `AndroidConfig.Permissions.ensurePermissions` |
 | `minSdkVersion = 26` (floor SDK Android) | `minSdkVersion` w `android/build.gradle` biblioteki | `withGradleProperties` → `android.minSdkVersion=26` (AGP i tak podniesie do max z deps, ale explicit > implicit) |
-| `kotlinVersion ≥ 2.2.20` (SDK 4.0.0 ciągnie kotlin-stdlib 2.3.x — starszy kompilator nie czyta metadanych) | `kotlinVersion=2.2.20` w `android/gradle.properties` + buildscript biblioteki | `withGradleProperties` → `android.kotlinVersion=2.2.20` (template Expo czyta ten klucz; biblioteka dodatkowo czyta `rootProject.ext.kotlinVersion` przez `getExtOrDefault`) |
+| `kotlinVersion ≥ 2.2.20` (SDK 4.0.0 ciągnie kotlin-stdlib 2.3.x — starszy kompilator nie czyta metadanych) | `kotlinVersion=2.2.20` w `android/gradle.properties` + buildscript biblioteki | `withGradleProperties` → `android.kotlinVersion=2.2.20` **+ `withProjectBuildGradle` przypina `kotlin-gradle-plugin:X` w buildscript** — template Expo deklaruje classpath bez wersji → rozwiązuje tranzytywnie z RNGP (np. 2.1.0), moduł biblioteki dostaje stary kompilator przez parent classloader |
 
 Maven Central i Google są już w domyślnym template Expo — brak potrzeby
 `extraMavenRepos`. `missingDimensionStrategy("apiBase", "debug")` **nie jest
@@ -163,6 +163,21 @@ Przykładowe użycie docelowe:
 
 ## 5. Ryzyka i otwarte kwestie
 
+**Stan po implementacji (2026-09-20):** plugin zaimplementowany (`plugin/src` +
+`app.plugin.js`), zweryfikowany na Expo SDK 57 / RN 0.86.3 przez `example-expo/`:
+`expo prebuild --clean` + `pod install` przechodzą (SwiftPM `bunny-stream-ios`
+podpięty do poda, patch `spm.rb` zadziałał, embed phase w projekcie), Android
+`assembleDebug` buduje APK po dodaniu moda `withProjectBuildGradle` (fix KGP),
+a `xcodebuild` iOS (symulator) przechodzi — plugin `OpenAPIGenerator` kompiluje
+się dla hosta i generuje `BunnyStreamAPI`. Do zweryfikowania: runtime
+(VOD playback, PiP, broadcaster na urządzeniu).
+
+**Ważne (iOS):** przy ręcznym `xcodebuild` nie przekazywać `-sdk` — samo
+`-destination` wystarczy. Jawne `-sdk iphonesimulator` sprawia, że Xcode buduje
+executable build-tool pluginów SwiftPM dla platformy docelowej zamiast hosta
+(`#error` w `_OpenAPIGeneratorCore/PlatformChecks.swift`). `expo run:ios`,
+Xcode GUI i EAS nie dotyka tego problemu (nie przekazują `-sdk`).
+
 - **`spm_dependency` + SwiftPM binaryTarget pod CocoaPods-Expo** — największa
   niewiadoma (E0). Embed phase przez `withXcodeProject` musi trafić na właściwy
   target (app target, nie pod target). Jeśli zawiedzie: rozważyć prośbę
@@ -171,10 +186,9 @@ Przykładowe użycie docelowe:
   `withDangerousMod`; na EAS działa tylko gdy prebuild+CNG generuje projekt
   (tryb managed). Dla bare-Expo (`expo` w istniejącej apce RN) konsument
   musi sam zaaplikować patch albo używać `patch-package` — udokumentować.
-- **`-skipPackagePluginValidation`** — przekazywane do `xcodebuild` w example;
-  dla `expo run:ios`/EAS zweryfikować konieczność (E0); ewentualnie
-  `defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation`
-  dla lokalnego dev.
+- **`-skipPackagePluginValidation`** — zweryfikowane (E0): NIE jest wymagane;
+  build iOS przez `xcodebuild` bez flagi przechodzi. Właściwy problem to
+  jawne `-sdk` w `xcodebuild` (patrz notka wyżej) — nie validation.
 - **Wersja Kotlin hosta** — jeśli template Expo ma starszy `kotlinVersion`,
   plugin nadpisuje przez `withGradleProperties`; konflikt z innymi
   bibliotekami wymagającymi starszego Kotlina = edge case do udokumentowania.

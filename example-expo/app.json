@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "BunnyStreamExpoExample",
+    "slug": "bunny-stream-react-native-example-expo",
+    "version": "0.0.1",
+    "orientation": "default",
+    "scheme": "bunnystreamexpoexample",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "net.bunny.StreamSDKRNExpoDemo",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "net.bunny.streamsdkrnexpodemo"
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "bunny-stream-react-native",
+        {
+          "cameraPermission": "This app uses the camera to record and broadcast video to Bunny Stream.",
+          "microphonePermission": "This app uses the microphone to capture audio during recording and broadcasting."
+        }
+      ]
+    ]
+  }
+}
