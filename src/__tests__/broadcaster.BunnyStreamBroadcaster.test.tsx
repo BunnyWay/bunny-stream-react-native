@@ -147,17 +147,22 @@ describe('BunnyStreamBroadcaster', () => {
 
     const props = lastProps();
     const synthetic = <T,>(payload: T) => ({ nativeEvent: payload });
+    const dispatches: Array<[string, unknown]> = [
+      ['onStateChange', { state: 'live' }],
+      ['onElapsedTime', { elapsedMs: 1000, formatted: '00:00:01' }],
+      ['onCameraChange', { position: 'back' }],
+      ['onMuteChange', { muted: true }],
+      ['onIngestStateChange', { endpoint: 'primary', state: 'live' }],
+      ['onReconnecting', { attempt: 1, usingBackup: false }],
+      ['onFailover', { usingBackup: true }],
+      ['onError', { message: 'boom' }],
+    ];
 
     await act(async () => {
-      handler(props, 'onStateChange')?.(synthetic({ state: 'live' }));
-      handler(props, 'onElapsedTime')?.(synthetic({ elapsedMs: 1000, formatted: '00:00:01' }));
-      handler(props, 'onCameraChange')?.(synthetic({ position: 'back' }));
-      handler(props, 'onMuteChange')?.(synthetic({ muted: true }));
-      handler(props, 'onIngestStateChange')?.(synthetic({ endpoint: 'primary', state: 'live' }));
-      handler(props, 'onReconnecting')?.(synthetic({ attempt: 1, usingBackup: false }));
+      for (const [key, payload] of dispatches) {
+        handler(props, key)?.(synthetic(payload));
+      }
       (props.onReconnectFailed as (() => void) | undefined)?.();
-      handler(props, 'onFailover')?.(synthetic({ usingBackup: true }));
-      handler(props, 'onError')?.(synthetic({ message: 'boom' }));
     });
 
     expect(onStateChange).toHaveBeenCalledWith({ state: 'live' });
