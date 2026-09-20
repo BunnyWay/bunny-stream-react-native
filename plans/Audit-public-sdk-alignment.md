@@ -1,10 +1,10 @@
 # Audyt: publiczne SDK `bunny-stream-android` / `bunny-stream-ios` vs wrapper RN
 
-Data: 2025-09-15. Analizowane repozytoria:
+Data: 2025-09-15, aktualizacja 2026-09-20 (po wykonaniu faz 8A/8B). Analizowane repozytoria:
 
 - `~/Desktop/bunny-stream-android` — publiczne, `main` @ `cb87934`, tag `4.0.0` (`6118838`), wydane 2026-09-10
 - `~/Desktop/bunny-stream-ios` — publiczne, `main` @ `4158e2e` (merge `feature/iOS-Live-Stream`), **zero tagów git**
-- Baseline wrappera (`native-sdk-baselines.json`): Android `fb863507` / `4.0.0-live.shadow.1-SNAPSHOT`, iOS `8e222bb4`
+- Baseline wrappera (`native-sdk-baselines.json`) — **po migracji**: Android `4.0.0` (Maven Central), iOS `4158e2e1c1416d99aa0e4a39eb85a0ac8df0e570` (publiczny SwiftPM, revision pin). Przed migracją: Android `fb863507` / `4.0.0-live.shadow.1-SNAPSHOT`, iOS `8e222bb4` (prywatny checkout).
 
 ## 1. Kluczowe ustalenie — baseline'y są już w publicznych repo
 
@@ -26,7 +26,7 @@ Wszystkie fazy implementacji zakończone: baseline i kontrakt (0A), parytet play
 1. **Faza 0B — przepięcie na publiczne SDK** — teraz wykonalna (Android: pełnia; iOS: pin na commit, bo brak tagów).
 2. **Live komendy JS (play/pause/seek/jump-to-live)** — nadal zablokowane. Publiczny Android `BunnyLiveStreamPlayerViewModel` wystawia tylko `start/onForeground/onBackground/onPlaybackFailure/tickCountdown` — brak publicznego play/pause/seek (poprawka: wcześniejszy raport błędnie raportował je jako publiczne). iOS: `snapToLiveEdge`/`isAtLiveEdge` nadal internal.
 3. **Nierówny kontrakt eventów VOD iOS** — iOS nadal bez publicznego controllera/delegate; bridge nadal wymaga workaroundu `AVPlayerLayer` + KVO.
-4. **Live metadata iOS** (`dvrEnabled`, video size, seekable window w eventach) — `BunnyLiveStream.dvrEnabled`/`dvrWindowSeconds` i `LiveStreamPlayData.seekableWindow` są publiczne w publicznym repo — można uzupełnić payload bez zmian SDK (dane trzeba pobrać z API, nie z eventu playera).
+4. **Live metadata iOS** (`dvrEnabled`, video size, seekable window w eventach) — `BunnyLiveStream.dvrEnabled`/`dvrWindowSeconds` i `LiveStreamPlayData.seekableWindow` są publiczne w publicznym repo — `dvrEnabled` jest już zbridge'owane (§8); `seekableWindow` świadomie niewystawione — wspólny kontrakt eventu nie ma pola, a Android nie emituje odpowiednika (do dodania, gdy zajdzie potrzeba).
 5. **`regenerateStreamKey`** — Android: nadal brak w domenowym `LiveStreamRepository` (public 4.0.0). iOS: tylko generated client op. Pozostaje platformową luką.
 6. **Quality/captions/audio selection, fullscreen, programmatic cast/AirPlay, PiP iOS** — wszystko nadal internal/wymaga nowego publicznego API w SDK.
 7. **Wiele instancji/bibliotek** — publiczny Android dodał `BunnyStreamApi.create(context, config)` zwracający `StreamApi` (AutoCloseable) oraz `bunny: StreamApi?` na view — można teraz rozważyć wsparcie multi-instance w RN.
@@ -61,14 +61,14 @@ Wszystkie fazy implementacji zakończone: baseline i kontrakt (0A), parytet play
 
 ## 4. Plan wyrównania funkcjonalności
 
-### Faza 8A — Android: przejście na publiczny Maven `4.0.0`
+### Faza 8A — Android: przejście na publiczny Maven `4.0.0` — ✅ wykonane
 
 1. `gradle.properties`/`native-sdk-baselines.json`: `mavenVersion` → `4.0.0`, repository → `BunnyWay/bunny-stream-android`, commit → tag `4.0.0` (`6118838`).
 2. Usunąć `mavenLocal()` z `android/build.gradle` i `example/android/build.gradle` (+ powiązane `TODO(Phase 0B)`).
 3. Regression: pełny build + testy + live/DVR playback na publicznym artifact.
 4. Opcjonalnie: dodać `net.bunny:tv:4.0.0` do example app (prawdziwy TV player zamiast fallbacku).
 
-### Faza 8B — iOS: przejście na publiczny SwiftPM (pin na commit)
+### Faza 8B — iOS: przejście na publiczny SwiftPM (pin na commit) — ✅ wykonane (§8)
 
 1. Podspec: `ios_sdk_path` → publiczny URL `https://github.com/BunnyWay/bunny-stream-ios` z pinem na commit `4158e2e` (brak tagu — `requirement: { kind: 'revision' }` lub branch `main`; zalecany commit pin dla reprodukowalności).
 2. **Naprawić regresję autoplay:** po `onReady` wywołać `play()` na odnalezionym AVPlayer gdy `autoPlay` jest true (bridge już ma discovery AVPlayerLayer). Dodać test regresyjny.
@@ -105,9 +105,9 @@ Wszystkie fazy implementacji zakończone: baseline i kontrakt (0A), parytet play
 | regenerateStreamKey | Brak w domain repo | Tylko generated op | Platformowa luka Android |
 | Quality programowo | **`currentPlayer` publiczne** → `trackSelectionParameters` (KDoc wprost: "direct control over tracks, quality") | AVFoundation `currentItem.preferredPeakBitRate` przez istniejący AVPlayer workaround (to samo robi internal `setPlayerBitrate`) | **Odblokowane** — stary audyt błędnie klasyfikował jako SDK blocker |
 | Captions/audio tracks programowo | Przez `currentPlayer` track selection | Brak publicznej listy tracków | Android możliwy; iOS częściowo |
-| Fullscreen/PiP/cast programowo | Częściowe (PiP przez Activity, cast events) | Internal | AirPlay/PiP iOS zablokowane |
+| Fullscreen/PiP/cast programowo | Częściowe (PiP przez Activity, cast events) | Częściowe — `enterPiP()` działa przez bridge'owy `AVPictureInPictureController` na odkrytym `AVPlayerLayer` (wymaga `UIBackgroundModes=audio` w hoście); AirPlay/fullscreen programowo nadal internal | Zaktualizowane po §8 |
 | Image loader z Refererem | Brak (RN `Image` + headers) | Brak | Zostaje w JS — działa poprawnie |
-| Autoplay VOD | Działa (ExoPlayer playWhenReady) | **Usunięty w publicznym main** | Wymaga fixu w bridge iOS |
+| Autoplay VOD | Działa (ExoPlayer playWhenReady) | Usunięty w publicznym main → **naprawione w bridge** (`play()` po `.readyToPlay` gdy `autoPlay`) | Rozwiązane w wrapperze |
 | Tag/release do pinu | `4.0.0` na Maven Central | **Brak tagów** | iOS: pin na commit `4158e2e` |
 
 ## 6. Geoblock / HTTP 403 (nowe w publicznych wydaniach)
@@ -136,6 +136,9 @@ Oba publiczne SDK dodały obsługę blokad (geo-blocking, hotlink protection, wy
 | Broadcaster (istniejący stream) | Placeholder `BunnyLiveStream(id:libraryId:)` zastąpiony fetch `getLiveStream` przed init view — SDK dostaje prawdziwy `streamKey`/ingest; błąd fetch → `onError` |
 | `restoreUploads` | Nowa metoda speca: iOS wymusza lazy `TUSVideoUploader` (`make` → `start()` przywraca cache) + emituje snapshot eventów z `uploadTracker.uploads`; Android no-op (ograniczenie platformy) |
 | Heatmap | `fetchVideoHeatmap` już działało przez generated `getVideoHeatmap`; `fetchVideoHeatmapData`/`fetchVideoStorageSize` zostają `InvalidState` — iOS generated client nie ma endpointów `/play/heatmap` i `/storage` |
+| PiP (`enterPiP()`) | Zaimplementowane przez bridge'owy `AVPictureInPictureController` na odkrytym `AVPlayerLayer` (toggle start/stop). Caveat: SDK i bridge mają osobne kontrolery PiP — stan `isActive` per-kontroler; natywny przycisk w kontrolkach wciąż wymaga `pip` w `controlList` |
+| Example `Info.plist` | `link_bunny_sdk.rb` patchuje: `UIBackgroundModes=audio` (wymóg AVKit PiP), `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`, `NSPhotoLibraryUsageDescription` (TestFlight 90683 — `react-native-image-picker` linkuje PhotoLibrary API) |
+| Example signing | Debug: automatic + `DEVELOPMENT_TEAM` (device build via `yarn ios`); Release: Apple Distribution + provisioning profile |
 | CI | `closed-test-native.yml` clone'uje publiczne repo bez tokenu |
 
 ## 9. Co dodać do repozytoriów SDK dla pełnego pokrycia RN
@@ -146,7 +149,7 @@ Lista zweryfikowana na `bunny-stream-android@4.0.0` i `bunny-stream-ios@4158e2e`
 
 1. **Publiczny VOD controller/delegate** — `play`/`pause`/`seekTo`/`seekBy`, eventy stanu, `currentTime`/`duration`, callback błędu ze strukturyzowanym `PlaybackFailureInfo` (w tym `isBlocked`). Dziś bridge szuka `AVPlayerLayer` w hierarchii widoków + KVO — kruche, może się zepsuć przy refaktorze SDK.
 2. **Publiczny live controller** — `play`/`pause`/`seek`/`snapToLiveEdge`/`isAtLiveEdge` są `internal` → live komendy z JS zablokowane.
-3. **Publiczne API programowe PiP / AirPlay / fullscreen** — `PictureInPictureManager`, `AirPlayView`, fullscreen są `internal`; `enterPiP()` z JS to no-op.
+3. **Publiczne API programowe PiP / AirPlay / fullscreen** — `PictureInPictureManager`, `AirPlayView`, fullscreen są `internal`. `enterPiP()` działa już przez bridge'owy `AVPictureInPictureController` na odkrytym `AVPlayerLayer` (działa, ale podatny na refaktor hierarchii widoków SDK; dwie instancje kontrolera mogą mieć rozjechany stan). AirPlay i fullscreen programowo nadal zablokowane.
 4. **Publiczna selekcja jakości i tracków VOD** — enumeracja + wybór jakości/captions/audio (`preferredPeakBitRate` osiągalne tylko przez workaround AVPlayer).
 5. **`getLiveStream` na potrzeby broadcastu** — rozwiązane w bridge przez fetch; mile widziany init `BunnyStreamCameraUploadView(streamId:libraryId:accessKey:)` robiący resolve wewnętrznie.
 6. **Endpointy `/play/heatmap` i `/storage` w generated client / domain repo** — `fetchVideoHeatmapData` i `fetchVideoStorageSize` zwracają `InvalidState` na iOS.
@@ -168,7 +171,7 @@ Lista zweryfikowana na `bunny-stream-android@4.0.0` i `bunny-stream-ios@4158e2e`
 
 ### 9.3 Rozwiązane po stronie wrappera (nie wymagają zmian w SDK)
 
-- iOS autoplay po `.readyToPlay`, iOS `dvrEnabled` z publicznego repo, broadcaster resolve przez `getLiveStream`, iOS TUS `restoreUploads`, Android quality selection przez `currentPlayer.trackSelectionParameters`, Android PiP (manifest hosta), Cast/AirPlay przez natywne kontrolki, image loader z `Referer` (JS `useBunnyImage`).
+- iOS autoplay po `.readyToPlay`, iOS `dvrEnabled` z publicznego repo, broadcaster resolve przez `getLiveStream`, iOS TUS `restoreUploads`, iOS PiP (`enterPiP` przez bridge'owy `AVPictureInPictureController` + `UIBackgroundModes=audio` w hoście), Android quality selection przez `currentPlayer.trackSelectionParameters`, Android PiP (manifest hosta), Cast/AirPlay przez natywne kontrolki, image loader z `Referer` (JS `useBunnyImage`).
 
 ### 9.4 Wspólne / decyzje produktowe
 
