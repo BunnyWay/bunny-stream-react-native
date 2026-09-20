@@ -1,12 +1,3 @@
-export function formatScheduled(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
 export function updateRtmpRow(
   rows: { url: string; key: string }[],
   setRows: (r: { url: string; key: string }[]) => void,

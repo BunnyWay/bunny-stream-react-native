@@ -6,8 +6,8 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LiveStreamStatusEnum, liveStreamStatusLabel } from 'bunny-stream-react-native';
 
 import { colors } from '../../theme/colors';
+import { formatTimestamp } from '../../utils/format';
 import { LIVE_STATUS_COLORS } from './constants';
-import { formatScheduled } from './time';
 
 /**
  * Renders a single live stream card — mirrors the Android demo's
@@ -132,7 +132,7 @@ export function LiveStreamCard({
 
           {stream.scheduledStartTime ? (
             <Text style={cardStyles.scheduled}>
-              Scheduled: {formatScheduled(stream.scheduledStartTime)}
+              Scheduled: {formatTimestamp(stream.scheduledStartTime)}
             </Text>
           ) : null}
         </View>

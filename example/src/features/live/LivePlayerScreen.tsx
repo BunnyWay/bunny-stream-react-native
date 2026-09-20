@@ -7,7 +7,6 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import {
   BunnyStreamApi,
   BunnyStreamPlayer,
-  LiveStreamStatusEnum,
   getOrNull,
   liveStreamStatusLabel,
   sourceIdentityKey,
@@ -19,20 +18,10 @@ import {
 import { Header } from '../../components/Header';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
+import { formatTimestamp } from '../../utils/format';
+import { LIVE_STATUS_COLORS } from './constants';
 
 type LivePlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'LivePlayer'>;
-
-/** Status pill color mapping — mirrors the Android demo's LiveStatusCard. */
-const STATUS_COLORS: Record<string, string> = {
-  [LiveStreamStatusEnum.RUNNING]: '#e53935',
-  [LiveStreamStatusEnum.SCHEDULED]: colors.primary,
-  [LiveStreamStatusEnum.CREATED]: '#888',
-  [LiveStreamStatusEnum.PREVIEW]: '#888',
-  [LiveStreamStatusEnum.ENDED]: '#aaa',
-  [LiveStreamStatusEnum.VOD_PROCESSING]: colors.primary,
-  [LiveStreamStatusEnum.ERROR]: '#d32f2f',
-  [LiveStreamStatusEnum.UNKNOWN]: '#aaa',
-};
 
 export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { streamId, libraryId, token, expires } = route.params;
@@ -68,7 +57,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   }, [streamId, libraryId, liveStateKind]);
 
   const status = stream?.status as LiveStreamStatus | undefined;
-  const statusColor = status ? (STATUS_COLORS[status] ?? '#aaa') : '#aaa';
+  const statusColor = status ? (LIVE_STATUS_COLORS[status] ?? '#aaa') : '#aaa';
 
   return (
     <View style={styles.playerContainer}>
@@ -197,14 +186,6 @@ function PropertiesCard({
       ))}
     </View>
   );
-}
-
-function formatTimestamp(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
 }
 
 /**

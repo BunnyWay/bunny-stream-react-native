@@ -4,14 +4,7 @@ import * as React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { colors } from '../theme/colors';
-
-function formatTime(ms: number): string {
-  if (!ms || ms < 0) return '0:00';
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
-}
+import { formatTime } from '../utils/format';
 
 /**
  * Resume-confirmation dialog matching the Android demo's `ResumeDialog`:
