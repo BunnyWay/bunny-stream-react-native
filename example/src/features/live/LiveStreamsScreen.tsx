@@ -2,7 +2,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { LiveStream, LiveStreamStatus } from 'bunny-stream-react-native';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import {
   FlatList,
@@ -17,7 +17,7 @@ import {
 import { BunnyStreamApi, LiveStreamStatusEnum, fold } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
-import { loadSettings } from '../../storage/settings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { LiveStreamCard } from './LiveStreamCard';
@@ -58,10 +58,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
   }, [route.params, navigation]);
 
   const loadStreams = React.useCallback(async () => {
-    const stored = await loadSettings();
-    const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
-    const libId = parseInt(libIdStr, 10);
-    if (isNaN(libId)) {
+    const { libraryId: libId } = await loadLibraryConfig();
+    if (libId == null) {
       setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
       return;
     }

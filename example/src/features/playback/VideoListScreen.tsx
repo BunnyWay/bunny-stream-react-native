@@ -1,7 +1,7 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -17,9 +17,10 @@ import {
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { Header } from '../../components/Header';
-import { loadSettings } from '../../storage/settings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
+import { formatDuration } from '../../utils/format';
 
 type VideoListScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoList'>;
 
@@ -40,10 +41,8 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
 
   const loadLibrary = React.useCallback(async () => {
-    const stored = await loadSettings();
-    const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
-    const libId = parseInt(libIdStr, 10);
-    if (isNaN(libId)) {
+    const { libraryId: libId } = await loadLibraryConfig();
+    if (libId == null) {
       setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
       return;
     }
@@ -194,13 +193,6 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
       />
     </>
   );
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '0:00';
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
 /** Where the video is in Bunny's encoding pipeline — mirrors

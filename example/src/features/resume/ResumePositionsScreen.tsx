@@ -28,23 +28,12 @@ import {
 import { Header } from '../../components/Header';
 import { loadResumeSettings } from '../../storage/resumeSettings';
 import { colors } from '../../theme/colors';
+import { formatTime, formatTimestamp } from '../../utils/format';
 
 type ResumePositionsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumePositions'>;
 
 /** AsyncStorage satisfies the library's ResumePositionStorage contract. */
 const iosStorage = Platform.OS === 'ios' ? AsyncStorage : undefined;
-
-function formatTime(ms: number): string {
-  if (!ms || ms < 0) return '0:00';
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
-}
-
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
-}
 
 /**
  * Manage Resume Positions — list-only screen matching the Android demo's
@@ -149,7 +138,7 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
                     {formatTime(pos.positionMs)} / {formatTime(pos.durationMs)} (
                     {(pos.watchPercentage * 100).toFixed(0)}%)
                   </Text>
-                  <Text style={styles.positionDate}>{formatDate(pos.timestamp)}</Text>
+                  <Text style={styles.positionDate}>{formatTimestamp(pos.timestamp)}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteButton}

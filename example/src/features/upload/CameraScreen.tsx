@@ -1,7 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -25,7 +24,7 @@ import {
 
 import { Header } from '../../components/Header';
 import { requestBroadcastPermissions } from '../../media/permissions';
-import { loadSettings } from '../../storage/settings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 
 type CameraScreenProps = NativeStackScreenProps<RootStackParamList, 'Camera'>;
@@ -91,8 +90,8 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
 
   React.useEffect(() => {
     (async () => {
-      const stored = await loadSettings();
-      setAccessKey(stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '');
+      const { accessKey } = await loadLibraryConfig();
+      setAccessKey(accessKey);
       const granted = await requestBroadcastPermissions();
       setPermissionsGranted(granted);
     })();

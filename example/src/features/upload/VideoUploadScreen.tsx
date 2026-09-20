@@ -1,7 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -23,9 +22,10 @@ import {
 
 import { Header } from '../../components/Header';
 import { pickVideo } from '../../media/picker';
-import { loadSettings } from '../../storage/settings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
+import { formatBytes } from '../../utils/format';
 
 type VideoUploadScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoUpload'>;
 
@@ -67,10 +67,8 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
 
   React.useEffect(() => {
     (async () => {
-      const stored = await loadSettings();
-      const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
-      const libId = parseInt(libIdStr, 10);
-      if (!isNaN(libId)) setLibraryId(libId);
+      const { libraryId: libId } = await loadLibraryConfig();
+      if (libId != null) setLibraryId(libId);
     })();
   }, []);
 
@@ -420,14 +418,6 @@ function UploadRowCard({
       </View>
     </View>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 B';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 const uploadStyles = StyleSheet.create({

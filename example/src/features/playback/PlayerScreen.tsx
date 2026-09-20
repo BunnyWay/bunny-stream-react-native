@@ -38,33 +38,11 @@ import {
 } from '../../storage/resumeSettings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
+import { formatBytes, formatDuration, formatTime } from '../../utils/format';
 
 const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
 const STATUS_POLL_INTERVAL_MS = 5_000;
-
-function formatTime(ms: number): string {
-  if (!ms || ms < 0) return '0:00';
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '0:00';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 MB';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(2)} MB`;
-}
 
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -198,7 +176,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         { label: 'Title', value: videoMeta.title || 'N/A' },
         { label: 'Duration', value: formatDuration(videoMeta.lengthSeconds) },
         { label: 'Views', value: String(videoMeta.views) },
-        { label: 'Size', value: formatSize(videoMeta.storageSizeBytes) },
+        { label: 'Size', value: formatBytes(videoMeta.storageSizeBytes) },
         ...(videoMeta.status !== 4
           ? [{ label: 'Status', value: videoStatusLabel(videoMeta.status as VideoStatus) }]
           : []),

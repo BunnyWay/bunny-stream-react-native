@@ -1,3 +1,4 @@
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ACCESS_KEY = '@bunny_demo/access_key';
@@ -75,12 +76,21 @@ export async function saveSettings(settings: Settings): Promise<void> {
   }
 }
 
-export async function clearSettings(): Promise<void> {
-  try {
-    await Promise.all([AsyncStorage.removeItem(ACCESS_KEY), AsyncStorage.removeItem(LIBRARY_KEY)]);
-  } catch {
-    // ignore
-  }
+export type LibraryConfig = {
+  accessKey: string;
+  libraryId: number | null;
+};
+
+/**
+ * Resolves the effective library config: stored settings win, falling back to
+ * `.env` defaults. `libraryId` is null when no valid numeric ID is configured.
+ */
+export async function loadLibraryConfig(): Promise<LibraryConfig> {
+  const stored = await loadSettings();
+  const accessKey = stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '';
+  const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
+  const libId = parseInt(libIdStr, 10);
+  return { accessKey, libraryId: isNaN(libId) ? null : libId };
 }
 
 // --- Direct play last-used values ---
