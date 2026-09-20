@@ -1,1 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Serves local files through content:// so the Bunny SDK's
+         ContentResolver metadata lookup works on file:// URIs returned by
+         media pickers (e.g. react-native-image-picker cache copies). Not
+         exported: only this app's own uploader resolves it. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.bunnystream.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/bunny_stream_file_paths" />
+        </provider>
+    </application>
+</manifest>
