@@ -28,7 +28,14 @@
     "typescript",
     "typescript-eslint"
   ],
-  "ignorePatterns": ["**/*.d.ts", "./package.json", "example/**", "lib/**", "node_modules/**"],
+  "ignorePatterns": [
+    "**/*.d.ts",
+    "./package.json",
+    "example/**",
+    "example-expo/**",
+    "lib/**",
+    "node_modules/**"
+  ],
   "duplicates": {
     "minOccurrences": 3
   },
