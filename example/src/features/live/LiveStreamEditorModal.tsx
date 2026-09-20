@@ -9,7 +9,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -20,6 +19,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BunnyStreamApi, BunnyStreamUpload, fold } from 'bunny-stream-react-native';
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
+import { OutlineButton } from '../../components/OutlineButton';
+import { ProgressBar } from '../../components/ProgressBar';
+import { StatusBanner } from '../../components/StatusBanner';
+import { ToggleRow } from '../../components/ToggleRow';
 import { pickImage, pickVideo } from '../../media/picker';
 import { colors } from '../../theme/colors';
 import { formatHms, parseHms, updateRtmpRow, validateHms } from './time';
@@ -402,32 +405,30 @@ export function LiveStreamEditorModal({
             textAlignVertical="top"
           />
 
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>Public</Text>
-            </View>
-            <Switch value={isPublic} onValueChange={setIsPublic} />
-          </View>
+          <ToggleRow
+            label="Public"
+            value={isPublic}
+            onValueChange={setIsPublic}
+            style={createStyles.toggleSpacing}
+          />
 
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>Video on demand</Text>
-              <Text style={createStyles.toggleSubtitle}>
-                Store the stream as a VOD after it ends
-              </Text>
-            </View>
-            <Switch value={recordVod} onValueChange={setRecordVod} />
-          </View>
+          <ToggleRow
+            label="Video on demand"
+            subtitle="Store the stream as a VOD after it ends"
+            value={recordVod}
+            onValueChange={setRecordVod}
+            style={createStyles.toggleSpacing}
+          />
 
           {/* Schedule section */}
           <Text style={createStyles.sectionTitle}>Schedule</Text>
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>Schedule start date and time</Text>
-              <Text style={createStyles.toggleSubtitle}>Select when you want to go live</Text>
-            </View>
-            <Switch value={scheduleEnabled} onValueChange={setScheduleEnabled} />
-          </View>
+          <ToggleRow
+            label="Schedule start date and time"
+            subtitle="Select when you want to go live"
+            value={scheduleEnabled}
+            onValueChange={setScheduleEnabled}
+            style={createStyles.toggleSpacing}
+          />
 
           {scheduleEnabled ? (
             <>
@@ -453,29 +454,25 @@ export function LiveStreamEditorModal({
                 autoCorrect={false}
               />
 
-              <View style={createStyles.toggleRow}>
-                <View style={createStyles.toggleText}>
-                  <Text style={createStyles.toggleLabel}>Enable countdown</Text>
-                  <Text style={createStyles.toggleSubtitle}>
-                    Show a countdown before the stream starts
-                  </Text>
-                </View>
-                <Switch value={enableCountdown} onValueChange={setEnableCountdown} />
-              </View>
+              <ToggleRow
+                label="Enable countdown"
+                subtitle="Show a countdown before the stream starts"
+                value={enableCountdown}
+                onValueChange={setEnableCountdown}
+                style={createStyles.toggleSpacing}
+              />
             </>
           ) : null}
 
           {/* DVR section */}
           <Text style={createStyles.sectionTitle}>DVR</Text>
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>DVR</Text>
-              <Text style={createStyles.toggleSubtitle}>
-                Let viewers rewind behind the live point (30s - 12hrs)
-              </Text>
-            </View>
-            <Switch value={dvrEnabled} onValueChange={setDvrEnabled} />
-          </View>
+          <ToggleRow
+            label="DVR"
+            subtitle="Let viewers rewind behind the live point (30s - 12hrs)"
+            value={dvrEnabled}
+            onValueChange={setDvrEnabled}
+            style={createStyles.toggleSpacing}
+          />
 
           {dvrEnabled ? (
             <>
@@ -497,15 +494,13 @@ export function LiveStreamEditorModal({
 
           {/* Pre-stream trailer section */}
           <Text style={createStyles.sectionTitle}>Pre-stream trailer</Text>
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>Pre-stream trailer</Text>
-              <Text style={createStyles.toggleSubtitle}>
-                Play a short video before the stream starts
-              </Text>
-            </View>
-            <Switch value={trailerEnabled} onValueChange={setTrailerEnabled} />
-          </View>
+          <ToggleRow
+            label="Pre-stream trailer"
+            subtitle="Play a short video before the stream starts"
+            value={trailerEnabled}
+            onValueChange={setTrailerEnabled}
+            style={createStyles.toggleSpacing}
+          />
 
           {trailerEnabled ? (
             <>
@@ -521,40 +516,21 @@ export function LiveStreamEditorModal({
               />
 
               <View style={createStyles.pickerActionsRow}>
-                <TouchableOpacity
-                  style={[
-                    createStyles.pickerButton,
-                    libraryId == null && createStyles.pickerButtonDisabled,
-                  ]}
+                <OutlineButton
+                  label={trailerUpload ? 'Uploading…' : 'Upload trailer video'}
                   onPress={handleUploadTrailer}
                   disabled={libraryId == null || trailerUpload != null}
-                >
-                  <Text style={createStyles.pickerButtonText}>
-                    {trailerUpload ? 'Uploading…' : 'Upload trailer video'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    createStyles.pickerButton,
-                    libraryId == null && createStyles.pickerButtonDisabled,
-                  ]}
+                />
+                <OutlineButton
+                  label="Choose from library"
                   onPress={handleChooseTrailerFromLibrary}
                   disabled={libraryId == null}
-                >
-                  <Text style={createStyles.pickerButtonText}>Choose from library</Text>
-                </TouchableOpacity>
+                />
               </View>
 
               {trailerUpload ? (
                 <View style={createStyles.uploadProgressBox}>
-                  <View style={createStyles.uploadProgressTrack}>
-                    <View
-                      style={[
-                        createStyles.uploadProgressFill,
-                        { width: `${Math.round(trailerUpload.progress * 100)}%` },
-                      ]}
-                    />
-                  </View>
+                  <ProgressBar progress={trailerUpload.progress} />
                   <Text style={createStyles.uploadProgressText}>
                     {trailerUpload.status === 'failed'
                       ? `Upload failed${trailerUpload.error ? ': ' + trailerUpload.error : ''}`
@@ -582,13 +558,13 @@ export function LiveStreamEditorModal({
 
           {/* Thumbnail section */}
           <Text style={createStyles.sectionTitle}>Thumbnail</Text>
-          <View style={createStyles.toggleRow}>
-            <View style={createStyles.toggleText}>
-              <Text style={createStyles.toggleLabel}>Thumbnail</Text>
-              <Text style={createStyles.toggleSubtitle}>Set a custom thumbnail image</Text>
-            </View>
-            <Switch value={thumbnailEnabled} onValueChange={setThumbnailEnabled} />
-          </View>
+          <ToggleRow
+            label="Thumbnail"
+            subtitle="Set a custom thumbnail image"
+            value={thumbnailEnabled}
+            onValueChange={setThumbnailEnabled}
+            style={createStyles.toggleSpacing}
+          />
 
           {thumbnailEnabled ? (
             <>
@@ -608,27 +584,17 @@ export function LiveStreamEditorModal({
               />
 
               <View style={createStyles.pickerActionsRow}>
-                <TouchableOpacity
-                  style={[
-                    createStyles.pickerButton,
-                    libraryId == null && createStyles.pickerButtonDisabled,
-                  ]}
+                <OutlineButton
+                  label="Choose from Photos"
                   onPress={handlePickThumbnailPhoto}
                   disabled={libraryId == null}
-                >
-                  <Text style={createStyles.pickerButtonText}>Choose from Photos</Text>
-                </TouchableOpacity>
+                />
                 {isEdit && stream ? (
-                  <TouchableOpacity
-                    style={[
-                      createStyles.pickerButton,
-                      libraryId == null && createStyles.pickerButtonDisabled,
-                    ]}
+                  <OutlineButton
+                    label="Browse generated"
                     onPress={handleBrowseThumbnails}
                     disabled={libraryId == null}
-                  >
-                    <Text style={createStyles.pickerButtonText}>Browse generated</Text>
-                  </TouchableOpacity>
+                  />
                 ) : null}
               </View>
 
@@ -700,11 +666,7 @@ export function LiveStreamEditorModal({
             <Text style={createStyles.maxNote}>Maximum of {MAX_RTMP} RTMP outputs reached.</Text>
           )}
 
-          {error ? (
-            <View style={createStyles.errorBox}>
-              <Text style={createStyles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          {error ? <StatusBanner message={error} style={createStyles.errorSpacing} /> : null}
 
           {saving ? (
             <View style={createStyles.savingRow}>
@@ -803,25 +765,8 @@ const createStyles = StyleSheet.create({
   textArea: {
     minHeight: 80,
   },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+  toggleSpacing: {
     marginTop: 8,
-  },
-  toggleText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  toggleLabel: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  toggleSubtitle: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
   },
   fieldError: {
     color: '#d32f2f',
@@ -862,15 +807,8 @@ const createStyles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
-  errorBox: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+  errorSpacing: {
     marginTop: 16,
-  },
-  errorText: {
-    color: '#d32f2f',
-    fontSize: 13,
   },
   savingRow: {
     alignItems: 'center',
@@ -882,34 +820,8 @@ const createStyles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  pickerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  pickerButtonDisabled: {
-    opacity: 0.4,
-  },
-  pickerButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
   uploadProgressBox: {
     marginTop: 10,
-  },
-  uploadProgressTrack: {
-    width: '100%',
-    height: 4,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
-    borderRadius: 2,
-  },
-  uploadProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
   },
   uploadProgressText: {
     fontSize: 12,

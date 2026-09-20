@@ -1,7 +1,8 @@
 import { BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
-import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { Dialog } from '../../components/Dialog';
 import {
   loadDirectPlayValues,
   saveDirectPlayValues,
@@ -49,56 +50,54 @@ export function DirectVideoPlayModal({ visible, onClose, onPlay }: DirectVideoPl
   const canPlay = videoId.trim().length > 0 && libraryId.trim().length > 0;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Direct Video Play</Text>
-          <Text style={styles.modalSubtitle}>Enter a video ID to play directly.</Text>
+    <Dialog
+      visible={visible}
+      title="Direct Video Play"
+      subtitle="Enter a video ID to play directly."
+      onClose={onClose}
+    >
+      <Text style={styles.modalFieldLabelFirst}>Video ID</Text>
+      <TextInput
+        style={styles.modalInput}
+        value={videoId}
+        onChangeText={setVideoId}
+        placeholder="e.g. abc-123-def"
+        placeholderTextColor="#999"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
 
-          <Text style={styles.modalFieldLabelFirst}>Video ID</Text>
-          <TextInput
-            style={styles.modalInput}
-            value={videoId}
-            onChangeText={setVideoId}
-            placeholder="e.g. abc-123-def"
-            placeholderTextColor="#999"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+      <Text style={styles.modalFieldLabel}>Library ID</Text>
+      <TextInput
+        style={styles.modalInput}
+        value={libraryId}
+        onChangeText={setLibraryId}
+        placeholder="e.g. 12345"
+        placeholderTextColor="#999"
+        keyboardType="numeric"
+      />
 
-          <Text style={styles.modalFieldLabel}>Library ID</Text>
-          <TextInput
-            style={styles.modalInput}
-            value={libraryId}
-            onChangeText={setLibraryId}
-            placeholder="e.g. 12345"
-            placeholderTextColor="#999"
-            keyboardType="numeric"
-          />
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity onPress={onClose} style={{ flex: 1, paddingVertical: 10 }}>
-              <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handlePlay}
-              style={{ flex: 1, paddingVertical: 10 }}
-              disabled={!canPlay}
-            >
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color: canPlay ? '#25588f' : '#ccc',
-                  textAlign: 'center',
-                }}
-              >
-                Play
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      <View style={styles.modalButtons}>
+        <TouchableOpacity onPress={onClose} style={{ flex: 1, paddingVertical: 10 }}>
+          <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handlePlay}
+          style={{ flex: 1, paddingVertical: 10 }}
+          disabled={!canPlay}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: canPlay ? '#25588f' : '#ccc',
+              textAlign: 'center',
+            }}
+          >
+            Play
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </Dialog>
   );
 }

@@ -30,7 +30,10 @@ import {
 } from 'bunny-stream-react-native';
 
 import { Header } from '../../components/Header';
+import { ProgressBar } from '../../components/ProgressBar';
+import { PropertiesCard } from '../../components/PropertiesCard';
 import { ResumeDialog } from '../../components/ResumeDialog';
+import { ToggleRow } from '../../components/ToggleRow';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
@@ -257,22 +260,17 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </Text>
 
         {/* Toggle: built-in native controls ↔ custom JS controls */}
-        <View style={toggleStyles.row}>
-          <Text style={toggleStyles.label}>Custom controls</Text>
-          <TouchableOpacity
-            style={[toggleStyles.switch, useCustomControls && toggleStyles.switchOn]}
-            onPress={() => setUseCustomControls((v) => !v)}
-          >
-            <View style={[toggleStyles.knob, useCustomControls && toggleStyles.knobOn]} />
-          </TouchableOpacity>
-        </View>
+        <ToggleRow
+          label="Custom controls"
+          value={useCustomControls}
+          onValueChange={setUseCustomControls}
+          style={playerScreenStyles.toggleRow}
+        />
 
         {/* Custom JS controls — only rendered when built-in controls are off */}
         {useCustomControls ? (
           <View style={styles.controlsSection}>
-            <View style={styles.positionBar}>
-              <View style={[styles.positionBarFill, { width: `${seekProgress * 100}%` }]} />
-            </View>
+            <ProgressBar progress={seekProgress} style={styles.positionBar} />
             <Text style={styles.positionText}>
               {formatTime(progress.positionMs)} / {formatTime(state.durationMs)}
             </Text>
@@ -357,21 +355,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
         {/* Video metadata card — like Android demo's VideoPropertiesCard */}
         {metaLoading ? (
-          <View style={metaStyles.card}>
+          <View style={metaStyles.loadingCard}>
             <ActivityIndicator size="small" color={colors.primary} style={{ padding: 16 }} />
           </View>
         ) : metaProperties.length > 0 ? (
-          <View style={metaStyles.card}>
-            {metaProperties.map((prop, idx) => (
-              <View key={prop.label}>
-                <View style={metaStyles.row}>
-                  <Text style={metaStyles.label}>{prop.label}</Text>
-                  <Text style={metaStyles.value}>{prop.value}</Text>
-                </View>
-                {idx < metaProperties.length - 1 ? <View style={metaStyles.divider} /> : null}
-              </View>
-            ))}
-          </View>
+          <PropertiesCard rows={metaProperties} style={metaStyles.card} />
         ) : null}
       </ScrollView>
 
@@ -409,45 +397,17 @@ const playerScreenStyles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
-});
-
-const toggleStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  toggleRow: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  switch: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  switchOn: {
-    backgroundColor: colors.primary,
-  },
-  knob: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
-  },
-  knobOn: {
-    alignSelf: 'flex-end',
   },
 });
 
 const metaStyles = StyleSheet.create({
   card: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  loadingCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -457,25 +417,6 @@ const metaStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  value: {
-    fontSize: 15,
-    color: colors.onSurfaceVariant,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(24, 61, 109, 0.18)',
-    marginHorizontal: 16,
   },
 });
 

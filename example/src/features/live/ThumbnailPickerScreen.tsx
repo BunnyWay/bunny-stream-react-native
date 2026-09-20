@@ -2,20 +2,13 @@ import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-react-native';
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
@@ -83,22 +76,11 @@ export function ThumbnailPickerScreen({ navigation, route }: ThumbnailPickerScre
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'loading' ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>
-              No generated thumbnails yet. Start the stream once to generate them.
-            </Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadThumbnails}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No generated thumbnails yet. Start the stream once to generate them."
+            onRetry={loadThumbnails}
+          />
         }
         contentContainerStyle={isEmpty ? thumbStyles.emptyList : thumbStyles.list}
       />
