@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
-import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
 
 /**
- * Shared loading / empty / error body for a FlatList's `ListEmptyComponent`.
- * `loaded` renders nothing — the list items are shown instead.
+ * Shared empty / error body for a FlatList's `ListEmptyComponent`.
+ * `loading` renders nothing — the list's RefreshControl already shows its
+ * spinner, so a second ActivityIndicator here would double it up.
  */
 export function ListStateView({
   state,
@@ -17,13 +17,6 @@ export function ListStateView({
   emptyMessage: string;
   onRetry: () => void;
 }) {
-  if (state.kind === 'loading') {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
   if (state.kind === 'empty') {
     return <Text style={styles.videoListEmpty}>{emptyMessage}</Text>;
   }
