@@ -12,7 +12,7 @@ Example ma być wizytówką biblioteki: osoba widząca `bunny-stream-react-nativ
 
 ## 2. Diagnoza obecnego stanu
 
-```
+```text
 src/
   App.tsx          — init SDK + 13 ekranów w jednym Stack.Navigator
   types.ts         — martwy plik (Settings zduplikowany w storage.ts, VideoItem nieużywany)
@@ -55,7 +55,7 @@ Każdy feature z własnymi `components/`, `hooks/`; globalny `shared/` z wewnęt
 
 ## 4. Docelowa struktura
 
-```
+```text
 src/
   App.tsx                     — tylko: init SDK + SafeAreaProvider + <RootNavigator/>
   navigation/
