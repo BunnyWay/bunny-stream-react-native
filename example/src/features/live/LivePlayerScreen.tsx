@@ -34,6 +34,17 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const source = { type: 'live' as const, streamId, libraryId, token, expires };
   const sourceKey = sourceIdentityKey(source);
 
+  // Debug logs — the source (token presence, not the token itself) and
+  // live state/error transitions, for diagnosing platform-specific failures.
+  React.useEffect(() => {
+    console.log('[LivePlayerScreen] playback source', {
+      streamId,
+      libraryId,
+      token: token ? 'signed' : 'none',
+      expires,
+    });
+  }, [streamId, libraryId, token, expires]);
+
   const { state, eventHandlers } = useBunnyStreamPlayer(undefined, sourceKey);
 
   const liveState = state.liveState;
@@ -52,6 +63,8 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
       const data = getOrNull(result);
       if (!cancelled && data) {
         setStream(data);
+      } else if (!data) {
+        console.warn('[LivePlayerScreen] getLiveStream failed:', result);
       }
     })();
     return () => {
@@ -76,9 +89,11 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
             eventHandlers.onVideoSizeChange?.(e);
           }}
           onLiveStateChange={(e) => {
+            console.log('[LivePlayerScreen] live state:', e.nativeEvent);
             eventHandlers.onLiveStateChange?.(e);
           }}
           onLiveError={(e) => {
+            console.warn('[LivePlayerScreen] live error:', e.nativeEvent);
             eventHandlers.onLiveError?.(e);
           }}
         />
