@@ -23,6 +23,7 @@ import {
   useBunnyStreamPlayer,
   useResumePosition,
   videoStatusLabel,
+  type BunnyStreamSource,
   type PlaybackPosition,
   type PlayerType,
   type Video,
@@ -51,7 +52,8 @@ type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { videoId, libraryId } = route.params;
-  const sourceKey = sourceIdentityKey({ type: 'vod', videoId, libraryId });
+  const source: BunnyStreamSource = { type: 'vod', videoId, libraryId };
+  const sourceKey = sourceIdentityKey(source);
   const player = useBunnyStreamPlayer(
     { onPlaybackRateChange: (e) => setCurrentSpeed(e.rate) },
     sourceKey,
@@ -72,6 +74,22 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const [playbackAttempt, setPlaybackAttempt] = React.useState(0);
 
   const isAndroid = Platform.OS === 'android';
+
+  // Debug logs — the source and any player error. Useful for diagnosing
+  // platform-specific playback failures (e.g. token auth 403s).
+  React.useEffect(() => {
+    console.log('[PlayerScreen] playback source', {
+      platform: Platform.OS,
+      ...source,
+      token: source.token ? 'signed' : 'none',
+    });
+  }, [videoId, libraryId]);
+
+  React.useEffect(() => {
+    if (state.error) {
+      console.warn('[PlayerScreen] playback error', state.error);
+    }
+  }, [state.error]);
 
   // Load persisted resume settings (and refresh them when returning from the
   // settings screen).
@@ -136,7 +154,8 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         setVideoMeta(playData.video ?? null);
         setMetaLoading(false);
       },
-      () => {
+      (error) => {
+        console.warn('[PlayerScreen] fetchVideoPlayData failed:', error);
         setMetaLoading(false);
       },
     );
@@ -203,7 +222,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             key={playbackAttempt}
             ref={player.ref}
             style={styles.player}
-            source={{ type: 'vod', videoId, libraryId }}
+            source={source}
             autoPlay
             controls={!useCustomControls}
             resumeConfig={
