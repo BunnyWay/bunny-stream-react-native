@@ -41,6 +41,20 @@ import BunnyStreamPlayer
   private var dvrEnabled = false
   private var loadGeneration = 0
 
+  /// Recovery for a just-ended stream whose recording is still being finalised.
+  ///
+  /// The iOS SDK treats every playback 403 as terminal, but during the
+  /// ENDED → VOD transition the CDN keeps refusing until the recording is
+  /// published (~30–60 s). When a terminal error arrives and the stream still
+  /// reports a recordable ended/processing state, the hosted player is
+  /// recreated after a delay — each reload re-polls and retries the recording's
+  /// `/play` from scratch. Bounded by `maxRecoveryAttempts`, matching the
+  /// Android SDK's recovery loop.
+  private var recoveryAttempts = 0
+  private var recoveryTask: Task<Void, Never>?
+  private static let maxRecoveryAttempts = 12
+  private static let recoveryDelayNs: UInt64 = 5_000_000_000
+
   /// Closure called when a live state change should be emitted to JS.
   /// Payload: state, isLive, reason, targetEpochMs, title, videoId, message, dvrEnabled.
   @objc public var onLiveStateChange: ((String, Bool, String?, NSNumber?, String?, String?, String?, Bool) -> Void)?
@@ -73,6 +87,10 @@ import BunnyStreamPlayer
 
     let sourceChanged = next != currentProps
     currentProps = next
+
+    if sourceChanged {
+      recoveryAttempts = 0
+    }
 
     if next.streamId.isEmpty {
       removeHostingController()
@@ -150,6 +168,8 @@ import BunnyStreamPlayer
   private func removeHostingController() {
     loadGeneration += 1
     dvrEnabled = false
+    recoveryTask?.cancel()
+    recoveryTask = nil
     hostingController?.willMove(toParent: nil)
     hostingController?.view.removeFromSuperview()
     hostingController?.removeFromParent()
@@ -215,8 +235,40 @@ import BunnyStreamPlayer
     // The SDK's onPlaybackError also fires for transient failures that the
     // player recovers from on its own — those should NOT trigger onLiveError
     // (Plan-iOS.md §12.2).
-    if let liveError = error as? BunnyLiveStreamError, liveError.isPermanent {
-      onLiveError?(error.localizedDescription)
+    guard let liveError = error as? BunnyLiveStreamError, liveError.isPermanent else { return }
+
+    // A 403 right after a stream ended usually means the recording is still
+    // being finalised, not that playback is really refused — the SDK gives up
+    // on the first 403, so the decision needs a fresh status fetch. A genuine
+    // auth failure fails this fetch too and the error surfaces immediately.
+    let generation = loadGeneration
+    let libraryId = currentProps.libraryId
+    let streamId = currentProps.streamId
+    let accessKey = BunnyStreamConfiguration.shared.accessKey ?? ""
+    Task { [weak self] in
+      let stream = try? await BunnyStreamAPI(accessKey: accessKey)
+        .liveStreams
+        .getLiveStream(libraryId: libraryId, streamId: streamId)
+      let recordingPending = stream.map {
+        ($0.status == .ended || $0.status == .vodProcessing) && $0.recordVod
+      } ?? false
+      guard let self, self.loadGeneration == generation, self.isMounted else { return }
+      if recordingPending && self.recoveryAttempts < Self.maxRecoveryAttempts {
+        self.scheduleRecovery()
+      } else {
+        self.onLiveError?(error.localizedDescription)
+      }
+    }
+  }
+
+  private func scheduleRecovery() {
+    guard recoveryTask == nil else { return }
+    recoveryAttempts += 1
+    recoveryTask = Task { [weak self] in
+      try? await Task.sleep(nanoseconds: Self.recoveryDelayNs)
+      guard let self, !Task.isCancelled else { return }
+      self.recoveryTask = nil
+      self.reloadPlayer()
     }
   }
 
