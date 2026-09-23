@@ -208,6 +208,17 @@ class BunnyLiveStreamPlayerView(
           }
         }
         launch {
+          // Pin live playback to 1.0x. The live composable shares the
+          // DefaultBunnyPlayer singleton (same ExoPlayer) with the VOD path,
+          // so a speed set on VOD — setPlaybackRate / the speed picker —
+          // leaks into live playback, where >1x just runs past the live edge
+          // and rebuffers. The SDK exposes no way to set speed on the
+          // internal live player and no callback when speed changes, so the
+          // bridge polls and snaps it back while LivePlay is active.
+          // TODO(Android SDK): pin speed inside the SDK's live player (or
+          // expose a playback-parameters callback) so this poll can go away.
+          // A Player.Listener on the singleton would also work once the
+          // bridge owns a listener slot there.
           while (isActive) {
             if (livePlaybackActive) {
               DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->
