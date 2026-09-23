@@ -149,6 +149,12 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
     )
   }
 
+  override fun restoreUploads() {
+    // No-op on Android: uploads are in-process and cannot survive process
+    // death without a host-owned foreground service. Kept so the shared
+    // Codegen spec stays symmetric — iOS reattaches its TUS session here.
+  }
+
   // endregion
 
   // region — Event emitter plumbing —

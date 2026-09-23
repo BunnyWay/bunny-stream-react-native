@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import SwiftUI
 import UIKit
 import BunnyStreamPlayer
@@ -71,6 +72,15 @@ import BunnyStreamPlayer
   // MARK: - AVPlayer observation state
 
   private var observedPlayer: AVPlayer?
+  /// The discovered `AVPlayerLayer`, kept so `enterPiP` can build an
+  /// `AVPictureInPictureController` on it (public AVKit API — the SDK's own
+  /// `PictureInPictureManager` is internal and can't be reached).
+  private var observedPlayerLayer: AVPlayerLayer?
+  /// Bridge-owned PiP controller. Note the SDK may hold its own controller
+  /// for the same layer; `isPictureInPictureActive` is tracked per
+  /// controller, so toggling via the SDK's PiP button and this command can
+  /// disagree on state — acceptable for the workaround.
+  private var pipController: AVPictureInPictureController?
   private var playerStatusObservation: NSKeyValueObservation?
   private var rateObservation: NSKeyValueObservation?
   private var volumeObservation: NSKeyValueObservation?
@@ -256,6 +266,7 @@ import BunnyStreamPlayer
     guard hostingController != nil, generation == playerSearchGeneration else { return }
     if let layer = findPlayerLayer(in: hostingController?.view ?? self),
        let player = layer.player {
+      observedPlayerLayer = layer
       attachObservers(to: player)
       return
     }
@@ -430,6 +441,12 @@ import BunnyStreamPlayer
             let durationMs = self.currentDurationMs(player)
             self.onReady?(self.currentProps.videoId, durationMs)
             self.onPlaybackStateChange?("ready", 0)
+            // The public SDK no longer starts playback on appear ("playback
+            // starts when the viewer taps the play button"), so honor the
+            // `autoPlay` prop here — once per item, before any user pause.
+            if self.currentProps.autoPlay, player.rate == 0 {
+              player.play()
+            }
           }
         case .failed:
           self.emitPlaybackFailure(it.error, player: player)
@@ -448,6 +465,11 @@ import BunnyStreamPlayer
         let durationMs = currentDurationMs(player)
         onReady?(currentProps.videoId, durationMs)
         onPlaybackStateChange?("ready", 0)
+        // Same autoPlay bridge as the KVO path above — the public SDK removed
+        // play-on-appear, so the wrapper starts playback itself.
+        if currentProps.autoPlay, player.rate == 0 {
+          player.play()
+        }
       }
     case .failed:
       emitPlaybackFailure(item.error, player: player)
@@ -608,6 +630,11 @@ import BunnyStreamPlayer
     currentItemObservation = nil
     removeItemObservers()
     observedPlayer = nil
+    observedPlayerLayer = nil
+    if pipController?.isPictureInPictureActive == true {
+      pipController?.stopPictureInPicture()
+    }
+    pipController = nil
     hasEmittedReady = false
     lastVolumeSnapshot = nil
     lastPlaybackRate = nil
@@ -668,6 +695,24 @@ import BunnyStreamPlayer
 
   @objc public func unmute() {
     withPlayer { $0.isMuted = false }
+  }
+
+  /// Toggles Picture in Picture using a bridge-owned
+  /// `AVPictureInPictureController` bound to the discovered layer. Requires
+  /// the host app to enable the "Audio, AirPlay, and Picture in Picture"
+  /// background mode (`UIBackgroundModes` = `audio`) — without it
+  /// `startPictureInPicture()` silently does nothing.
+  @objc public func enterPiP() {
+    guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
+    if pipController == nil, let layer = observedPlayerLayer {
+      pipController = AVPictureInPictureController(playerLayer: layer)
+    }
+    guard let pipController else { return }
+    if pipController.isPictureInPictureActive {
+      pipController.stopPictureInPicture()
+    } else if pipController.isPictureInPicturePossible {
+      pipController.startPictureInPicture()
+    }
   }
 
   /// Called when the Fabric view is dropped. Removes the hosted SwiftUI view

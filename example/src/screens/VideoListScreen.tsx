@@ -3,27 +3,19 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
-import {
-  FlatList,
-  Image,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
   BunnyStreamApi,
   TRANSITIONAL_VIDEO_STATUSES,
+  VideoStatusEnum,
   fold,
   getOrNull,
-  useBunnyImage,
-  videoStatusLabel,
   type Video,
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { loadSettings } from '../storage/storage';
 import { colors } from '../theme/colors';
@@ -154,6 +146,11 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     navigation.navigate('Player', { videoId, libraryId });
   };
 
+  const handleManageVideo = (videoId: string) => {
+    if (libraryId == null) return;
+    navigation.navigate('VideoManagement', { videoId, libraryId });
+  };
+
   const videos = uiState.kind === 'loaded' ? uiState.videos : [];
   const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
 
@@ -169,6 +166,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
             video={video}
             thumbnailUrl={thumbnails[video.id]}
             onPress={() => handlePlayVideo(video.id)}
+            onManage={() => handleManageVideo(video.id)}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -205,47 +203,89 @@ function formatDuration(seconds: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-/** Renders a single video card. Uses `useBunnyImage` to resolve the Bunny
- * CDN thumbnail URL (with Referer header) to a data: URI the plain `Image`
- * can render. */
+/** Where the video is in Bunny's encoding pipeline — mirrors
+ * `VideoResponseInfo.encodingState` in the iOS example app. Statuses:
+ * 0 Created, 1 Uploaded, 2 Processing, 3 Transcoding, 4 Finished, 5 Error,
+ * 6 UploadFailed, 7 JitSegmenting, 8 JitPlaylistsCreated.
+ *
+ * `encodeProgress` alone isn't enough: JIT libraries finish at status 8
+ * without the progress ever reaching 100, and a failed encode would
+ * otherwise read as "Processing" forever. */
+type EncodingState = 'processing' | 'failed' | 'finished';
+
+function encodingState(video: Video): EncodingState {
+  const status = video.status as VideoStatus | null | undefined;
+  if (status == null) {
+    return video.encodeProgress === 100 ? 'finished' : 'processing';
+  }
+  switch (status) {
+    case VideoStatusEnum.FINISHED:
+    case VideoStatusEnum.JIT_PLAYLISTS_CREATED:
+      return 'finished';
+    case VideoStatusEnum.ERROR:
+    case VideoStatusEnum.UPLOAD_FAILED:
+      return 'failed';
+    default:
+      return 'processing';
+  }
+}
+
+/** Badge text while encoding — with the percentage once the encoder reports
+ * progress. Mirrors `VideoResponseInfo.processingLabel` on iOS. */
+function processingLabel(video: Video): string {
+  const progress = video.encodeProgress;
+  return progress >= 1 && progress < 100 ? `Processing ${progress}%` : 'Processing';
+}
+
+/** Renders a single video card. `BunnyThumbnail` wraps `useBunnyImage` — the
+ * Bunny CDN requires a `Referer` header that native image pipelines drop, so
+ * the hook fetches through JS and renders a `data:` URI. */
 function VideoCard({
   video,
   thumbnailUrl,
   onPress,
+  onManage,
 }: {
   video: Video;
   thumbnailUrl: string | undefined;
   onPress: () => void;
+  onManage: () => void;
 }) {
-  const { uri } = useBunnyImage(thumbnailUrl);
-
   return (
     <TouchableOpacity style={videoCardStyles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={videoCardStyles.thumbnailContainer}>
-        {uri ? (
-          <Image source={{ uri }} style={videoCardStyles.thumbnail} resizeMode="cover" />
+        {thumbnailUrl ? (
+          <BunnyThumbnail url={thumbnailUrl} style={videoCardStyles.thumbnail} resizeMode="cover" />
         ) : (
           <View style={videoCardStyles.thumbnailPlaceholder} />
         )}
       </View>
       <View style={videoCardStyles.info}>
-        <Text style={videoCardStyles.title} numberOfLines={1}>
-          {video.title || 'Untitled'}
-        </Text>
+        <View style={videoCardStyles.titleRow}>
+          <Text style={videoCardStyles.title} numberOfLines={1}>
+            {video.title || 'Untitled'}
+          </Text>
+          <TouchableOpacity onPress={onManage} style={videoCardStyles.manageButton}>
+            <Text style={videoCardStyles.manageButtonText}>Manage</Text>
+          </TouchableOpacity>
+        </View>
         <View style={videoCardStyles.pillRow}>
-          <View style={videoCardStyles.pill}>
-            <Text style={videoCardStyles.pillText}>
-              {videoStatusLabel(video.status as VideoStatus)}
-            </Text>
-          </View>
+          {/* Encoding state is only surfaced while it isn't finished — a
+              playable video shows no status badge. */}
+          {encodingState(video) === 'processing' ? (
+            <View style={[videoCardStyles.pill, videoCardStyles.pillProcessing]}>
+              <Text style={[videoCardStyles.pillText, videoCardStyles.pillProcessingText]}>
+                {processingLabel(video)}
+              </Text>
+            </View>
+          ) : encodingState(video) === 'failed' ? (
+            <View style={[videoCardStyles.pill, videoCardStyles.pillFailed]}>
+              <Text style={[videoCardStyles.pillText, videoCardStyles.pillFailedText]}>Failed</Text>
+            </View>
+          ) : null}
           <View style={videoCardStyles.pill}>
             <Text style={videoCardStyles.pillText}>{formatDuration(video.lengthSeconds)}</Text>
           </View>
-          {video.views > 0 ? (
-            <View style={videoCardStyles.pill}>
-              <Text style={videoCardStyles.pillText}>{video.views} views</Text>
-            </View>
-          ) : null}
         </View>
       </View>
     </TouchableOpacity>
@@ -289,11 +329,30 @@ const videoCardStyles = StyleSheet.create({
   info: {
     padding: 12,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   title: {
     fontSize: 15,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  manageButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  manageButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   pillRow: {
     flexDirection: 'row',
@@ -310,5 +369,19 @@ const videoCardStyles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: colors.onSurfaceVariant,
+  },
+  // iOS renders the encoding badge with a purple tint.
+  pillProcessing: {
+    backgroundColor: 'rgba(126, 87, 194, 0.12)',
+  },
+  pillProcessingText: {
+    color: '#7E57C2',
+  },
+  // iOS renders the failed badge with a red tint.
+  pillFailed: {
+    backgroundColor: 'rgba(211, 47, 47, 0.12)',
+  },
+  pillFailedText: {
+    color: '#D32F2F',
   },
 });

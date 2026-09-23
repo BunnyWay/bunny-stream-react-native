@@ -5,7 +5,6 @@ export type NormalizedLiveStateEvent = LiveStateChangeEvent;
 
 export function normalizeLiveStateEvent(
   event: NativeLiveStateChangeEvent,
-  platform: string,
 ): NormalizedLiveStateEvent {
   const { reason, targetEpochMs, title, videoId, message, dvrEnabled, ...required } = event;
   return {
@@ -15,6 +14,8 @@ export function normalizeLiveStateEvent(
     ...(title && { title }),
     ...(videoId && { videoId }),
     ...(message && { message }),
-    ...(platform !== 'ios' && dvrEnabled !== undefined && { dvrEnabled }),
+    // iOS bridges `dvrEnabled` from the public `LiveStreamRepository` — the
+    // SDK's live playback state does not carry it.
+    ...(dvrEnabled !== undefined && { dvrEnabled }),
   };
 }

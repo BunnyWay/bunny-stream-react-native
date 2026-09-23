@@ -5,7 +5,6 @@ import * as React from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -13,8 +12,9 @@ import {
   View,
 } from 'react-native';
 
-import { BunnyStreamApi, fold, useBunnyImage, type LiveStreamThumbnail } from 'bunny-stream-react-native';
+import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { colors } from '../theme/colors';
 import { styles } from '../theme/styles';
@@ -107,17 +107,12 @@ export function ThumbnailPickerScreen({ navigation, route }: ThumbnailPickerScre
 }
 
 function ThumbnailTile({ item, onPick }: { item: LiveStreamThumbnail; onPick: () => void }) {
-  const { uri } = useBunnyImage(item.url ?? undefined);
+  const url = item.url ?? undefined;
 
   return (
-    <TouchableOpacity
-      style={thumbStyles.tile}
-      onPress={onPick}
-      disabled={!uri}
-      activeOpacity={0.7}
-    >
-      {uri ? (
-        <Image source={{ uri }} style={thumbStyles.image} resizeMode="cover" />
+    <TouchableOpacity style={thumbStyles.tile} onPress={onPick} disabled={!url} activeOpacity={0.7}>
+      {url ? (
+        <BunnyThumbnail url={url} style={thumbStyles.image} resizeMode="cover" />
       ) : (
         <View style={thumbStyles.placeholder}>
           <Text style={thumbStyles.placeholderText}>No preview</Text>

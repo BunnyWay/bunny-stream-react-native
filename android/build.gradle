@@ -13,16 +13,14 @@ buildscript {
     return BunnyStreamReactNative[prop]
   }
 
-  // TODO(Android SDK): This closed-test snapshot contains the latest live-stream logic.
-  // Replace it with the public Maven artifact only as the final Plan phase 0B step.
-  // The exact SDK commit and Maven version are pinned in native-sdk-baselines.json.
+  // The Bunny Stream Android SDK version is pinned in native-sdk-baselines.json
+  // and resolved from Maven Central (net.bunny:player/api/recording).
   def nativeSdkBaselines = new groovy.json.JsonSlurper().parse(file("../native-sdk-baselines.json"))
   ext.bunnyStreamSdkVersion = nativeSdkBaselines.android.mavenVersion
 
   repositories {
     google()
     mavenCentral()
-    mavenLocal()
   }
 
   dependencies {
@@ -76,6 +74,9 @@ dependencies {
   // so BunnyStreamApi and the live-stream domain models are on the compile
   // classpath of the bridge (used by the live host and the TurboModule).
   implementation "net.bunny:api:${bunnyStreamSdkVersion}"
+  // recording provides the camera upload / live broadcast view
+  // (BunnyStreamCameraUpload) used by the broadcaster Fabric component.
+  implementation "net.bunny:recording:${bunnyStreamSdkVersion}"
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
   implementation "androidx.media3:media3-common:1.10.1"

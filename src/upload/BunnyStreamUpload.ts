@@ -8,7 +8,7 @@ import type {
   UploadState,
 } from './types';
 
-import { NativeEventEmitter, Platform } from 'react-native';
+import { NativeEventEmitter } from 'react-native';
 
 import NativeBunnyStreamUpload from '../specs/NativeBunnyStreamUpload';
 
@@ -128,13 +128,9 @@ export const BunnyStreamUpload = {
    * uploader this is a no-op.
    */
   restoreUploads(): void {
-    // TODO(iOS SDK): Expose TUSVideoUploader.start() reattachment after the
-    // bridge has a stable way to enumerate restored UploadVideoInfo entries.
-    // TODO(Android SDK): No equivalent — Android TUS does not survive process
-    // death without a host foreground service.
-    if (Platform.OS !== 'ios') return;
-    // The native module handles restoration on first method call; this is a
-    // placeholder until explicit enumeration is exposed.
+    // Android is a native no-op (in-process uploads can't survive process
+    // death). Kept platform-agnostic so callers don't need a Platform check.
+    NativeBunnyStreamUpload.restoreUploads();
   },
 };
 

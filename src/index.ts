@@ -1,15 +1,31 @@
 /** Bunny Stream React Native public API. */
 
 export { initialize } from './config/initialize';
-export { BunnyStreamPlayer, sourceIdentityKey, useBunnyStreamPlayer } from './player';
+export {
+  BunnyStreamPlayer,
+  cleanupExpiredResumePositions,
+  clearAllResumePositions,
+  clearResumePosition,
+  exportResumePositions,
+  getAllResumePositions,
+  getPlaybackSpeeds,
+  importResumePositions,
+  isRunningOnTV,
+  sourceIdentityKey,
+  useBunnyStreamPlayer,
+} from './player';
+export { useResumePosition } from './player/hooks/useResumePosition';
 export type {
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
   BunnyStreamSource,
   BunnyVodPlayerRef,
+  ChaptersUpdatedEvent,
   LiveErrorEvent,
   LiveStateChangeEvent,
   LiveVideoSizeChangeEvent,
+  MomentsUpdatedEvent,
+  PlaybackPosition,
   PlayerBufferingEvent,
   PlayerErrorEvent,
   PlayerEventHandlers,
@@ -22,10 +38,20 @@ export type {
   PlayerReadyEvent,
   PlayerState,
   PlayerStateChangeEvent,
+  PlayerType,
+  PlayerTypeChangeEvent,
   PlayerVideoSizeChangeEvent,
   PlayerVolumeChangeEvent,
+  ResumeConfig,
+  ResumePositionAvailableEvent,
+  RetentionGraphEntry,
+  RetentionGraphUpdatedEvent,
   UseBunnyStreamPlayerOptions,
   UseBunnyStreamPlayerResult,
+  UseResumePositionOptions,
+  UseResumePositionResult,
+  ResumePositionStorage,
+  VideoQualityPreference,
 } from './player';
 
 export {
@@ -48,7 +74,11 @@ export type {
   CodecRenditionSize,
   CollectionListOptions,
   Chapter,
+  AddCaptionRequestInput,
   CreateVideoRequestInput,
+  DeleteResolutionsOptions,
+  FetchNewVideoOptions,
+  FetchVideoRequestInput,
   ListOptions,
   LiveStream,
   LiveStreamCreateRequestInput,
@@ -62,10 +92,15 @@ export type {
   MetaTag,
   Moment,
   PlayerSettings,
+  RefetchVideoOptions,
   ResolutionReference,
   RtmpOutput,
+  SmartGenerateRequestInput,
   StorageObject,
+  TranscribeVideoOptions,
+  TranscribeVideoRequestInput,
   UpdateVideoRequestInput,
+  VideoCodec,
   Video,
   VideoCollection,
   VideoCollectionList,
@@ -90,8 +125,29 @@ export type {
   UploadState,
 } from './upload';
 
-export { useBunnyImage } from './image';
+export { BUNNY_REFERER, BunnyImage, bunnyImageSource, isBunnyCdnUrl, useBunnyImage } from './image';
 export type { UseBunnyImageResult } from './image';
+
+export { BunnyStreamBroadcaster } from './broadcaster';
+export type {
+  BroadcastCameraChangeEvent,
+  BroadcastElapsedTimeEvent,
+  BroadcastErrorEvent,
+  BroadcastFailoverEvent,
+  BroadcastIngestStateEvent,
+  BroadcastMuteChangeEvent,
+  BroadcastQuality,
+  BroadcastReconnectingEvent,
+  BroadcastResolution,
+  BroadcastSource,
+  BroadcastState,
+  BroadcastStateChangeEvent,
+  BunnyStreamBroadcasterProps,
+  BunnyStreamBroadcasterRef,
+  CameraPosition,
+  IngestEndpoint,
+  IngestState,
+} from './broadcaster';
 
 export { default as NativeBunnyStreamApi } from './specs/NativeBunnyStreamApi';
 export { default as NativeBunnyStreamPlayer } from './specs/NativeBunnyStreamPlayer';

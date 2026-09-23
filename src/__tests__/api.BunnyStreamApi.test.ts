@@ -20,6 +20,18 @@ jest.mock('../specs/NativeBunnyStreamApi', () => {
     createVideo: jest.fn(),
     updateVideo: jest.fn(),
     deleteVideo: jest.fn(),
+    setThumbnail: jest.fn(),
+    uploadThumbnail: jest.fn(),
+    fetchNewVideo: jest.fn(),
+    refetchVideo: jest.fn(),
+    addCaption: jest.fn(),
+    deleteCaption: jest.fn(),
+    reencodeVideo: jest.fn(),
+    reencodeUsingCodec: jest.fn(),
+    repackageVideo: jest.fn(),
+    deleteResolutions: jest.fn(),
+    smartGenerate: jest.fn(),
+    transcribeVideo: jest.fn(),
     listCollections: jest.fn(),
     getCollection: jest.fn(),
     createCollection: jest.fn(),
@@ -139,6 +151,110 @@ describe('BunnyStreamApi wrapper', () => {
     mockApi.deleteVideo.mockResolvedValue(okEnvelope(null));
     await BunnyStreamApi.deleteVideo(7, 'v1');
     expect(mockApi.deleteVideo).toHaveBeenCalledWith(7, 'v1');
+  });
+
+  it('setThumbnail forwards libraryId, videoId, and thumbnailUrl', async () => {
+    mockApi.setThumbnail.mockResolvedValue(okEnvelope(null));
+    await BunnyStreamApi.setThumbnail(7, 'v1', 'https://example.com/thumb.jpg');
+    expect(mockApi.setThumbnail).toHaveBeenCalledWith(7, 'v1', 'https://example.com/thumb.jpg');
+  });
+
+  it('uploadThumbnail forwards libraryId, videoId, and uri', async () => {
+    mockApi.uploadThumbnail.mockResolvedValue(okEnvelope(null));
+    await BunnyStreamApi.uploadThumbnail(7, 'v1', 'file:///path/to/thumb.jpg');
+    expect(mockApi.uploadThumbnail).toHaveBeenCalledWith(7, 'v1', 'file:///path/to/thumb.jpg');
+  });
+
+  it('fetchNewVideo forwards the full options object', async () => {
+    mockApi.fetchNewVideo.mockResolvedValue(okEnvelope(null));
+    const options = {
+      libraryId: 7,
+      request: { url: 'https://example.com/video.mp4', title: 'Imported' },
+      collectionId: 'c1',
+    };
+    await BunnyStreamApi.fetchNewVideo(options);
+    expect(mockApi.fetchNewVideo).toHaveBeenCalledWith(7, options);
+  });
+
+  it('refetchVideo forwards libraryId, videoId, and the full options object', async () => {
+    mockApi.refetchVideo.mockResolvedValue(okEnvelope({ id: 'v1', title: 'refetched' }));
+    const options = {
+      libraryId: 7,
+      videoId: 'v1',
+      request: { url: 'https://example.com/video.mp4' },
+      enabledResolutions: ['720p', '1080p'],
+      lowPriority: true,
+    };
+    await BunnyStreamApi.refetchVideo(options);
+    expect(mockApi.refetchVideo).toHaveBeenCalledWith(7, 'v1', options);
+  });
+
+  it('addCaption forwards libraryId, videoId, and request', async () => {
+    mockApi.addCaption.mockResolvedValue(okEnvelope(null));
+    const request = { languageCode: 'en', label: 'English', captionsFileBase64: 'base64...' };
+    await BunnyStreamApi.addCaption(7, 'v1', request);
+    expect(mockApi.addCaption).toHaveBeenCalledWith(7, 'v1', request);
+  });
+
+  it('deleteCaption forwards libraryId, videoId, and languageCode', async () => {
+    mockApi.deleteCaption.mockResolvedValue(okEnvelope(null));
+    await BunnyStreamApi.deleteCaption(7, 'v1', 'en');
+    expect(mockApi.deleteCaption).toHaveBeenCalledWith(7, 'v1', 'en');
+  });
+
+  it('reencodeVideo forwards libraryId and videoId', async () => {
+    mockApi.reencodeVideo.mockResolvedValue(okEnvelope({ id: 'v1', title: 'reencoded' }));
+    await BunnyStreamApi.reencodeVideo(7, 'v1');
+    expect(mockApi.reencodeVideo).toHaveBeenCalledWith(7, 'v1');
+  });
+
+  it('reencodeUsingCodec forwards libraryId, videoId, and codec', async () => {
+    mockApi.reencodeUsingCodec.mockResolvedValue(okEnvelope({ id: 'v1', title: 'reencoded' }));
+    await BunnyStreamApi.reencodeUsingCodec(7, 'v1', 'hevc');
+    expect(mockApi.reencodeUsingCodec).toHaveBeenCalledWith(7, 'v1', 'hevc');
+  });
+
+  it('repackageVideo forwards libraryId, videoId, and keepOriginalFiles', async () => {
+    mockApi.repackageVideo.mockResolvedValue(okEnvelope({ id: 'v1', title: 'repackaged' }));
+    await BunnyStreamApi.repackageVideo(7, 'v1', false);
+    expect(mockApi.repackageVideo).toHaveBeenCalledWith(7, 'v1', false);
+  });
+
+  it('repackageVideo defaults keepOriginalFiles to true', async () => {
+    mockApi.repackageVideo.mockResolvedValue(okEnvelope({ id: 'v1', title: 'repackaged' }));
+    await BunnyStreamApi.repackageVideo(7, 'v1');
+    expect(mockApi.repackageVideo).toHaveBeenCalledWith(7, 'v1', true);
+  });
+
+  it('deleteResolutions forwards the full options object', async () => {
+    mockApi.deleteResolutions.mockResolvedValue(okEnvelope(null));
+    const options = {
+      libraryId: 7,
+      videoId: 'v1',
+      resolutions: ['720p', '1080p'],
+      dryRun: true,
+    };
+    await BunnyStreamApi.deleteResolutions(options);
+    expect(mockApi.deleteResolutions).toHaveBeenCalledWith(7, 'v1', options);
+  });
+
+  it('smartGenerate forwards libraryId, videoId, and request', async () => {
+    mockApi.smartGenerate.mockResolvedValue(okEnvelope(null));
+    const request = { generateTitle: true, sourceLanguage: 'en' };
+    await BunnyStreamApi.smartGenerate(7, 'v1', request);
+    expect(mockApi.smartGenerate).toHaveBeenCalledWith(7, 'v1', request);
+  });
+
+  it('transcribeVideo forwards the full options object', async () => {
+    mockApi.transcribeVideo.mockResolvedValue(okEnvelope(null));
+    const options = {
+      libraryId: 7,
+      videoId: 'v1',
+      request: { sourceLanguage: 'en', generateTitle: true },
+      force: true,
+    };
+    await BunnyStreamApi.transcribeVideo(options);
+    expect(mockApi.transcribeVideo).toHaveBeenCalledWith(7, 'v1', options);
   });
 
   it('propagates Err envelopes unchanged', async () => {

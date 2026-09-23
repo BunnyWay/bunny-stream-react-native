@@ -74,6 +74,20 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                                                             resolve:resolve];
 }
 
+- (void)fetchVideoHeatmapData:(double)libraryId
+                      videoId:(NSString *)videoId
+                        token:(NSString *)token
+                      expires:(NSNumber *)expires
+                      resolve:(RCTPromiseResolveBlock)resolve
+                       reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoHeatmapDataWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                  token:token
+                                                                expires:expires
+                                                                resolve:resolve];
+}
+
 - (void)fetchVideoStatistics:(double)libraryId
                      videoId:(NSString *)videoId
                     dateFrom:(NSString *)dateFrom
@@ -96,6 +110,16 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
                        reject:(RCTPromiseRejectBlock)reject
 {
   [[BunnyStreamApiModuleImpl shared] fetchVideoResolutionsWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                resolve:resolve];
+}
+
+- (void)fetchVideoStorageSize:(double)libraryId
+                       videoId:(NSString *)videoId
+                       resolve:(RCTPromiseResolveBlock)resolve
+                        reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchVideoStorageSizeWithLibraryId:libraryId
                                                                 videoId:videoId
                                                                 resolve:resolve];
 }
@@ -132,6 +156,154 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
   [[BunnyStreamApiModuleImpl shared] deleteVideoWithLibraryId:libraryId
                                                       videoId:videoId
                                                       resolve:resolve];
+}
+
+// MARK: - VideoRepository: thumbnails and import
+
+- (void)setThumbnail:(double)libraryId
+              videoId:(NSString *)videoId
+         thumbnailUrl:(NSString *)thumbnailUrl
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] setThumbnailWithLibraryId:libraryId
+                                                        videoId:videoId
+                                                   thumbnailUrl:thumbnailUrl
+                                                        resolve:resolve];
+}
+
+- (void)uploadThumbnail:(double)libraryId
+                videoId:(NSString *)videoId
+                     uri:(NSString *)uri
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] uploadThumbnailWithLibraryId:libraryId
+                                                            videoId:videoId
+                                                                uri:uri
+                                                            resolve:resolve];
+}
+
+- (void)fetchNewVideo:(double)libraryId
+              request:(NSDictionary *)request
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] fetchNewVideoWithLibraryId:libraryId
+                                                          request:request
+                                                          resolve:resolve];
+}
+
+- (void)refetchVideo:(double)libraryId
+              videoId:(NSString *)videoId
+              request:(NSDictionary *)request
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] refetchVideoWithLibraryId:libraryId
+                                                         videoId:videoId
+                                                         request:request
+                                                         resolve:resolve];
+}
+
+// MARK: - Captions
+
+- (void)addCaption:(double)libraryId
+            videoId:(NSString *)videoId
+            request:(NSDictionary *)request
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] addCaptionWithLibraryId:libraryId
+                                                       videoId:videoId
+                                                       request:request
+                                                       resolve:resolve];
+}
+
+- (void)deleteCaption:(double)libraryId
+               videoId:(NSString *)videoId
+          languageCode:(NSString *)languageCode
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] deleteCaptionWithLibraryId:libraryId
+                                                           videoId:videoId
+                                                     languageCode:languageCode
+                                                           resolve:resolve];
+}
+
+// MARK: - Encoding / Storage
+
+- (void)reencodeVideo:(double)libraryId
+              videoId:(NSString *)videoId
+              resolve:(RCTPromiseResolveBlock)resolve
+               reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] reencodeVideoWithLibraryId:libraryId
+                                                        videoId:videoId
+                                                        resolve:resolve];
+}
+
+- (void)reencodeUsingCodec:(double)libraryId
+                    videoId:(NSString *)videoId
+                      codec:(NSString *)codec
+                    resolve:(RCTPromiseResolveBlock)resolve
+                     reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] reencodeUsingCodecWithLibraryId:libraryId
+                                                                videoId:videoId
+                                                                  codec:codec
+                                                                resolve:resolve];
+}
+
+- (void)repackageVideo:(double)libraryId
+                videoId:(NSString *)videoId
+       keepOriginalFiles:(BOOL)keepOriginalFiles
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] repackageVideoWithLibraryId:libraryId
+                                                           videoId:videoId
+                                                  keepOriginalFiles:keepOriginalFiles
+                                                           resolve:resolve];
+}
+
+- (void)deleteResolutions:(double)libraryId
+                   videoId:(NSString *)videoId
+                   options:(NSDictionary *)options
+                   resolve:(RCTPromiseResolveBlock)resolve
+                    reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] deleteResolutionsWithLibraryId:libraryId
+                                                              videoId:videoId
+                                                              options:options
+                                                              resolve:resolve];
+}
+
+// MARK: - AI
+
+- (void)smartGenerate:(double)libraryId
+               videoId:(NSString *)videoId
+               request:(NSDictionary *)request
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] smartGenerateWithLibraryId:libraryId
+                                                          videoId:videoId
+                                                          request:request
+                                                          resolve:resolve];
+}
+
+- (void)transcribeVideo:(double)libraryId
+                 videoId:(NSString *)videoId
+                 request:(NSDictionary *)request
+                 resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] transcribeVideoWithLibraryId:libraryId
+                                                             videoId:videoId
+                                                             request:request
+                                                             resolve:resolve];
 }
 
 // MARK: - CollectionRepository
@@ -297,6 +469,16 @@ RCT_EXPORT_MODULE("BunnyStreamApi")
 }
 
 // MARK: - LiveStreamRepository: operational state and thumbnails
+
+- (void)pollLiveStream:(double)libraryId
+              streamId:(NSString *)streamId
+               resolve:(RCTPromiseResolveBlock)resolve
+                reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamApiModuleImpl shared] pollLiveStreamWithLibraryId:libraryId
+                                                        streamId:streamId
+                                                         resolve:resolve];
+}
 
 - (void)getLiveStreamStatus:(double)libraryId
                    streamId:(NSString *)streamId

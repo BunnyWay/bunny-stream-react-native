@@ -46,6 +46,16 @@ export interface Spec extends TurboModule {
 
   fetchVideoHeatmap(libraryId: Double, videoId: string): Promise<Object>;
 
+  // Play data enriched with heatmap data (GET /videos/{id}/play/heatmap).
+  // Android-only — the iOS generated OpenAPI client does not expose this
+  // endpoint; the bridge resolves with an InvalidState error on iOS.
+  fetchVideoHeatmapData(
+    libraryId: Double,
+    videoId: string,
+    token: string | null,
+    expires: Double | null,
+  ): Promise<Object>;
+
   fetchVideoStatistics(
     libraryId: Double,
     videoId: string | null,
@@ -56,8 +66,10 @@ export interface Spec extends TurboModule {
 
   fetchVideoResolutions(libraryId: Double, videoId: string): Promise<Object>;
 
-  // TODO(iOS SDK): Add heatmap play data and detailed storage-size methods after
-  // both endpoints are exposed by the public generated or domain API.
+  // Per-rendition storage breakdown (GET /videos/{id}/storage). Android-only —
+  // the endpoint is absent from the iOS generated OpenAPI client; the bridge
+  // resolves with an InvalidState error on iOS.
+  fetchVideoStorageSize(libraryId: Double, videoId: string): Promise<Object>;
 
   // — VideoRepository: creating and changing —
   createVideo(libraryId: Double, request: Object): Promise<Object>;
@@ -65,6 +77,54 @@ export interface Spec extends TurboModule {
   updateVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
 
   deleteVideo(libraryId: Double, videoId: string): Promise<Object>;
+
+  // — VideoRepository: thumbnails and import —
+  // Sets a thumbnail from a remote URL. Both platforms support this.
+  setThumbnail(libraryId: Double, videoId: string, thumbnailUrl: string): Promise<Object>;
+
+  // Uploads a thumbnail from a local file URI. Android supports this natively
+  // (writes the URI to a temp File and calls VideoRepository.uploadThumbnail).
+  // iOS does not expose a VOD uploadThumbnail in the generated OpenAPI client —
+  // the bridge resolves with an InvalidState error on iOS.
+  uploadThumbnail(libraryId: Double, videoId: string, uri: string): Promise<Object>;
+
+  // Imports a new video from a remote URL. Both platforms support this.
+  // Returns BunnyResult<void> — the server starts an async fetch; poll
+  // getVideo for the resulting video's status.
+  fetchNewVideo(libraryId: Double, request: Object): Promise<Object>;
+
+  // Re-fetches an existing video's source from a remote URL. Android supports
+  // this natively. iOS does not expose a refetchVideo operation — the bridge
+  // falls back to getVideo (metadata-only refresh).
+  refetchVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // — VideoRepository: captions —
+  // Adds a caption track. The request body contains languageCode, label, and
+  // a base64-encoded caption file.
+  addCaption(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // Deletes a caption track by language code.
+  deleteCaption(libraryId: Double, videoId: string, languageCode: string): Promise<Object>;
+
+  // — VideoRepository: encoding / storage —
+  // Re-encodes a video with the default codec. Returns the updated Video.
+  reencodeVideo(libraryId: Double, videoId: string): Promise<Object>;
+
+  // Re-encodes a video using a specific codec. Returns the updated Video.
+  reencodeUsingCodec(libraryId: Double, videoId: string, codec: string): Promise<Object>;
+
+  // Repackages a video. Returns the updated Video.
+  repackageVideo(libraryId: Double, videoId: string, keepOriginalFiles: boolean): Promise<Object>;
+
+  // Deletes resolutions. Destructive — dryRun should be true on first call.
+  deleteResolutions(libraryId: Double, videoId: string, options: Object): Promise<Object>;
+
+  // — VideoRepository: AI —
+  // Triggers AI smart generation. Android-only; iOS resolves with InvalidState.
+  smartGenerate(libraryId: Double, videoId: string, request: Object): Promise<Object>;
+
+  // Transcribes a video and optionally generates metadata.
+  transcribeVideo(libraryId: Double, videoId: string, request: Object): Promise<Object>;
 
   // — CollectionRepository —
   listCollections(
@@ -125,6 +185,11 @@ export interface Spec extends TurboModule {
 
   // — LiveStreamRepository: operational state and thumbnails —
   getLiveStreamStatus(libraryId: Double, streamId: string): Promise<Object>;
+
+  // Single-shot live stream poll — the lightweight fetch the native players
+  // use for status refreshes. Returns the same LiveStream shape as
+  // getLiveStream. iOS falls back to getLiveStream (no dedicated poll op).
+  pollLiveStream(libraryId: Double, streamId: string): Promise<Object>;
 
   setLiveStreamThumbnail(
     libraryId: Double,

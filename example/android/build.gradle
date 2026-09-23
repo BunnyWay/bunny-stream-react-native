@@ -22,14 +22,6 @@ buildscript {
     }
 }
 
-// Local snapshot of the Bunny Stream Android SDK pinned in native-sdk-baselines.json.
-// TODO(Android SDK): Replace with the public Maven artifact as the final Plan phase 0B step.
-allprojects {
-    repositories {
-        mavenLocal()
-    }
-}
-
 // Enable core library desugaring for the :app project.
 // Required by transitive deps of the Bunny Stream Android SDK
 // (media3-exoplayer-ima, interactivemedia).
@@ -45,6 +37,29 @@ subprojects { subproject ->
             }
             dependencies {
                 coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+            }
+
+            // PiP: react-native-test-app generates the main AndroidManifest.xml
+            // and offers no way to set activity attributes. Patch it right
+            // before the manifest merger runs so MainActivity declares
+            // supportsPictureInPicture + configChanges — both required for
+            // `BunnyStreamPlayerRef.enterPiP()` (the call throws without the
+            // flag, and without configChanges the activity is recreated on the
+            // PiP transition, killing playback).
+            tasks.matching { it.name ==~ /process\w+MainManifest/ }.configureEach {
+                dependsOn "generateAndroidManifest"
+                doFirst {
+                    def manifest = subproject.layout.buildDirectory
+                        .file("generated/rnta/src/main/AndroidManifest.xml")
+                        .get().asFile
+                    if (manifest.exists() && !manifest.text.contains("supportsPictureInPicture")) {
+                        manifest.text = manifest.text.replaceFirst(
+                            /(<activity[^>]*?android:name="com\.microsoft\.reacttestapp\.MainActivity")/,
+                            '$1 android:supportsPictureInPicture="true" ' +
+                                'android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"'
+                        )
+                    }
+                }
             }
         }
     }

@@ -29,12 +29,12 @@ import {
   LiveStreamStatusEnum,
   fold,
   liveStreamStatusLabel,
-  useBunnyImage,
   type LiveStream,
   type LiveStreamStatus,
   type UploadEvent,
 } from 'bunny-stream-react-native';
 
+import { BunnyThumbnail } from '../components/BunnyThumbnail';
 import { Header } from '../components/Header';
 import { pickImage, pickVideo } from '../media/picker';
 import { loadSettings } from '../storage/storage';
@@ -162,6 +162,15 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     }
   };
 
+  const handleGoLive = (stream: LiveStream) => {
+    if (libraryId == null) return;
+    navigation.navigate('Camera', {
+      mode: 'live',
+      libraryId,
+      streamId: stream.id,
+    });
+  };
+
   const renderItem = ({ item }: { item: LiveStream }) => (
     <LiveStreamCard
       stream={item}
@@ -170,6 +179,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       onDelete={() => setDeleteStream(item)}
       onRtmp={() => setRtmpStream(item)}
       onToggleLive={() => handleToggleLive(item)}
+      onGoLive={() => handleGoLive(item)}
     />
   );
 
@@ -294,6 +304,7 @@ function LiveStreamCard({
   onDelete,
   onRtmp,
   onToggleLive,
+  onGoLive,
 }: {
   stream: LiveStream;
   onWatch: () => void;
@@ -301,18 +312,21 @@ function LiveStreamCard({
   onDelete: () => void;
   onRtmp: () => void;
   onToggleLive: () => void;
+  onGoLive: () => void;
 }) {
   const status = stream.status as LiveStreamStatus;
   const statusColor = STATUS_COLORS[status] ?? '#aaa';
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   // Watch is enabled only when the stream has an HLS playback URL.
-  // Start/End live is disabled for terminal states (ENDED / VOD_PROCESSING) —
-  // the SDK rejects re-publishing those. Edit and Delete are always enabled.
+  // Start/End live and Go Live are disabled for terminal states
+  // (ENDED / VOD_PROCESSING) — the SDK rejects re-publishing those.
+  // Edit and Delete are always enabled.
   const canWatch = Boolean(stream.playbackUrlHls);
   const isRunning = status === LiveStreamStatusEnum.RUNNING;
   const canToggleLive =
     status !== LiveStreamStatusEnum.ENDED && status !== LiveStreamStatusEnum.VOD_PROCESSING;
+  const canGoLive = canToggleLive;
 
   const menuItems: {
     label: string;
@@ -327,6 +341,14 @@ function LiveStreamCard({
         onWatch();
       },
       disabled: !canWatch,
+    },
+    {
+      label: 'Go Live',
+      action: () => {
+        setMenuOpen(false);
+        onGoLive();
+      },
+      disabled: !canGoLive,
     },
     {
       label: isRunning ? 'End live' : 'Start live',
@@ -1289,13 +1311,13 @@ function LiveStreamEditorModal({
   );
 }
 
-/** Renders a remote thumbnail URL through the cached Bunny image hook. */
+/** Renders a remote thumbnail URL through `useBunnyImage` — the Bunny CDN
+ * requires a `Referer` header that native image pipelines drop, so the hook
+ * fetches through JS and renders a `data:` URI. */
 function ThumbnailPreview({ url }: { url: string }) {
-  const { uri } = useBunnyImage(url);
-  if (!uri) return null;
   return (
     <View style={createStyles.thumbnailPreviewBox}>
-      <Image source={{ uri }} style={createStyles.thumbnailPreview} resizeMode="cover" />
+      <BunnyThumbnail url={url} style={createStyles.thumbnailPreview} resizeMode="cover" />
       <Text style={createStyles.thumbnailPreviewHint}>Remote image URL</Text>
     </View>
   );
