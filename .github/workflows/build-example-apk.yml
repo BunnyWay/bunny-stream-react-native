@@ -20,9 +20,6 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
 
-    env:
-      JAVA_OPTS: '-XX:MaxHeapSize=6g'
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -73,7 +70,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: apk-build-log-${{ inputs.branch }}
+          name: apk-build-log-${{ github.run_id }}
           path: build.log
           retention-days: 30
           if-no-files-found: ignore
