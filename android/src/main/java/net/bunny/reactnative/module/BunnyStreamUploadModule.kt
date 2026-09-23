@@ -1,12 +1,15 @@
 package net.bunny.reactnative.module
 
+import android.content.ContentResolver
 import android.net.Uri
+import androidx.core.content.FileProvider
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.module.annotations.ReactModule
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,7 +79,8 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
     promise: Promise,
   ) {
     launchUpload(promise, mode) { uploader ->
-      val parsed = parseUri(uri) ?: throw IllegalArgumentException("Invalid upload URI: $uri")
+      val parsed = resolveUploadUri(uri)
+        ?: throw IllegalArgumentException("Invalid upload URI: $uri")
       // The Android SDK's VideoUploader.startUpload creates the video entry
       // internally using the file's display name as the title. The `title`
       // and `collectionId` parameters are not exposed by the native
@@ -94,7 +98,8 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
     promise: Promise,
   ) {
     launchUpload(promise, mode) { uploader ->
-      val parsed = parseUri(uri) ?: throw IllegalArgumentException("Invalid upload URI: $uri")
+      val parsed = resolveUploadUri(uri)
+        ?: throw IllegalArgumentException("Invalid upload URI: $uri")
       uploader.continueUpload(libraryId.toLong(), videoId, parsed)
     }
   }
@@ -171,6 +176,31 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
   // endregion
 
   // region — Internals —
+
+  /**
+   * Parses the JS-supplied URI and makes it readable by the SDK.
+   *
+   * The SDK's uploader resolves name and size through
+   * `ContentResolver.query`, which only answers provider-backed URIs — a
+   * `file://` URI (what `react-native-image-picker` returns for its cache
+   * copies) comes back as "no metadata available". Serving the file through
+   * the module's FileProvider gives the SDK a `content://` URI whose query
+   * and stream both work. Non-file schemes pass through untouched, and a
+   * file outside the configured roots keeps its original URI so the SDK's
+   * own `LocalFile` error still describes the failure.
+   */
+  private fun resolveUploadUri(uriString: String): Uri? {
+    val uri = parseUri(uriString) ?: return null
+    if (uri.scheme != ContentResolver.SCHEME_FILE) return uri
+    val file = uri.path?.let(::File) ?: return uri
+    return runCatching {
+      FileProvider.getUriForFile(
+        reactApplicationContext,
+        reactApplicationContext.packageName + FILE_PROVIDER_AUTHORITY_SUFFIX,
+        file,
+      )
+    }.getOrDefault(uri)
+  }
 
   private fun parseUri(uriString: String): Uri? =
     runCatching { Uri.parse(uriString) }.getOrNull()?.takeIf { it.scheme != null }
@@ -356,5 +386,8 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
   companion object {
     const val NAME = "BunnyStreamUpload"
     const val EVENT_NAME = "bunnyStreamUploadEvent"
+
+    /** Matches the provider authority declared in this module's manifest. */
+    private const val FILE_PROVIDER_AUTHORITY_SUFFIX = ".bunnystream.fileprovider"
   }
 }

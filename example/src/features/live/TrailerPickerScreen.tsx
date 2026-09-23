@@ -1,16 +1,8 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
   BunnyStreamApi,
@@ -21,9 +13,10 @@ import {
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
+import { Black, colors, Orange40 } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type TrailerPickerScreenProps = NativeStackScreenProps<RootStackParamList, 'TrailerPicker'>;
 
@@ -88,22 +81,11 @@ export function TrailerPickerScreen({ navigation, route }: TrailerPickerScreenPr
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'loading' ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>
-              No videos in this library to use as a trailer.
-            </Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadVideos}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No videos in this library to use as a trailer."
+            onRetry={loadVideos}
+          />
         }
         contentContainerStyle={isEmpty ? pickerStyles.emptyList : pickerStyles.list}
       />
@@ -144,7 +126,7 @@ const pickerStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -169,7 +151,7 @@ const pickerStyles = StyleSheet.create({
   },
   warning: {
     fontSize: 11,
-    color: '#CB670D',
+    color: Orange40,
     marginTop: 4,
   },
 });

@@ -60,7 +60,7 @@ export type PlayerPlaybackErrorEvent = Readonly<{
   message: string;
 }>;
 
-// Phase 6 — chapters, moments, retention graph (Android-only events).
+// Chapters, moments, retention graph (Android-only events).
 // Codegen does not support arrays in event payloads, so the lists are
 // serialized as JSON strings and deserialized on the JS side.
 export type ChaptersUpdatedEvent = Readonly<{
@@ -75,12 +75,12 @@ export type RetentionGraphUpdatedEvent = Readonly<{
   points: string;
 }>;
 
-// Phase 6 — resume position (Android-only event).
+// Resume position (Android-only event).
 export type ResumePositionAvailableEvent = Readonly<{
   position: string;
 }>;
 
-// Phase 7 — cast handover (Android-only event). `playerType` is
+// Cast handover (Android-only event). `playerType` is
 // 'default' or 'cast'; iOS never emits this event.
 export type PlayerTypeChangeEvent = Readonly<{
   playerType: string;
@@ -105,13 +105,13 @@ export interface NativeProps extends ViewProps {
   onPlaybackRateChange?: DirectEventHandler<PlayerPlaybackRateChangeEvent> | null;
   onVideoSizeChange?: DirectEventHandler<PlayerVideoSizeChangeEvent> | null;
   onPlaybackError?: DirectEventHandler<PlayerPlaybackErrorEvent> | null;
-  // Phase 6 — Android-only player events (iOS does not expose these).
+  // Android-only player events (iOS does not expose these).
   resumeConfig?: string; // JSON-serialized ResumeConfig (Android-only).
   onChaptersUpdated?: DirectEventHandler<ChaptersUpdatedEvent> | null;
   onMomentsUpdated?: DirectEventHandler<MomentsUpdatedEvent> | null;
   onRetentionGraphUpdated?: DirectEventHandler<RetentionGraphUpdatedEvent> | null;
   onResumePositionAvailable?: DirectEventHandler<ResumePositionAvailableEvent> | null;
-  // Phase 7 — Android-only: route video through `playVideoWithTVDetection`,
+  // Android-only: route video through `playVideoWithTVDetection`,
   // which launches the `net.bunny:tv` activity when the device is a TV and the
   // artifact is on the classpath, otherwise falls back to `playVideo`.
   useNativeTvPlayer?: WithDefault<boolean, false>;
@@ -126,10 +126,10 @@ export interface NativeCommands {
   setPlaybackRate: (viewRef: React.ElementRef<HostComponent<NativeProps>>, rate: Double) => void;
   mute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
   unmute: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
-  // Phase 7 — Android-only: enters picture-in-picture on the host activity.
+  // Android-only: enters picture-in-picture on the host activity.
   // No-op on iOS (the SDK exposes no public PiP API).
   enterPiP: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
-  // Phase 8 — Android-only: applies a track-selection constraint on the VOD
+  // Android-only: applies a track-selection constraint on the VOD
   // engine (JSON-serialized VideoQualityPreference). No-op on iOS.
   setVideoQuality: (viewRef: React.ElementRef<HostComponent<NativeProps>>, quality: string) => void;
 }

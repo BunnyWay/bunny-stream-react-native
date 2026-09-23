@@ -189,7 +189,7 @@ export type LiveSourceContract = Assert<
   >
 >;
 
-// Phase 5 — broadcaster contracts.
+// Broadcaster contracts.
 // Spec event types must be compatible with the public event types.
 export type BroadcasterStateSpecContract = Assert<
   Compatible<BroadcasterStateChangeEvent, BroadcastStateChangeEvent>

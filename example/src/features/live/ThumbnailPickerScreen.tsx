@@ -1,23 +1,16 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-react-native';
 
-import { BunnyThumbnail } from '../components/BunnyThumbnail';
-import { Header } from '../components/Header';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { BunnyThumbnail } from '../../components/BunnyThumbnail';
+import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
+import { Black, colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type ThumbnailPickerScreenProps = NativeStackScreenProps<RootStackParamList, 'ThumbnailPicker'>;
 
@@ -83,22 +76,11 @@ export function ThumbnailPickerScreen({ navigation, route }: ThumbnailPickerScre
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'loading' ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>
-              No generated thumbnails yet. Start the stream once to generate them.
-            </Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadThumbnails}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No generated thumbnails yet. Start the stream once to generate them."
+            onRetry={loadThumbnails}
+          />
         }
         contentContainerStyle={isEmpty ? thumbStyles.emptyList : thumbStyles.list}
       />
@@ -141,7 +123,7 @@ const thumbStyles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.surface,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -149,17 +131,17 @@ const thumbStyles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   placeholder: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    color: '#888',
+    color: colors.neutral,
     fontSize: 12,
   },
   timestamp: {

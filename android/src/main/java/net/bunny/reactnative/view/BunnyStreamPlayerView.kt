@@ -54,7 +54,7 @@ import kotlin.math.ceil
  * Fabric delegate) from prop application ([commitProps], called from the
  * ViewManager's `onAfterUpdateTransaction`).
  *
- * SDK 4.0.0 migration (PLAN.md §7 Faza 2):
+ * SDK 4.0.0 migration:
  * - Native controls toggle via the public `BunnyStreamPlayer.controlsEnabled`
  *   instead of reaching into the internal Media3 `PlayerView`.
  * - Progress comes from the SDK's `BunnyPlayer.ProgressListener` (the SDK polls
@@ -63,12 +63,12 @@ import kotlin.math.ceil
  * - Playback rate is set through the public `BunnyStreamPlayer.playbackSpeed`
  *   property; mute/unmute through `mute()`/`unmute()`. Volume stays on the
  *   `DefaultBunnyPlayer` singleton because the view does not expose a volume
- *   setter (PLAN.md §5 Faza 2 — isolated adapter).
+ *   setter.
  * - Public SDK callbacks (`onPlayingChanged`, `onMutedChanged`,
  *   `onPlaybackSpeedChanged`, `onVideoSizeChanged`, `onPlaybackError`) are
  *   forwarded to JS. The Media3 `Player.Listener` adapter is retained only for
  *   the state-machine semantics the SDK view does not surface directly
- *   (ready/end/buffering), per PLAN.md §5 Faza 2.
+ *   (ready/end/buffering).
  * - The `exo_position` width repair and the 100 ms `currentPlayer` polling are
  *   kept as the minimal adapter for ready/end/buffering; the SDK view exposes
  *   no callback for `currentPlayer` recreation, so the bridge still has to
@@ -205,8 +205,8 @@ class BunnyStreamPlayerView(
     player.onPlayingChanged = { _ ->
       // The state machine in PlayerEventListener already derives play/pause
       // from Media3's onIsPlayingChanged; forwarding here would double-emit.
-      // Kept as a no-op hook for future SDK-only state sourcing (PLAN.md §5
-      // Faza 2: keep event names stable while the adapter owns semantics).
+      // Kept as a no-op hook for future SDK-only state sourcing — event
+      // names stay stable while the adapter owns semantics.
     }
     player.onMutedChanged = { isMuted ->
       if (generationToken.isActive(playbackGeneration)) {
@@ -252,7 +252,7 @@ class BunnyStreamPlayerView(
       }
     }
 
-    // Phase 6 — chapters, moments, retention graph (Android-only events).
+    // Chapters, moments, retention graph (Android-only events).
     // Codegen does not support arrays in event payloads, so the lists are
     // serialized as JSON strings and deserialized on the JS side.
     player.onChaptersUpdated = { chapters ->
@@ -283,7 +283,7 @@ class BunnyStreamPlayerView(
       }
     }
 
-    // Phase 7 — cast handover. The SDK fires this when playback moves between
+    // Cast handover. The SDK fires this when playback moves between
     // the local engine and a Chromecast CastPlayer (Android-only; iOS never
     // surfaces AirPlay/external-playback state).
     player.onPlayerTypeChanged = { playerType ->
@@ -415,7 +415,7 @@ class BunnyStreamPlayerView(
       applyControls(newProps.controls)
     }
 
-    // Phase 6 — resume position: enable/disable the native SDK's
+    // Resume position: enable/disable the native SDK's
     // PlaybackPositionManager based on the resumeConfig prop.
     applyResumeConfig()
   }
@@ -433,7 +433,7 @@ class BunnyStreamPlayerView(
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
     if (props.useNativeTvPlayer) {
-      // Phase 7 — Android TV: `playVideoWithTVDetection` launches the
+      // Android TV: `playVideoWithTVDetection` launches the
       // `net.bunny:tv` activity via reflection on leanback devices when the
       // artifact is on the classpath; falls back to `playVideo` otherwise.
       player.playVideoWithTVDetection(
@@ -465,7 +465,7 @@ class BunnyStreamPlayerView(
    * Retained from 3.3.0: the SDK view exposes no public callback for
    * `currentPlayer` recreation, so the bridge must discover the new ExoPlayer
    * to attach the ready/end/buffering state-machine listener. This is the
-   * minimal Media3 adapter allowed by PLAN.md §5 Faza 2.
+   * minimal Media3 adapter.
    */
   @SuppressLint("UnsafeOptInUsageError")
   private fun attachWhenPlayerReady(previousPlayer: androidx.media3.common.Player?) {
@@ -715,7 +715,7 @@ class BunnyStreamPlayerView(
    * the command queue because the singleton is available after `initialize`
    * and does not depend on `STATE_READY`. The SDK view does not expose a
    * volume setter (only `mute()`/`unmute()`), so volume stays on the
-   * singleton as an isolated adapter (PLAN.md §5 Faza 2).
+   * singleton as an isolated adapter.
    */
   fun setVolume(volume: Double) {
     val clamped = volume.coerceIn(0.0, 1.0).toFloat()
@@ -746,7 +746,7 @@ class BunnyStreamPlayerView(
   }
 
   /**
-   * Enters picture-in-picture on the host activity (Phase 7 — Android-only).
+   * Enters picture-in-picture on the host activity (Android-only).
    *
    * The SDK view keeps its own PiP button private, but entering PiP is an
    * `Activity` API — the SDK's lifecycle observer keeps playback alive in PiP
@@ -775,7 +775,7 @@ class BunnyStreamPlayerView(
   }
 
   /**
-   * Applies a video-quality constraint on the engine (Phase 8 — Android-only).
+   * Applies a video-quality constraint on the engine (Android-only).
    *
    * The SDK exposes the media3 engine through the public
    * `BunnyPlayer.currentPlayer`, documented as the escape hatch for "direct
@@ -900,11 +900,11 @@ class BunnyStreamPlayerView(
     player.onPlaybackSpeedChanged = null
     player.onVideoSizeChanged = null
     player.onPlaybackError = null
-    // Phase 6 — detach chapters/moments/retention/resume callbacks.
+    // Detach chapters/moments/retention/resume callbacks.
     player.onChaptersUpdated = null
     player.onMomentsUpdated = null
     player.onRetentionGraphUpdated = null
-    // Phase 7 — detach the cast handover callback.
+    // Detach the cast handover callback.
     player.onPlayerTypeChanged = null
     if (resumeConfigEnabled) {
       player.disableResumePosition()
@@ -918,7 +918,7 @@ class BunnyStreamPlayerView(
   }
 }
 
-// --- Phase 6: model → JSON serializers for Fabric events ---
+// --- Model → JSON serializers for Fabric events ---
 // Codegen does not support arrays in event payloads, so lists are serialized
 // as JSON strings and deserialized on the JS side.
 

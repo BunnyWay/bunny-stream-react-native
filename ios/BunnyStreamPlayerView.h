@@ -9,7 +9,7 @@
 // `RCTBunnyStreamPlayerViewViewProtocol`.
 //
 // Because the SDK exposes neither a public controller nor public playback
-// callbacks (see Plan-iOS.md §12.1), both commands and events are bridged
+// callbacks, both commands and events are bridged
 // through the SDK's internal `AVPlayer`, discovered via the `AVPlayerLayer`
 // in the hosted view hierarchy.
 //

@@ -21,7 +21,6 @@ import com.facebook.react.viewmanagers.BunnyStreamPlayerViewManagerInterface
  * Commands are dispatched on the UI thread. `setVolume` and `setPlaybackRate`
  * target the `DefaultBunnyPlayer` singleton (not the view) because those
  * methods are not exposed on [net.bunny.bunnystreamplayer.ui.BunnyStreamPlayer].
- * Full command validation and queueing is added in plan section 5.
  */
 class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
   BunnyStreamPlayerViewManagerInterface<BunnyStreamPlayerView> {
@@ -165,7 +164,7 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
       "topVideoSizeChange" to mapOf("registrationName" to "onVideoSizeChange"),
       "playbackError" to mapOf("registrationName" to "onPlaybackError"),
       "topPlaybackError" to mapOf("registrationName" to "onPlaybackError"),
-      // Phase 6 — Android-only player events.
+      // Android-only player events.
       "chaptersUpdated" to mapOf("registrationName" to "onChaptersUpdated"),
       "topChaptersUpdated" to mapOf("registrationName" to "onChaptersUpdated"),
       "momentsUpdated" to mapOf("registrationName" to "onMomentsUpdated"),
@@ -174,7 +173,7 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
       "topRetentionGraphUpdated" to mapOf("registrationName" to "onRetentionGraphUpdated"),
       "resumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
       "topResumePositionAvailable" to mapOf("registrationName" to "onResumePositionAvailable"),
-      // Phase 7 — Android-only cast handover event.
+      // Android-only cast handover event.
       "playerTypeChange" to mapOf("registrationName" to "onPlayerTypeChange"),
       "topPlayerTypeChange" to mapOf("registrationName" to "onPlayerTypeChange"),
     )

@@ -1,7 +1,7 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -15,11 +15,15 @@ import {
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
-import { BunnyThumbnail } from '../components/BunnyThumbnail';
-import { Header } from '../components/Header';
-import { loadSettings } from '../storage/storage';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+import { BunnyThumbnail } from '../../components/BunnyThumbnail';
+import { Header } from '../../components/Header';
+import { ListStateView } from '../../components/ListStateView';
+import { OutlineButton } from '../../components/OutlineButton';
+import { StatusPill } from '../../components/StatusPill';
+import { loadLibraryConfig } from '../../storage/settings';
+import { Black, colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
+import { formatDuration } from '../../utils/format';
 
 type VideoListScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoList'>;
 
@@ -40,10 +44,8 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
 
   const loadLibrary = React.useCallback(async () => {
-    const stored = await loadSettings();
-    const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
-    const libId = parseInt(libIdStr, 10);
-    if (isNaN(libId)) {
+    const { libraryId: libId } = await loadLibraryConfig();
+    if (libId == null) {
       setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
       return;
     }
@@ -179,28 +181,16 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
           />
         }
         ListEmptyComponent={
-          uiState.kind === 'empty' ? (
-            <Text style={styles.videoListEmpty}>No videos in this library.</Text>
-          ) : uiState.kind === 'error' ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.errorMessage}>{uiState.message}</Text>
-              <TouchableOpacity style={styles.errorButton} onPress={loadLibrary}>
-                <Text style={styles.errorButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
+          <ListStateView
+            state={uiState}
+            emptyMessage="No videos in this library."
+            onRetry={loadLibrary}
+          />
         }
         contentContainerStyle={[isEmpty ? sectionStyles.emptyList : sectionStyles.list]}
       />
     </>
   );
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '0:00';
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
 /** Where the video is in Bunny's encoding pipeline — mirrors
@@ -265,27 +255,26 @@ function VideoCard({
           <Text style={videoCardStyles.title} numberOfLines={1}>
             {video.title || 'Untitled'}
           </Text>
-          <TouchableOpacity onPress={onManage} style={videoCardStyles.manageButton}>
-            <Text style={videoCardStyles.manageButtonText}>Manage</Text>
-          </TouchableOpacity>
+          <OutlineButton
+            label="Manage"
+            onPress={onManage}
+            style={videoCardStyles.manageButton}
+            textStyle={videoCardStyles.manageButtonText}
+          />
         </View>
         <View style={videoCardStyles.pillRow}>
           {/* Encoding state is only surfaced while it isn't finished — a
               playable video shows no status badge. */}
           {encodingState(video) === 'processing' ? (
-            <View style={[videoCardStyles.pill, videoCardStyles.pillProcessing]}>
-              <Text style={[videoCardStyles.pillText, videoCardStyles.pillProcessingText]}>
-                {processingLabel(video)}
-              </Text>
-            </View>
+            <StatusPill
+              label={processingLabel(video)}
+              backgroundColor={colors.processingTint}
+              color={colors.processing}
+            />
           ) : encodingState(video) === 'failed' ? (
-            <View style={[videoCardStyles.pill, videoCardStyles.pillFailed]}>
-              <Text style={[videoCardStyles.pillText, videoCardStyles.pillFailedText]}>Failed</Text>
-            </View>
+            <StatusPill label="Failed" backgroundColor={colors.errorTint} color={colors.error} />
           ) : null}
-          <View style={videoCardStyles.pill}>
-            <Text style={videoCardStyles.pillText}>{formatDuration(video.lengthSeconds)}</Text>
-          </View>
+          <StatusPill label={formatDuration(video.lengthSeconds)} />
         </View>
       </View>
     </TouchableOpacity>
@@ -307,7 +296,7 @@ const videoCardStyles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -315,7 +304,7 @@ const videoCardStyles = StyleSheet.create({
   thumbnailContainer: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   thumbnail: {
     width: '100%',
@@ -324,7 +313,7 @@ const videoCardStyles = StyleSheet.create({
   },
   thumbnailPlaceholder: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.surfaceDark,
   },
   info: {
     padding: 12,
@@ -345,43 +334,13 @@ const videoCardStyles = StyleSheet.create({
   manageButton: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   manageButtonText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
   },
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-  },
-  pill: {
-    backgroundColor: 'rgba(37, 88, 143, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  pillText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.onSurfaceVariant,
-  },
-  // iOS renders the encoding badge with a purple tint.
-  pillProcessing: {
-    backgroundColor: 'rgba(126, 87, 194, 0.12)',
-  },
-  pillProcessingText: {
-    color: '#7E57C2',
-  },
-  // iOS renders the failed badge with a red tint.
-  pillFailed: {
-    backgroundColor: 'rgba(211, 47, 47, 0.12)',
-  },
-  pillFailedText: {
-    color: '#D32F2F',
   },
 });

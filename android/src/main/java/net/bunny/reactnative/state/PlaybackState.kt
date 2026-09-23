@@ -8,8 +8,8 @@ package net.bunny.reactnative.state
  * produce events — duplicate states are no-ops, and illegal transitions
  * (e.g. `Ended → Playing` without a new source) are rejected.
  *
- * Pure Kotlin — no Android or SDK dependencies. Tested directly in
- * plan section 10 without Robolectric.
+ * Pure Kotlin — no Android or SDK dependencies. Tested directly
+ * without Robolectric.
  */
 sealed class PlaybackState {
 

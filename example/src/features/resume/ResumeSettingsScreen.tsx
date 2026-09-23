@@ -1,18 +1,19 @@
-import type { RootStackParamList } from '../navigation/types';
-import type { ResumeSettings } from '../storage/resumeSettings';
+import type { RootStackParamList } from '../../navigation/types';
+import type { ResumeSettings } from '../../storage/resumeSettings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Header } from '../components/Header';
+import { Header } from '../../components/Header';
+import { ToggleRow } from '../../components/ToggleRow';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
   saveResumeSettings,
-} from '../storage/resumeSettings';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+} from '../../storage/resumeSettings';
+import { colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
 
 type ResumeSettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'ResumeSettings'>;
 
@@ -69,14 +70,12 @@ export function ResumeSettingsScreen({ navigation }: ResumeSettingsScreenProps) 
     <>
       <Header title="Resume Settings" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content}>
-        <View style={localStyles.switchRow}>
-          <Text style={localStyles.switchLabel}>Resume playback</Text>
-          <Switch
-            value={settings.enabled}
-            onValueChange={(enabled) => update({ enabled })}
-            trackColor={{ true: colors.primary }}
-          />
-        </View>
+        <ToggleRow
+          label="Resume playback"
+          value={settings.enabled}
+          onValueChange={(enabled) => update({ enabled })}
+          style={localStyles.switchRow}
+        />
 
         <Text style={styles.sectionTitle}>Retention (days)</Text>
         <TextInput
@@ -121,7 +120,7 @@ export function ResumeSettingsScreen({ navigation }: ResumeSettingsScreenProps) 
         </Text>
 
         <View style={styles.saveButtonContainer}>
-          <Button title="Save" onPress={handleSave} color="#FD8D32" />
+          <Button title="Save" onPress={handleSave} color={colors.primary} />
         </View>
       </ScrollView>
     </>
@@ -130,16 +129,7 @@ export function ResumeSettingsScreen({ navigation }: ResumeSettingsScreenProps) 
 
 const localStyles = StyleSheet.create({
   switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  switchLabel: {
-    fontSize: 16,
-    color: colors.onSurface,
-    fontWeight: '500',
   },
   hint: {
     fontSize: 13,

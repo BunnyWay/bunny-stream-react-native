@@ -1,4 +1,4 @@
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY } from '@env';
@@ -23,54 +23,37 @@ import {
   useBunnyStreamPlayer,
   useResumePosition,
   videoStatusLabel,
+  type BunnyStreamSource,
   type PlaybackPosition,
   type PlayerType,
   type Video,
   type VideoStatus,
 } from 'bunny-stream-react-native';
 
-import { Header } from '../components/Header';
-import { ResumeDialog } from '../components/ResumeDialog';
+import { Header } from '../../components/Header';
+import { ProgressBar } from '../../components/ProgressBar';
+import { PropertiesCard } from '../../components/PropertiesCard';
+import { ResumeDialog } from '../../components/ResumeDialog';
+import { ToggleRow } from '../../components/ToggleRow';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
   toResumeConfig,
-} from '../storage/resumeSettings';
-import { colors } from '../theme/colors';
-import { styles } from '../theme/styles';
+} from '../../storage/resumeSettings';
+import { Black, colors } from '../../theme/colors';
+import { styles } from '../../theme/styles';
+import { formatBytes, formatDuration, formatTime } from '../../utils/format';
 
 const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
 const STATUS_POLL_INTERVAL_MS = 5_000;
 
-function formatTime(ms: number): string {
-  if (!ms || ms < 0) return '0:00';
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${sec.toString().padStart(2, '0')}`;
-}
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '0:00';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 MB';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(2)} MB`;
-}
-
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const { videoId, libraryId } = route.params;
-  const sourceKey = sourceIdentityKey({ type: 'vod', videoId, libraryId });
+  const source: BunnyStreamSource = { type: 'vod', videoId, libraryId };
+  const sourceKey = sourceIdentityKey(source);
   const player = useBunnyStreamPlayer(
     { onPlaybackRateChange: (e) => setCurrentSpeed(e.rate) },
     sourceKey,
@@ -91,6 +74,22 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   const [playbackAttempt, setPlaybackAttempt] = React.useState(0);
 
   const isAndroid = Platform.OS === 'android';
+
+  // Debug logs — the source and any player error. Useful for diagnosing
+  // platform-specific playback failures (e.g. token auth 403s).
+  React.useEffect(() => {
+    console.log('[PlayerScreen] playback source', {
+      platform: Platform.OS,
+      ...source,
+      token: source.token ? 'signed' : 'none',
+    });
+  }, [videoId, libraryId]);
+
+  React.useEffect(() => {
+    if (state.error) {
+      console.warn('[PlayerScreen] playback error', state.error);
+    }
+  }, [state.error]);
 
   // Load persisted resume settings (and refresh them when returning from the
   // settings screen).
@@ -155,7 +154,8 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         setVideoMeta(playData.video ?? null);
         setMetaLoading(false);
       },
-      () => {
+      (error) => {
+        console.warn('[PlayerScreen] fetchVideoPlayData failed:', error);
         setMetaLoading(false);
       },
     );
@@ -198,7 +198,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         { label: 'Title', value: videoMeta.title || 'N/A' },
         { label: 'Duration', value: formatDuration(videoMeta.lengthSeconds) },
         { label: 'Views', value: String(videoMeta.views) },
-        { label: 'Size', value: formatSize(videoMeta.storageSizeBytes) },
+        { label: 'Size', value: formatBytes(videoMeta.storageSizeBytes) },
         ...(videoMeta.status !== 4
           ? [{ label: 'Status', value: videoStatusLabel(videoMeta.status as VideoStatus) }]
           : []),
@@ -211,7 +211,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
       <View style={styles.playerWrapper}>
         {isTransitional ? (
           <View style={styles.transitionalOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={colors.onPrimary} />
             <Text style={styles.transitionalText}>
               {videoStatusLabel(videoMeta?.status as VideoStatus)} — playback starts automatically
               once encoding finishes.
@@ -222,7 +222,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             key={playbackAttempt}
             ref={player.ref}
             style={styles.player}
-            source={{ type: 'vod', videoId, libraryId }}
+            source={source}
             autoPlay
             controls={!useCustomControls}
             resumeConfig={
@@ -238,7 +238,7 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
         {loading && !isTransitional ? (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={colors.onPrimary} />
           </View>
         ) : null}
 
@@ -257,16 +257,16 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
               Video ID: {videoId}
             </Text>
             <TouchableOpacity
-              style={styles.errorButton}
+              style={styles.primaryButton}
               onPress={() => setPlaybackAttempt((n) => n + 1)}
             >
-              <Text style={styles.errorButtonText}>Retry</Text>
+              <Text style={styles.primaryButtonText}>Retry</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.errorButton, playerScreenStyles.errorButtonSecondary]}
+              style={[styles.primaryButton, playerScreenStyles.primaryButtonSecondary]}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.errorButtonText}>Go Back</Text>
+              <Text style={styles.primaryButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -279,22 +279,17 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         </Text>
 
         {/* Toggle: built-in native controls ↔ custom JS controls */}
-        <View style={toggleStyles.row}>
-          <Text style={toggleStyles.label}>Custom controls</Text>
-          <TouchableOpacity
-            style={[toggleStyles.switch, useCustomControls && toggleStyles.switchOn]}
-            onPress={() => setUseCustomControls((v) => !v)}
-          >
-            <View style={[toggleStyles.knob, useCustomControls && toggleStyles.knobOn]} />
-          </TouchableOpacity>
-        </View>
+        <ToggleRow
+          label="Custom controls"
+          value={useCustomControls}
+          onValueChange={setUseCustomControls}
+          style={playerScreenStyles.toggleRow}
+        />
 
         {/* Custom JS controls — only rendered when built-in controls are off */}
         {useCustomControls ? (
           <View style={styles.controlsSection}>
-            <View style={styles.positionBar}>
-              <View style={[styles.positionBarFill, { width: `${seekProgress * 100}%` }]} />
-            </View>
+            <ProgressBar progress={seekProgress} style={styles.positionBar} />
             <Text style={styles.positionText}>
               {formatTime(progress.positionMs)} / {formatTime(state.durationMs)}
             </Text>
@@ -379,21 +374,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
         {/* Video metadata card — like Android demo's VideoPropertiesCard */}
         {metaLoading ? (
-          <View style={metaStyles.card}>
+          <View style={metaStyles.loadingCard}>
             <ActivityIndicator size="small" color={colors.primary} style={{ padding: 16 }} />
           </View>
         ) : metaProperties.length > 0 ? (
-          <View style={metaStyles.card}>
-            {metaProperties.map((prop, idx) => (
-              <View key={prop.label}>
-                <View style={metaStyles.row}>
-                  <Text style={metaStyles.label}>{prop.label}</Text>
-                  <Text style={metaStyles.value}>{prop.value}</Text>
-                </View>
-                {idx < metaProperties.length - 1 ? <View style={metaStyles.divider} /> : null}
-              </View>
-            ))}
-          </View>
+          <PropertiesCard rows={metaProperties} style={metaStyles.card} />
         ) : null}
       </ScrollView>
 
@@ -417,87 +402,40 @@ const playerScreenStyles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.scrimDark,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   castChipText: {
-    color: '#FFFFFF',
+    color: colors.onPrimary,
     fontSize: 12,
     fontWeight: '600',
   },
-  errorButtonSecondary: {
+  primaryButtonSecondary: {
     marginTop: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: colors.onPrimary15,
   },
-});
-
-const toggleStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  toggleRow: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  switch: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(24, 61, 109, 0.15)',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  switchOn: {
-    backgroundColor: colors.primary,
-  },
-  knob: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
-  },
-  knobOn: {
-    alignSelf: 'flex-end',
   },
 });
 
 const metaStyles = StyleSheet.create({
   card: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  loadingCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: Black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 15,
-    color: colors.onSurface,
-  },
-  value: {
-    fontSize: 15,
-    color: colors.onSurfaceVariant,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(24, 61, 109, 0.18)',
-    marginHorizontal: 16,
   },
 });
 
