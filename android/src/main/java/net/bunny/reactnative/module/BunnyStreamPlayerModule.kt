@@ -26,7 +26,7 @@ import org.json.JSONArray
  * Delegates to [BunnyStreamApi.initialize] on the application context.
  *
  * Also exposes device queries (`isRunningOnTV`, `getPlaybackSpeeds`) and the
- * resume-position management API (Phase 7). Position management creates a
+ * resume-position management API. Position management creates a
  * standalone [DefaultPlaybackPositionManager] — the same fallback the Android
  * demo's ResumePositionViewModel uses when no player has enabled resume yet.
  * It shares the SDK's "bunny_resume_positions" SharedPreferences file.
@@ -61,7 +61,7 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * Phase 7 — Android TV detection via the leanback system feature, the same
+   * Android TV detection via the leanback system feature, the same
    * check the SDK's `BunnyStreamPlayer.isRunningOnTV` performs.
    */
   override fun isRunningOnTV(): Boolean {
@@ -70,7 +70,7 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * Phase 7 — allowed playback speeds from the engine
+   * Allowed playback speeds from the engine
    * (`allowedSpeeds` → dashboard `playerSettings` → SDK defaults). Falls back
    * to the SDK's default list when the engine is not initialized.
    */

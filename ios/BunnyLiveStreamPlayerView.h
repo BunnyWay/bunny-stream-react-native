@@ -10,9 +10,9 @@
 // Events:
 // - `onLiveStateChange`: forwarded from the SDK's `onStateChange` callback.
 // - `onLiveError`: forwarded only for terminal/permanent errors from
-//   `onPlaybackError` (see Plan-iOS.md §12.2).
+//   `onPlaybackError`.
 // - `onVideoSizeChange`: NOT emitted — the SDK does not expose this callback
-//   for live (Plan-iOS.md §12.2).
+//   for live.
 @interface BunnyLiveStreamPlayerView : RCTViewComponentView
 
 @end

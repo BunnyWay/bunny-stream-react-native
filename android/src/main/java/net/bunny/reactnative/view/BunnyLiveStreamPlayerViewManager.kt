@@ -17,14 +17,14 @@ import com.facebook.react.viewmanagers.BunnyLiveStreamPlayerViewManagerInterface
  * This manager is registered in [net.bunny.reactnative.BunnyStreamPlayerPackage]
  * but the corresponding native component is NOT exported from the public npm
  * API — the public `BunnyStreamPlayer` (src/player/BunnyStreamPlayer.tsx) selects between the VOD
- * host and this live host based on `source.type` (PLAN.md §5).
+ * host and this live host based on `source.type`.
  *
  * Prop setters delegate to [BunnyLiveStreamPlayerView]'s accumulation fields;
  * the actual composition happens in [BunnyLiveStreamPlayerView.commitProps],
  * called from [onAfterUpdateTransaction] after all props in a batch are set.
  *
- * No commands today — the SDK does not yet expose a public live controller
- * (PLAN.md §6 Faza 5). When it does, command methods will be added here and
+ * No commands today — the SDK does not yet expose a public live controller.
+ * When it does, command methods will be added here and
  * in the Codegen spec's `NativeCommands`.
  */
 class BunnyLiveStreamPlayerViewManager :

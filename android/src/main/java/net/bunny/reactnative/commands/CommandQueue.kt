@@ -21,7 +21,7 @@ sealed class PlayerCommand {
 /**
  * Command queue with a ready-gate.
  *
- * Semantics (plan section 5):
+ * Semantics:
  * - Before `STATE_READY`, `Play`/`Pause`/`SeekTo` are enqueued and held.
  * - When [setReady]`true` is called, the queue is drained in FIFO order.
  * - When [reset] is called (source change or cleanup), the queue is cleared

@@ -23,20 +23,20 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
   // Store the configuration in the bridge-owned configuration store.
   // Fabric views read it when creating a BunnyStreamPlayer / BunnyStreamLivePlayer.
   // This mirrors Android's BunnyStreamApi.initialize(context, accessKey, libraryId)
-  // without requiring a global SDK init (Plan-iOS.md §13.1).
+  // without requiring a global SDK init.
   dispatch_async(dispatch_get_main_queue(), ^{
     [[BunnyStreamConfiguration shared] configureWithAccessKey:accessKey
                                                     libraryId:(int)libraryId];
   });
 }
 
-// Phase 7 — iOS does not support tvOS; always NO.
+// iOS does not support tvOS; always NO.
 - (NSNumber *)isRunningOnTV
 {
   return @NO;
 }
 
-// Phase 7 — the iOS SDK hardcodes this speed list internally.
+// The iOS SDK hardcodes this speed list internally.
 - (void)getPlaybackSpeeds:(RCTPromiseResolveBlock)resolve
                    reject:(RCTPromiseRejectBlock)reject
 {

@@ -7,7 +7,7 @@ import BunnyStreamPlayer
 /// inside a `UIHostingController`, managed by the Fabric component view.
 ///
 /// The iOS SDK exposes `onStateChange` and `onPlaybackError` callbacks for
-/// live playback (Plan-iOS.md §13.3). This wrapper:
+/// live playback. This wrapper:
 ///
 /// - Creates a `BunnyStreamLivePlayer` with the current props and hosts it.
 /// - Forwards `onStateChange` to the Fabric event emitter as
@@ -15,7 +15,7 @@ import BunnyStreamPlayer
 /// - Forwards terminal errors from `onPlaybackError` as `onLiveError`
 ///   (only when `(error as? BunnyLiveStreamError)?.isPermanent == true`).
 /// - `onVideoSizeChange` is **not emitted** because the SDK does not expose
-///   this callback for live (Plan-iOS.md §12.2).
+///   this callback for live.
 /// - `dvrEnabled` is not part of the public playback state either, so the
 ///   bridge fetches it once per mount from `LiveStreamRepository` (the public
 ///   `BunnyLiveStream` model carries it) and attaches it to every
@@ -233,8 +233,7 @@ import BunnyStreamPlayer
   private func handlePlaybackError(_ error: Error) {
     // Only forward terminal/permanent errors as onLiveError.
     // The SDK's onPlaybackError also fires for transient failures that the
-    // player recovers from on its own — those should NOT trigger onLiveError
-    // (Plan-iOS.md §12.2).
+    // player recovers from on its own — those should NOT trigger onLiveError.
     guard let liveError = error as? BunnyLiveStreamError, liveError.isPermanent else { return }
 
     // A 403 right after a stream ended usually means the recording is still

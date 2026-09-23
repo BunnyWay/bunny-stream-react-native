@@ -177,12 +177,12 @@ using namespace facebook::react;
   _impl.pendingAutoPlay = newProps.autoPlay;
   _impl.pendingControls = newProps.controls;
 
-  // Phase 6 — resumeConfig is Android-only. iOS uses a JS-side fallback
+  // resumeConfig is Android-only. iOS uses a JS-side fallback
   // (useResumePosition hook with AsyncStorage). The prop is accepted but
   // ignored here to keep the Codegen contract stable across platforms.
   // Chapters/moments/retention/resume events are also Android-only; iOS
   // consumers fetch chapters/moments via the API client.
-  // Phase 7 — useNativeTvPlayer (no tvOS support) and onPlayerTypeChange
+  // useNativeTvPlayer (no tvOS support) and onPlayerTypeChange
   // (no public AirPlay state) are Android-only; accepted but ignored here.
 
   [super updateProps:props oldProps:oldProps];
@@ -268,7 +268,7 @@ using namespace facebook::react;
   [_impl enterPiP];
 }
 
-// Phase 8 — no-op: programmatic quality selection is not bridged on iOS.
+// No-op: programmatic quality selection is not bridged on iOS.
 - (void)setVideoQuality:(NSString *)quality
 {
 }
