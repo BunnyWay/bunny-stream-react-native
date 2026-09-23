@@ -77,6 +77,15 @@ export interface Spec extends TurboModule {
 
   deleteLiveStream(libraryId: Double, streamId: string): Promise<Object>;
 
+  // — LiveStreamRepository: lifecycle —
+  // Marks the stream as started (PREVIEW → RUNNING). Call once the RTMP encoder
+  // is connected. Pure REST call — does not capture or publish video.
+  startLiveStream(libraryId: Double, streamId: string): Promise<Object>;
+
+  // Stops the stream (RUNNING → ENDED). The ingest server cuts the publish, and
+  // with `recordVod` the stream is converted to a VOD. Cannot be undone.
+  stopLiveStream(libraryId: Double, streamId: string): Promise<Object>;
+
   // — Player settings (thumbnail enrichment) —
   fetchPlayerSettings(
     libraryId: Double,

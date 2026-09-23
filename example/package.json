@@ -5,14 +5,19 @@
   "scripts": {
     "android": "react-native run-android",
     "mkdist": "mkdir -p dist",
-    "build:android": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev true --bundle-output dist/main.android.jsbundle --assets-dest dist && react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
+    "build:android": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev true --bundle-output dist/main.android.jsbundle --assets-dest dist/res && react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
+    "build:android:apk": "npm run mkdist && react-native bundle --entry-file index.js --platform android --dev false --bundle-output dist/main.android.jsbundle --assets-dest dist/res && react-native build-android --tasks assembleRelease --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\" && echo \"APK gotowe: android/app/build/outputs/apk/release/app-release.apk\"",
     "build:ios": "npm run mkdist && react-native bundle --entry-file index.js --platform ios --dev true --bundle-output dist/main.ios.jsbundle --assets-dest dist && react-native build-ios --mode Debug",
+    "setup:ios": "ruby ios/link_bunny_sdk.rb --prepare && pod install --project-directory=ios && ruby ios/link_bunny_sdk.rb",
+    "build:ios:archive": "npm run mkdist && react-native bundle --entry-file index.js --platform ios --dev false --bundle-output dist/main.ios.jsbundle --assets-dest dist && npm run setup:ios && xcodebuild archive -workspace ios/BunnyStreamReactNativeExample.xcworkspace -scheme BunnyStreamExample -configuration Release -archivePath ios/build/BunnyStreamExample-AppStore.xcarchive -destination 'generic/platform=iOS' -skipPackagePluginValidation -allowProvisioningUpdates && echo \"Archive gotowe: ios/build/BunnyStreamExample-AppStore.xcarchive\"",
+    "build:ios:ipa": "npm run build:ios:archive && xcodebuild -exportArchive -archivePath ios/build/BunnyStreamExample-AppStore.xcarchive -exportOptionsPlist ios/ExportOptions.plist -exportPath ios/build/ipa -allowProvisioningUpdates && echo \"IPA gotowe: ios/build/ipa/\"",
     "ios": "pod install --project-directory=ios && ruby ios/link_bunny_sdk.rb && react-native run-ios --scheme BunnyStreamExample --extra-params \"-skipPackagePluginValidation\"",
     "start": "react-native start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
     "react": "19.2.3",

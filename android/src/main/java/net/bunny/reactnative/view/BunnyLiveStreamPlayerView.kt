@@ -23,8 +23,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import net.bunny.bunnystreamplayer.DefaultBunnyPlayer
 import net.bunny.bunnystreamplayer.livestream.BunnyLiveStreamPlayer
 import net.bunny.bunnystreamplayer.livestream.BunnyLiveStreamPlayerViewModel
 import net.bunny.bunnystreamplayer.livestream.LiveStreamPlayerState
@@ -170,6 +173,7 @@ class BunnyLiveStreamPlayerView(
 
   /** Idempotent cleanup guard. */
   private var cleanedUp = false
+  private var livePlaybackActive = false
 
   init {
     // Propagate our hosting owner down from this FrameLayout too, so any
@@ -184,6 +188,7 @@ class BunnyLiveStreamPlayerView(
       hostingOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
         launch {
           viewModel.state.collect { state ->
+            livePlaybackActive = state is LiveStreamPlayerState.LivePlay
             emitter?.dispatch(
               RnEvent("onLiveStateChange") {
                 liveStateToPayload(state)
@@ -200,6 +205,29 @@ class BunnyLiveStreamPlayerView(
                 },
               )
             }
+          }
+        }
+        launch {
+          // Pin live playback to 1.0x. The live composable shares the
+          // DefaultBunnyPlayer singleton (same ExoPlayer) with the VOD path,
+          // so a speed set on VOD — setPlaybackRate / the speed picker —
+          // leaks into live playback, where >1x just runs past the live edge
+          // and rebuffers. The SDK exposes no way to set speed on the
+          // internal live player and no callback when speed changes, so the
+          // bridge polls and snaps it back while LivePlay is active.
+          // TODO(Android SDK): pin speed inside the SDK's live player (or
+          // expose a playback-parameters callback) so this poll can go away.
+          // A Player.Listener on the singleton would also work once the
+          // bridge owns a listener slot there.
+          while (isActive) {
+            if (livePlaybackActive) {
+              DefaultBunnyPlayer.getInstance(context).currentPlayer?.let { player ->
+                if (player.playbackParameters.speed != 1.0f) {
+                  player.setPlaybackSpeed(1.0f)
+                }
+              }
+            }
+            delay(LIVE_SPEED_CHECK_INTERVAL_MS)
           }
         }
       }
@@ -469,6 +497,7 @@ class BunnyLiveStreamPlayerView(
   }
 
   companion object {
+    private const val LIVE_SPEED_CHECK_INTERVAL_MS = 100L
     private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
   }
 }
