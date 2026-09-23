@@ -66,11 +66,19 @@ The example app resolves the library from `src/` via Metro, so changes to TypeSc
 
 ## Project Areas
 
-- `src`: TypeScript public API (JS/TS layer)
-- `android`: Kotlin native bridge wrapping the Bunny Stream Android SDK (planned)
-- `ios`: Swift/Objective-C native bridge wrapping the Bunny Stream iOS SDK (planned)
+- `src`: TypeScript public API and React layer
+- `android`: Kotlin native bridge wrapping the Bunny Stream Android SDK
+- `ios`: Swift/Objective-C++ native bridge wrapping the Bunny Stream iOS SDK
 
-Try to keep changes scoped to the area they affect.
+Try to keep changes scoped to the area they affect. Write code identifiers, file names, comments, API documentation, error messages, branch names, and commit messages in English.
+
+During closed native SDK testing, the exact Android and iOS commits are pinned in `native-sdk-baselines.json`. Set `BUNNY_STREAM_ANDROID_SDK_PATH` or `BUNNY_STREAM_IOS_SDK_PATH` only when the checkouts are not in their default sibling locations, then verify them with:
+
+```sh
+yarn native-baselines:check
+```
+
+Do not modify the native SDK checkouts while working on the React Native wrapper.
 
 ## Pull Request Guidelines
 

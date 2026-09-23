@@ -6,7 +6,7 @@ import { codegenNativeComponent } from 'react-native';
 // Internal Codegen spec for the live-stream host view.
 //
 // This is NOT part of the public npm API — the public `BunnyStreamPlayer`
-// component (src/index.tsx) selects between the VOD host
+// component (src/player/BunnyStreamPlayer.tsx) selects between the VOD host
 // (`BunnyStreamPlayerNativeComponent`) and this live host based on
 // `source.type`. See PLAN.md §5 "Dwie implementacje wewnętrzne Androida".
 //
@@ -32,6 +32,8 @@ export type LiveStateChangeEvent = Readonly<{
   reason?: string;
   targetEpochMs?: Double;
   title?: string;
+  videoId?: string;
+  message?: string;
   dvrEnabled?: boolean;
 }>;
 

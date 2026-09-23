@@ -20,8 +20,9 @@ import BunnyStreamPlayer
 ///   player is discovered are queued and replayed on attach.
 /// - Events (`onReady`, `onProgress`, etc.) are emitted by discovering the
 ///   SDK's internal `AVPlayer` through the `AVPlayerLayer` in the view
-///   hierarchy and observing it via KVO + periodic time observer. This
-///   bridges the gap until the SDK exposes public callbacks
+///   hierarchy and observing it via KVO + periodic time observer.
+/// - TODO(iOS SDK): Replace AVPlayerLayer discovery and KVO after the public SDK
+///   exposes a stable VOD controller and playback event callbacks.
 ///   (Plan-iOS.md §12.1).
 @MainActor
 @objc public final class BunnyStreamPlayerViewImpl: UIView {
@@ -48,8 +49,8 @@ import BunnyStreamPlayer
   @objc public var onPlaybackStateChange: ((String, Double) -> Void)?
   /// (positionMs, durationMs, progress 0–1)
   @objc public var onProgress: ((Double, Double, Double) -> Void)?
-  /// (code, message)
-  @objc public var onError: ((String, String) -> Void)?
+  /// (code, message, nativeCode)
+  @objc public var onError: ((String, String, String?) -> Void)?
   /// (isBuffering)
   @objc public var onBuffering: ((Bool) -> Void)?
   /// (positionMs, durationMs)
@@ -58,18 +59,37 @@ import BunnyStreamPlayer
   @objc public var onPause: ((Double, Double) -> Void)?
   /// (positionMs, durationMs)
   @objc public var onEnd: ((Double, Double) -> Void)?
+  /// (volume, isMuted)
+  @objc public var onVolumeChange: ((Double, Bool) -> Void)?
+  /// (rate)
+  @objc public var onPlaybackRateChange: ((Double) -> Void)?
+  /// (width, height)
+  @objc public var onVideoSizeChange: ((Int32, Int32) -> Void)?
+  /// (message)
+  @objc public var onPlaybackError: ((String) -> Void)?
 
   // MARK: - AVPlayer observation state
 
   private var observedPlayer: AVPlayer?
+  private var playerStatusObservation: NSKeyValueObservation?
   private var rateObservation: NSKeyValueObservation?
+  private var volumeObservation: NSKeyValueObservation?
+  private var mutedObservation: NSKeyValueObservation?
   private var currentItemObservation: NSKeyValueObservation?
   private var itemStatusKVO: NSKeyValueObservation?
   private var itemBufferingObservation: NSKeyValueObservation?
   private var itemDurationObservation: NSKeyValueObservation?
+  private var itemPresentationSizeObservation: NSKeyValueObservation?
   private var periodicTimeObserver: Any?
+  private var itemEndObserver: NSObjectProtocol?
+  private var itemFailureObserver: NSObjectProtocol?
   private var hasEmittedReady = false
+  private var lastVolumeSnapshot: (Double, Bool)?
+  private var lastPlaybackRate: Double?
+  private var lastVideoSize: (Int32, Int32)?
+  private var lastPlaybackErrorCode: String?
   private var playerSearchAttempts = 0
+  private var playerSearchGeneration = 0
 
   /// Commands issued before the SDK's `AVPlayer` was discovered. Replayed in
   /// order once `attachObservers(to:)` runs.
@@ -171,10 +191,12 @@ import BunnyStreamPlayer
     // Search the view hierarchy for the AVPlayerLayer with retries.
     pendingCommands.removeAll()
     playerSearchAttempts = 0
-    searchForPlayer()
+    playerSearchGeneration += 1
+    searchForPlayer(generation: playerSearchGeneration)
   }
 
   private func removeHostingController() {
+    playerSearchGeneration += 1
     removePlayerObservers()
     pendingCommands.removeAll()
     hostingController?.willMove(toParent: nil)
@@ -230,8 +252,8 @@ import BunnyStreamPlayer
   /// then attaches KVO observers + a periodic time observer to its `AVPlayer`.
   /// Retries up to 50 times (≈5 s) because the SDK creates the player
   /// asynchronously during SwiftUI's `.task`.
-  private func searchForPlayer() {
-    guard hostingController != nil else { return }
+  private func searchForPlayer(generation: Int) {
+    guard hostingController != nil, generation == playerSearchGeneration else { return }
     if let layer = findPlayerLayer(in: hostingController?.view ?? self),
        let player = layer.player {
       attachObservers(to: player)
@@ -240,7 +262,7 @@ import BunnyStreamPlayer
     playerSearchAttempts += 1
     if playerSearchAttempts < 50 {
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-        self?.searchForPlayer()
+        self?.searchForPlayer(generation: generation)
       }
     }
   }
@@ -285,14 +307,32 @@ import BunnyStreamPlayer
     removePlayerObservers()
     observedPlayer = player
     hasEmittedReady = false
+    lastVolumeSnapshot = nil
+    lastPlaybackRate = nil
+    lastVideoSize = nil
+    lastPlaybackErrorCode = nil
+
+    playerStatusObservation = player.observe(\.status, options: [.new]) { [weak self] p, _ in
+      DispatchQueue.main.async {
+        guard let self = self,
+              self.observedPlayer === p,
+              p.status == .failed,
+              p.currentItem?.status != .failed else { return }
+        self.emitPlaybackFailure(p.error, player: p)
+      }
+    }
+    if player.status == .failed, player.currentItem?.status != .failed {
+      emitPlaybackFailure(player.error, player: player)
+    }
 
     // Observe rate → play / pause transitions.
     rateObservation = player.observe(\.rate, options: [.new]) { [weak self] p, _ in
       DispatchQueue.main.async {
-        guard let self = self else { return }
+        guard let self = self, self.observedPlayer === p else { return }
         let positionMs = self.currentPositionMs(p)
         let durationMs = self.currentDurationMs(p)
         if p.rate > 0 {
+          self.emitPlaybackRateIfChanged(Double(p.rate))
           self.onPlay?(positionMs, durationMs)
           self.onPlaybackStateChange?("playing", positionMs)
         } else {
@@ -307,6 +347,20 @@ import BunnyStreamPlayer
       }
     }
 
+    volumeObservation = player.observe(\.volume, options: [.new]) { [weak self] p, _ in
+      DispatchQueue.main.async {
+        guard let self = self, self.observedPlayer === p else { return }
+        self.emitVolumeIfChanged(p)
+      }
+    }
+    mutedObservation = player.observe(\.isMuted, options: [.new]) { [weak self] p, _ in
+      DispatchQueue.main.async {
+        guard let self = self, self.observedPlayer === p else { return }
+        self.emitVolumeIfChanged(p)
+      }
+    }
+    emitVolumeIfChanged(player)
+
     // Observe currentItem.status → ready / error.
     if let item = player.currentItem {
       observePlayerItem(item, player: player)
@@ -314,14 +368,19 @@ import BunnyStreamPlayer
     // Also observe currentItem itself in case it's set after we attach.
     currentItemObservation = player.observe(\.currentItem, options: [.new]) { [weak self] p, _ in
       DispatchQueue.main.async {
-        guard let self = self, let item = p.currentItem else { return }
+        guard let self = self, self.observedPlayer === p else { return }
         self.hasEmittedReady = false
-        self.observePlayerItem(item, player: p)
+        if let item = p.currentItem {
+          self.observePlayerItem(item, player: p)
+        } else {
+          self.removeItemObservers()
+        }
       }
     }
 
     // Emit the initial play state if the player is already playing.
     if player.rate > 0 {
+      emitPlaybackRateIfChanged(Double(player.rate))
       let positionMs = currentPositionMs(player)
       let durationMs = currentDurationMs(player)
       onPlay?(positionMs, durationMs)
@@ -336,21 +395,13 @@ import BunnyStreamPlayer
     ) { [weak self] time in
       guard time.isValid else { return }
       DispatchQueue.main.async {
-        guard let self = self else { return }
+        guard let self = self, self.observedPlayer === player else { return }
         let positionMs = time.seconds * 1000
         let durationMs = self.currentDurationMs(player)
         let progress = durationMs > 0 ? positionMs / durationMs : 0
         self.onProgress?(positionMs, durationMs, max(0, min(1, progress)))
       }
     }
-
-    // End-of-playback notification.
-    NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(playerItemDidPlayToEndTime(_:)),
-      name: .AVPlayerItemDidPlayToEndTime,
-      object: player.currentItem
-    )
 
     // Replay commands issued while the player was still being created.
     let queued = pendingCommands
@@ -360,11 +411,18 @@ import BunnyStreamPlayer
     }
   }
 
-  /// Observes a single `AVPlayerItem`'s `status`, `duration`, and buffering.
+  /// Observes a single `AVPlayerItem`'s status, duration, buffering, size, and
+  /// terminal playback notifications.
   private func observePlayerItem(_ item: AVPlayerItem, player: AVPlayer) {
+    removeItemObservers()
+    lastVideoSize = nil
+    lastPlaybackErrorCode = nil
+
     itemStatusKVO = item.observe(\.status, options: [.new]) { [weak self] it, _ in
       DispatchQueue.main.async {
-        guard let self = self else { return }
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === it else { return }
         switch it.status {
         case .readyToPlay:
           if !self.hasEmittedReady {
@@ -374,9 +432,7 @@ import BunnyStreamPlayer
             self.onPlaybackStateChange?("ready", 0)
           }
         case .failed:
-          let msg = it.error?.localizedDescription ?? "Playback failed"
-          self.onError?("PLAYBACK_ERROR", msg)
-          self.onPlaybackStateChange?("error", 0)
+          self.emitPlaybackFailure(it.error, player: player)
         case .unknown:
           break
         @unknown default:
@@ -385,7 +441,6 @@ import BunnyStreamPlayer
       }
     }
 
-    // If the item is already in a final state, emit it now.
     switch item.status {
     case .readyToPlay:
       if !hasEmittedReady {
@@ -395,44 +450,113 @@ import BunnyStreamPlayer
         onPlaybackStateChange?("ready", 0)
       }
     case .failed:
-      let msg = item.error?.localizedDescription ?? "Playback failed"
-      onError?("PLAYBACK_ERROR", msg)
-      onPlaybackStateChange?("error", 0)
+      emitPlaybackFailure(item.error, player: player)
     case .unknown:
       break
     @unknown default:
       break
     }
 
-    // Observe isPlaybackLikelyToKeepUp for buffering events.
     itemBufferingObservation = item.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] it, _ in
       DispatchQueue.main.async {
-        guard let self = self else { return }
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === it else { return }
         self.onBuffering?(!it.isPlaybackLikelyToKeepUp)
       }
     }
-
     onBuffering?(!item.isPlaybackLikelyToKeepUp)
 
-    // Observe duration — it may resolve after status becomes readyToPlay
-    // for deferred-loading VOD assets.
-    itemDurationObservation = item.observe(\.duration, options: [.new]) { [weak self] _, _ in
+    itemDurationObservation = item.observe(\.duration, options: [.new]) { [weak self] it, _ in
       DispatchQueue.main.async {
-        guard let self = self, self.hasEmittedReady else { return }
-        // Re-emit onReady with the now-valid duration so JS has the correct
-        // durationMs for progress calculations.
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === it,
+              self.hasEmittedReady else { return }
         let durationMs = self.currentDurationMs(player)
         self.onReady?(self.currentProps.videoId, durationMs)
       }
     }
+
+    itemPresentationSizeObservation = item.observe(\.presentationSize, options: [.new]) { [weak self] it, _ in
+      DispatchQueue.main.async {
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === it else { return }
+        self.emitVideoSizeIfChanged(it.presentationSize)
+      }
+    }
+    emitVideoSizeIfChanged(item.presentationSize)
+
+    itemEndObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemDidPlayToEndTime,
+      object: item,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === item else { return }
+        let positionMs = self.currentPositionMs(player)
+        let durationMs = self.currentDurationMs(player)
+        self.onEnd?(positionMs, durationMs)
+        self.onPlaybackStateChange?("ended", positionMs)
+      }
+    }
+
+    itemFailureObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemFailedToPlayToEndTime,
+      object: item,
+      queue: .main
+    ) { [weak self] notification in
+      MainActor.assumeIsolated {
+        guard let self = self,
+              self.observedPlayer === player,
+              player.currentItem === item else { return }
+        let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
+        self.emitPlaybackFailure(error ?? item.error, player: player)
+      }
+    }
   }
 
-  @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
-    guard let player = observedPlayer else { return }
-    let positionMs = currentPositionMs(player)
-    let durationMs = currentDurationMs(player)
-    onEnd?(positionMs, durationMs)
-    onPlaybackStateChange?("ended", positionMs)
+  private func emitVolumeIfChanged(_ player: AVPlayer) {
+    let volume = player.isMuted ? 0 : Double(player.volume)
+    let snapshot = (volume, player.isMuted)
+    guard lastVolumeSnapshot?.0 != snapshot.0 || lastVolumeSnapshot?.1 != snapshot.1 else { return }
+    lastVolumeSnapshot = snapshot
+    onVolumeChange?(snapshot.0, snapshot.1)
+  }
+
+  private func emitPlaybackRateIfChanged(_ rate: Double) {
+    guard rate > 0, lastPlaybackRate != rate else { return }
+    lastPlaybackRate = rate
+    onPlaybackRateChange?(rate)
+  }
+
+  private func emitVideoSizeIfChanged(_ size: CGSize) {
+    guard size.width.isFinite,
+          size.height.isFinite,
+          size.width > 0,
+          size.height > 0,
+          size.width <= CGFloat(Int32.max),
+          size.height <= CGFloat(Int32.max) else { return }
+    let videoSize = (Int32(size.width.rounded()), Int32(size.height.rounded()))
+    guard lastVideoSize?.0 != videoSize.0 || lastVideoSize?.1 != videoSize.1 else { return }
+    lastVideoSize = videoSize
+    onVideoSizeChange?(videoSize.0, videoSize.1)
+  }
+
+  private func emitPlaybackFailure(_ error: Error?, player: AVPlayer) {
+    guard observedPlayer === player else { return }
+    let nsError = error as NSError?
+    let message = error?.localizedDescription ?? "Playback failed"
+    let nativeCode = nsError.map { "\($0.domain):\($0.code)" }
+    let errorCode = nativeCode ?? message
+    guard lastPlaybackErrorCode != errorCode else { return }
+    lastPlaybackErrorCode = errorCode
+    onError?("PLAYBACK_ERROR", message, nativeCode)
+    onPlaybackError?(message)
+    onPlaybackStateChange?("error", currentPositionMs(player))
   }
 
   private func currentPositionMs(_ player: AVPlayer) -> Double {
@@ -446,30 +570,49 @@ import BunnyStreamPlayer
     return seconds.isFinite && !seconds.isNaN ? seconds * 1000 : 0
   }
 
-  /// Removes all KVO observers, periodic time observer, and notification
-  /// subscription from the currently observed `AVPlayer`.
-  private func removePlayerObservers() {
-    if let player = observedPlayer, let observer = periodicTimeObserver {
-      player.removeTimeObserver(observer)
-    }
-    periodicTimeObserver = nil
-    rateObservation?.invalidate()
-    rateObservation = nil
-    currentItemObservation?.invalidate()
-    currentItemObservation = nil
+  private func removeItemObservers() {
     itemStatusKVO?.invalidate()
     itemStatusKVO = nil
     itemBufferingObservation?.invalidate()
     itemBufferingObservation = nil
     itemDurationObservation?.invalidate()
     itemDurationObservation = nil
-    NotificationCenter.default.removeObserver(
-      self,
-      name: .AVPlayerItemDidPlayToEndTime,
-      object: nil
-    )
+    itemPresentationSizeObservation?.invalidate()
+    itemPresentationSizeObservation = nil
+    if let observer = itemEndObserver {
+      NotificationCenter.default.removeObserver(observer)
+      itemEndObserver = nil
+    }
+    if let observer = itemFailureObserver {
+      NotificationCenter.default.removeObserver(observer)
+      itemFailureObserver = nil
+    }
+  }
+
+  /// Removes every KVO observation, time observer, and notification token from
+  /// the currently observed player and item.
+  private func removePlayerObservers() {
+    if let player = observedPlayer, let observer = periodicTimeObserver {
+      player.removeTimeObserver(observer)
+    }
+    periodicTimeObserver = nil
+    playerStatusObservation?.invalidate()
+    playerStatusObservation = nil
+    rateObservation?.invalidate()
+    rateObservation = nil
+    volumeObservation?.invalidate()
+    volumeObservation = nil
+    mutedObservation?.invalidate()
+    mutedObservation = nil
+    currentItemObservation?.invalidate()
+    currentItemObservation = nil
+    removeItemObservers()
     observedPlayer = nil
     hasEmittedReady = false
+    lastVolumeSnapshot = nil
+    lastPlaybackRate = nil
+    lastVideoSize = nil
+    lastPlaybackErrorCode = nil
   }
 
   // MARK: - Commands

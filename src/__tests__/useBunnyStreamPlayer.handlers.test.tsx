@@ -39,6 +39,25 @@ describe('useBunnyStreamPlayer user handlers', () => {
     await unmount();
   });
 
+  it('stores and forwards complete live state metadata', async () => {
+    const onLiveStateChange = jest.fn();
+    const { result, unmount } = await renderPlayerHook({ onLiveStateChange });
+    const liveState = {
+      state: 'trailer' as const,
+      isLive: false,
+      targetEpochMs: 1_700_000_000_000,
+      title: 'Launch',
+      videoId: 'video-id',
+      message: 'Waiting for the stream',
+    };
+
+    await fire(result.current.eventHandlers.onLiveStateChange, liveState);
+
+    expect(result.current.state.liveState).toEqual(liveState);
+    expect(onLiveStateChange).toHaveBeenCalledWith(liveState);
+    await unmount();
+  });
+
   it('user handlers receive updated options on rerender (via ref)', async () => {
     const onReady1 = jest.fn();
     const onReady2 = jest.fn();

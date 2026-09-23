@@ -27,55 +27,87 @@
  */
 
 import type {
-  BunnyResult,
-  CreateVideoRequestInput,
+  CollectionListOptions,
+  VideoCollection,
+  VideoCollectionList,
+} from './models/collections';
+import type {
   LiveStream,
-  LiveStreamCreateRequestInput,
+  LiveStreamIngestStatus,
   LiveStreamList,
   LiveStreamPlayData,
-  PlayerSettings,
+  LiveStreamThumbnail,
+  LiveStreamThumbnailContentType,
+  LiveStreamThumbnailListOptions,
+} from './models/liveStream';
+import type { PlayerSettings } from './models/playerSettings';
+import type {
+  CreateVideoRequestInput,
+  LiveStreamCreateRequestInput,
   UpdateVideoRequestInput,
-  Video,
-  VideoList,
-  VideoPlayData,
-} from './types';
+} from './models/requests';
+import type { Video, VideoList, VideoPlayData } from './models/video';
+import type {
+  VideoHeatmap,
+  VideoResolutionsInfo,
+  VideoStatistics,
+  VideoStatisticsOptions,
+} from './models/videoInsights';
+import type { BunnyResult } from './result/BunnyResult';
 
 import NativeBunnyStreamApi from '../specs/NativeBunnyStreamApi';
 
 // Re-export the helpers and types so consumers can import everything from here.
-export {
-  errorOrNull,
-  fold,
-  getOrNull,
-  liveStreamStatusLabel,
-  map,
-  videoStatusLabel,
-} from './types';
-
 export type {
-  BunnyError,
-  BunnyErrorKind,
-  BunnyResult,
-  Caption,
-  Chapter,
-  CreateVideoRequestInput,
+  CollectionListOptions,
+  VideoCollection,
+  VideoCollectionList,
+} from './models/collections';
+export { liveStreamStatusLabel } from './models/liveStream';
+export type {
   LiveStream,
-  LiveStreamCreateRequestInput,
+  LiveStreamIngestStatus,
   LiveStreamList,
   LiveStreamPlayData,
   LiveStreamStatus,
-  MetaTag,
-  PlayerSettings,
-  Moment,
+  LiveStreamThumbnail,
+  LiveStreamThumbnailContentType,
+  LiveStreamThumbnailListOptions,
   RtmpOutput,
+} from './models/liveStream';
+export { LiveStreamStatusEnum } from './models/liveStream';
+
+export type { PlayerSettings } from './models/playerSettings';
+export type {
+  CreateVideoRequestInput,
+  LiveStreamCreateRequestInput,
   UpdateVideoRequestInput,
+} from './models/requests';
+
+export { TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum, videoStatusLabel } from './models/video';
+export type {
+  Caption,
+  Chapter,
+  MetaTag,
+  Moment,
   Video,
   VideoList,
   VideoPlayData,
   VideoStatus,
-} from './types';
+} from './models/video';
+export type {
+  CodecRenditionSize,
+  ResolutionReference,
+  StorageObject,
+  VideoHeatmap,
+  VideoResolutionsInfo,
+  VideoStatistics,
+  VideoStatisticsOptions,
+  VideoStorageSize,
+} from './models/videoInsights';
 
-export { LiveStreamStatusEnum, TRANSITIONAL_VIDEO_STATUSES, VideoStatusEnum } from './types';
+export type { BunnyError, BunnyErrorKind, BunnyResult } from './result/BunnyResult';
+export { errorOrNull, fold, getOrNull, map } from './result/resultHelpers';
 
 /**
  * Common listing options shared by `listVideos` and `listLiveStreams`.
@@ -119,13 +151,20 @@ export const BunnyStreamApi = {
    * ```
    */
   async listVideos(libraryId: number, opts?: ListOptions): Promise<BunnyResult<VideoList>> {
+    const {
+      page = 1,
+      itemsPerPage = 100,
+      search = null,
+      orderBy = null,
+      collectionId = null,
+    } = opts ?? {};
     return NativeBunnyStreamApi.listVideos(
       libraryId,
-      opts?.page ?? 1,
-      opts?.itemsPerPage ?? 100,
-      opts?.search ?? null,
-      opts?.orderBy ?? null,
-      opts?.collectionId ?? null,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      collectionId,
     ) as Promise<BunnyResult<VideoList>>;
   },
 
@@ -153,6 +192,34 @@ export const BunnyStreamApi = {
       token ?? null,
       expires ?? null,
     ) as Promise<BunnyResult<VideoPlayData>>;
+  },
+
+  async fetchVideoHeatmap(libraryId: number, videoId: string): Promise<BunnyResult<VideoHeatmap>> {
+    return NativeBunnyStreamApi.fetchVideoHeatmap(libraryId, videoId) as Promise<
+      BunnyResult<VideoHeatmap>
+    >;
+  },
+
+  async fetchVideoStatistics(
+    libraryId: number,
+    options?: VideoStatisticsOptions,
+  ): Promise<BunnyResult<VideoStatistics>> {
+    return NativeBunnyStreamApi.fetchVideoStatistics(
+      libraryId,
+      options?.videoId ?? null,
+      options?.dateFrom ?? null,
+      options?.dateTo ?? null,
+      options?.hourly ?? false,
+    ) as Promise<BunnyResult<VideoStatistics>>;
+  },
+
+  async fetchVideoResolutions(
+    libraryId: number,
+    videoId: string,
+  ): Promise<BunnyResult<VideoResolutionsInfo>> {
+    return NativeBunnyStreamApi.fetchVideoResolutions(libraryId, videoId) as Promise<
+      BunnyResult<VideoResolutionsInfo>
+    >;
   },
 
   // endregion
@@ -192,6 +259,65 @@ export const BunnyStreamApi = {
 
   // endregion
 
+  // region — CollectionRepository —
+
+  async listCollections(
+    libraryId: number,
+    options?: CollectionListOptions,
+  ): Promise<BunnyResult<VideoCollectionList>> {
+    const {
+      page = 1,
+      itemsPerPage = 100,
+      search = null,
+      orderBy = 'date',
+      includeThumbnails = false,
+    } = options ?? {};
+    return NativeBunnyStreamApi.listCollections(
+      libraryId,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      includeThumbnails,
+    ) as Promise<BunnyResult<VideoCollectionList>>;
+  },
+
+  async getCollection(
+    libraryId: number,
+    collectionId: string,
+    includeThumbnails: boolean = false,
+  ): Promise<BunnyResult<VideoCollection>> {
+    return NativeBunnyStreamApi.getCollection(
+      libraryId,
+      collectionId,
+      includeThumbnails,
+    ) as Promise<BunnyResult<VideoCollection>>;
+  },
+
+  async createCollection(libraryId: number, name: string): Promise<BunnyResult<VideoCollection>> {
+    return NativeBunnyStreamApi.createCollection(libraryId, name) as Promise<
+      BunnyResult<VideoCollection>
+    >;
+  },
+
+  async updateCollection(
+    libraryId: number,
+    collectionId: string,
+    name: string,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.updateCollection(libraryId, collectionId, name) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  async deleteCollection(libraryId: number, collectionId: string): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.deleteCollection(libraryId, collectionId) as Promise<
+      BunnyResult<void>
+    >;
+  },
+
+  // endregion
+
   // region — LiveStreamRepository: reading —
 
   /**
@@ -202,13 +328,20 @@ export const BunnyStreamApi = {
     libraryId: number,
     opts?: ListOptions,
   ): Promise<BunnyResult<LiveStreamList>> {
+    const {
+      page = null,
+      itemsPerPage = null,
+      search = null,
+      orderBy = null,
+      collectionId = null,
+    } = opts ?? {};
     return NativeBunnyStreamApi.listLiveStreams(
       libraryId,
-      opts?.page ?? null,
-      opts?.itemsPerPage ?? null,
-      opts?.search ?? null,
-      opts?.orderBy ?? null,
-      opts?.collectionId ?? null,
+      page,
+      itemsPerPage,
+      search,
+      orderBy,
+      collectionId,
     ) as Promise<BunnyResult<LiveStreamList>>;
   },
 
@@ -297,6 +430,72 @@ export const BunnyStreamApi = {
     return NativeBunnyStreamApi.stopLiveStream(libraryId, streamId) as Promise<
       BunnyResult<LiveStream>
     >;
+  },
+
+  async getLiveStreamStatus(
+    libraryId: number,
+    streamId: string,
+  ): Promise<BunnyResult<LiveStreamIngestStatus>> {
+    return NativeBunnyStreamApi.getLiveStreamStatus(libraryId, streamId) as Promise<
+      BunnyResult<LiveStreamIngestStatus>
+    >;
+  },
+
+  async setLiveStreamThumbnail(
+    libraryId: number,
+    streamId: string,
+    thumbnailUrl: string,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.setLiveStreamThumbnail(
+      libraryId,
+      streamId,
+      thumbnailUrl,
+    ) as Promise<BunnyResult<void>>;
+  },
+
+  /**
+   * Uploads a local image without moving its bytes through JavaScript. File URIs
+   * are supported on both platforms; Android also accepts content URIs. Images
+   * larger than 20 MB are rejected by the native bridge.
+   */
+  async uploadLiveStreamThumbnail(
+    libraryId: number,
+    streamId: string,
+    uri: string,
+    contentType: LiveStreamThumbnailContentType = 'image/jpeg',
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.uploadLiveStreamThumbnail(
+      libraryId,
+      streamId,
+      uri,
+      contentType,
+    ) as Promise<BunnyResult<void>>;
+  },
+
+  async listLiveStreamThumbnails(
+    libraryId: number,
+    streamId: string,
+    options?: LiveStreamThumbnailListOptions,
+  ): Promise<BunnyResult<LiveStreamThumbnail[]>> {
+    return NativeBunnyStreamApi.listLiveStreamThumbnails(
+      libraryId,
+      streamId,
+      options?.limit ?? null,
+      options?.from ?? null,
+      options?.to ?? null,
+    ) as Promise<BunnyResult<LiveStreamThumbnail[]>>;
+  },
+
+  async deleteLiveStreamThumbnail(
+    libraryId: number,
+    streamId: string,
+    restoreLibraryDefault: boolean = false,
+  ): Promise<BunnyResult<void>> {
+    return NativeBunnyStreamApi.deleteLiveStreamThumbnail(
+      libraryId,
+      streamId,
+      restoreLibraryDefault,
+    ) as Promise<BunnyResult<void>>;
   },
 
   // endregion

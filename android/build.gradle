@@ -13,13 +13,11 @@ buildscript {
     return BunnyStreamReactNative[prop]
   }
 
-  // TODO: Pinned local snapshot of the Bunny Stream Android SDK 4.0.0 (live-stream branch).
-  // Published to mavenLocal() from bunny-stream-android-private @ fb86350 via:
-  //   ./gradlew :api:publishToMavenLocal :player:publishToMavenLocal \
-  //     -Pversion=4.0.0-live.fb86350-SNAPSHOT
-  // See PLAN.md §2 and §7 Faza 0. Replace with the public Maven artifact and
-  // re-enable the build:android CI job before npm publish.
-  ext.bunnyStreamSdkVersion = "4.0.0-live.shadow.1-SNAPSHOT"
+  // TODO(Android SDK): This closed-test snapshot contains the latest live-stream logic.
+  // Replace it with the public Maven artifact only as the final Plan phase 0B step.
+  // The exact SDK commit and Maven version are pinned in native-sdk-baselines.json.
+  def nativeSdkBaselines = new groovy.json.JsonSlurper().parse(file("../native-sdk-baselines.json"))
+  ext.bunnyStreamSdkVersion = nativeSdkBaselines.android.mavenVersion
 
   repositories {
     google()
