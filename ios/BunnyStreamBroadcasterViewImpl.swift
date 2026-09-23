@@ -75,7 +75,8 @@ import UIKit
             .liveStreams
             .getLiveStream(libraryId: libraryId, streamId: streamId)
           await MainActor.run {
-            self?.attachView(accessKey: accessKey, liveStream: stream)
+            guard let self, self.isConfigured else { return }
+            self.attachView(accessKey: accessKey, liveStream: stream)
           }
         } catch {
           await MainActor.run {
@@ -280,6 +281,7 @@ import UIKit
     hostingController?.willMove(toParent: nil)
     hostingController?.view.removeFromSuperview()
     hostingController = nil
+    isConfigured = false
   }
 
   public override func layoutSubviews() {

@@ -56,8 +56,27 @@ jobs:
       # values into the JS bundle, so anything provided at build time would be
       # embedded in the downloadable APK. The app falls back to runtime
       # credentials entered in Settings.
+      # The build log (Metro + Gradle + NDK) is huge and GitHub truncates the
+      # step output, hiding the actual error. Write it to a file, print only
+      # the tail here, and upload the full log as an artifact on failure.
       - name: Build example APK
-        run: yarn example build:android:apk
+        run: |
+          if yarn example build:android:apk > build.log 2>&1; then
+            tail -n 50 build.log
+          else
+            echo "::error::APK build failed — last 300 lines of build.log:"
+            tail -n 300 build.log
+            exit 1
+          fi
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-build-log-${{ inputs.branch }}
+          path: build.log
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Rename APK
         id: rename
