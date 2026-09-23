@@ -1,0 +1,94 @@
+name: Build example APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build the APK from
+        type: string
+        default: main
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    env:
+      JAVA_OPTS: '-XX:MaxHeapSize=6g'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Finalize Android SDK
+        run: |
+          /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('example/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # No .env is written here on purpose: react-native-dotenv inlines env
+      # values into the JS bundle, so anything provided at build time would be
+      # embedded in the downloadable APK. The app falls back to runtime
+      # credentials entered in Settings.
+      - name: Build example APK
+        run: yarn example build:android:apk
+
+      - name: Rename APK
+        id: rename
+        env:
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          APK_DIR=example/android/app/build/outputs/apk/release
+          APK_NAME="BunnyStreamExample-${INPUT_BRANCH//\//-}-$(git rev-parse --short HEAD).apk"
+          mv "$APK_DIR/app-release.apk" "$APK_DIR/$APK_NAME"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.rename.outputs.apk_name }}
+          path: example/android/app/build/outputs/apk/release/${{ steps.rename.outputs.apk_name }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Build summary
+        env:
+          INPUT_BRANCH: ${{ inputs.branch }}
+          APK_NAME: ${{ steps.rename.outputs.apk_name }}
+        run: |
+          {
+            echo "### Example APK built"
+            echo ""
+            echo "- Branch: \`$INPUT_BRANCH\`"
+            echo "- Commit: \`$(git rev-parse HEAD)\`"
+            echo "- APK: \`$APK_NAME\`"
+            echo ""
+            echo "Signed with a debug key — install via adb or sideload. Enter your"
+            echo "Bunny Stream access key and library ID in the app's Settings screen."
+          } >> "$GITHUB_STEP_SUMMARY"
