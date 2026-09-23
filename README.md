@@ -31,9 +31,9 @@ These are the floors declared in `peerDependencies` / `engines` in `package.json
 
 ## Status
 
-This repository contains the TypeScript contract, Android and iOS native bridges, build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), and an example app for development. See the generated [capability matrix](./docs/CAPABILITIES.md) for current platform support and planned delivery phases.
+This repository contains the TypeScript contract, Android and iOS native bridges, build tooling via [react-native-builder-bob](https://github.com/callstack/react-native-builder-bob), and an example app for development. Platform support is documented per feature in the sections below.
 
-### Camera broadcaster (Phase 5)
+### Camera broadcaster
 
 `BunnyStreamBroadcaster` is a Fabric component that hosts the native Bunny Stream camera capture pipeline. It supports recording a new VOD or broadcasting to an existing live stream.
 
@@ -60,9 +60,9 @@ import { BunnyStreamBroadcaster } from 'bunny-stream-react-native';
 
 **Background policy:** The broadcaster is foreground-only. Neither native SDK exposes a public background-broadcast or interruption-resume API. Host apps must stop the broadcast on app backgrounding.
 
-### Extended player controls (Phase 6)
+### Extended player controls
 
-Phase 6 adds skip, chapters/moments/retention events, and resume position.
+Adds skip, chapters/moments/retention events, and resume position.
 
 **Skip forward/backward** (both platforms, JS-side):
 
@@ -132,9 +132,7 @@ import { getPlaybackSpeeds } from 'bunny-stream-react-native';
 const speeds = await getPlaybackSpeeds();
 ```
 
-See the [capability matrix](./docs/CAPABILITIES.md) for the full platform breakdown.
-
-### Images, TV, and cast/PiP (Phase 7)
+### Images, TV, and cast/PiP
 
 **BunnyImage** — image component that renders Bunny CDN thumbnails through the native image pipeline (Fresco on Android, `RCTImageLoader` on iOS). Injects the `Referer` header that CDN hotlink protection requires; no JS `fetch` + base64, so lists stay cheap.
 
@@ -170,7 +168,7 @@ import { BunnyImage, bunnyImageSource } from 'bunny-stream-react-native';
 
 > Programmatic cast start/stop and fullscreen commands are not exposed by either SDK's public API; the native buttons inside the player controls already work.
 
-### Public SDK APIs (Phase 8, Android)
+### Public SDK APIs
 
 The Android SDK is consumed from Maven Central (`net.bunny:player/api/recording:4.0.0`) — no local checkout or `mavenLocal()` needed. iOS still uses a pinned local checkout pending a public release tag.
 
@@ -194,12 +192,6 @@ playerRef.current?.setVideoQuality('auto');                // back to adaptive
 ```
 
 List available renditions with `BunnyStreamApi.fetchVideoResolutions`. While casting, the constraint is a no-op on the cast player and reapplies when playback returns to the device.
-
-Planned roadmap:
-
-1. Wrap the [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios)
-2. Wrap the [Bunny Stream Android SDK](https://github.com/BunnyWay/bunny-stream-android)
-3. Expose both through a single React Native bridge/plugin with a shared TypeScript API
 
 ## Development
 

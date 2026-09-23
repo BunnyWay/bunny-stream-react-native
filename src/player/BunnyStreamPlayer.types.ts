@@ -52,7 +52,7 @@ export type PlayerPlaybackErrorEvent = Readonly<{
   message: string;
 }>;
 
-// --- Phase 6: chapters, moments, retention graph ---
+// --- Chapters, moments, retention graph ---
 
 export type Chapter = Readonly<{
   startTimeMs: number;
@@ -82,7 +82,7 @@ export type RetentionGraphUpdatedEvent = Readonly<{
   points: RetentionGraphEntry[];
 }>;
 
-// --- Phase 6: resume position ---
+// --- Resume position ---
 
 export type PlaybackPosition = Readonly<{
   videoId: string;
@@ -106,7 +106,7 @@ export type ResumePositionAvailableEvent = Readonly<{
   position: PlaybackPosition;
 }>;
 
-// --- Phase 7: cast handover ---
+// --- Cast handover ---
 
 /** Which engine is in charge of playback. Reported by `onPlayerTypeChange`. */
 export type PlayerType = 'default' | 'cast';
@@ -253,7 +253,7 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   onPlaybackError?: (event: NativeEvent<PlayerPlaybackErrorEvent>) => void;
   onLiveStateChange?: (event: NativeEvent<LiveStateChangeEvent>) => void;
   onLiveError?: (event: NativeEvent<LiveErrorEvent>) => void;
-  // Phase 6 — Android-only player events (iOS does not expose these).
+  // Android-only player events (iOS does not expose these).
   onChaptersUpdated?: (event: NativeEvent<ChaptersUpdatedEvent>) => void;
   onMomentsUpdated?: (event: NativeEvent<MomentsUpdatedEvent>) => void;
   onRetentionGraphUpdated?: (event: NativeEvent<RetentionGraphUpdatedEvent>) => void;
@@ -264,7 +264,7 @@ export interface BunnyStreamPlayerProps extends ViewProps {
    * (`useResumePosition` hook) backed by AsyncStorage.
    */
   resumeConfig?: ResumeConfig;
-  // Phase 7 — Android TV + cast.
+  // Android TV + cast.
   /**
    * Android-only. When `true`, the player routes through the SDK's
    * `playVideoWithTVDetection`, which launches the dedicated TV player

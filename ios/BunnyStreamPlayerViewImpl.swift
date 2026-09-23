@@ -8,7 +8,7 @@ import BunnyStreamPlayer
 /// a `UIHostingController`, managed by the Fabric component view.
 ///
 /// The iOS SDK does not expose public playback callbacks, a public controller,
-/// `controlsEnabled`, or `autoPlay` (see Plan-iOS.md §12.1). This wrapper:
+/// `controlsEnabled`, or `autoPlay`. This wrapper:
 ///
 /// - Creates a `BunnyStreamPlayer` with the current props and hosts it via
 ///   `UIHostingController`.
@@ -24,7 +24,6 @@ import BunnyStreamPlayer
 ///   hierarchy and observing it via KVO + periodic time observer.
 /// - TODO(iOS SDK): Replace AVPlayerLayer discovery and KVO after the public SDK
 ///   exposes a stable VOD controller and playback event callbacks.
-///   (Plan-iOS.md §12.1).
 @MainActor
 @objc public final class BunnyStreamPlayerViewImpl: UIView {
 
@@ -149,7 +148,7 @@ import BunnyStreamPlayer
 
     // Only (re)create the hosted view when the source identity changed.
     // `autoPlay` and `controls` changes alone do NOT reload — the SDK does
-    // not expose these as public props anyway (Plan-iOS.md §12.1).
+    // not expose these as public props anyway.
     if sourceChanged || !isMounted {
       reloadPlayer()
     }

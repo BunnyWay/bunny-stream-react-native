@@ -24,7 +24,7 @@ import net.bunny.reactnative.view.BunnyStreamPlayerViewManager
  *
  * The live ViewManager is internal to the bridge — the public npm API exposes
  * a single `BunnyStreamPlayer` component that selects between the two hosts
- * based on `source.type` (PLAN.md §5).
+ * based on `source.type`.
  */
 class BunnyStreamPlayerPackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =

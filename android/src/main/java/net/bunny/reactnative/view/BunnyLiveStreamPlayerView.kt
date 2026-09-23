@@ -59,7 +59,7 @@ import net.bunny.reactnative.state.requiresLiveSpeedReset
  *  4. Render [BunnyLiveStreamPlayer] with the source props. The composable
  *     owns polling, the state resolver, countdown/trailer overlays, DVR,
  *     recovery and the live → VOD hand-off — the bridge does not reimplement
- *     any of it (PLAN.md §6 Faza 4: no resolver/polling duplication in JS).
+ *     any of it (no resolver/polling duplication in JS).
  *  5. Forward `onVideoSizeChanged` and `onLiveStateChange` to JS via the
  *     Fabric emitter. `onLiveStateChange` carries the SDK's
  *     [LiveStreamPlayerState] (loading / offline / countdown / trailer / live
@@ -72,8 +72,8 @@ import net.bunny.reactnative.state.requiresLiveSpeedReset
  * the same `streamId` but starts a new stream when the id changes. Because the
  * SDK ViewModel ignores a second `start()` with a different stream (see
  * `BunnyLiveStreamPlayerViewModel`), the ViewManager remounts this view on
- * `streamId` change via a `key` prop in the public TS wrapper (PLAN.md §5
- * Faza 6: reset on source identity change).
+ * `streamId` change via a `key` prop in the public TS wrapper (reset on
+ * source identity change).
  *
  * Lifecycle: the composable's `DisposableEffect` observes
  * `LocalLifecycleOwner.current` (our [HostingLifecycleOwner]) and calls
