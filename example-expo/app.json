@@ -17,7 +17,7 @@
     "plugins": [
       "expo-dev-client",
       [
-        "bunny-stream-react-native",
+        "@bunny.net/stream-react-native",
         {
           "cameraPermission": "This app uses the camera to record and broadcast video to Bunny Stream.",
           "microphonePermission": "This app uses the microphone to capture audio during recording and broadcasting."

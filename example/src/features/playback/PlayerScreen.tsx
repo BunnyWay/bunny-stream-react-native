@@ -28,7 +28,7 @@ import {
   type PlayerType,
   type Video,
   type VideoStatus,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { ProgressBar } from '../../components/ProgressBar';

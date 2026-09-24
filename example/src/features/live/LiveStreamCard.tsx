@@ -1,9 +1,9 @@
-import type { LiveStream, LiveStreamStatus } from 'bunny-stream-react-native';
+import type { LiveStream, LiveStreamStatus } from '@bunny.net/stream-react-native';
 
 import * as React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { LiveStreamStatusEnum, liveStreamStatusLabel } from 'bunny-stream-react-native';
+import { LiveStreamStatusEnum, liveStreamStatusLabel } from '@bunny.net/stream-react-native';
 
 import { StatusPill } from '../../components/StatusPill';
 import { Black, colors } from '../../theme/colors';

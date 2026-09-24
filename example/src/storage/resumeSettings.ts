@@ -1,4 +1,4 @@
-import type { ResumeConfig } from 'bunny-stream-react-native';
+import type { ResumeConfig } from '@bunny.net/stream-react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

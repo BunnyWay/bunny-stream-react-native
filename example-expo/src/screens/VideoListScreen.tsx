@@ -1,4 +1,4 @@
-import type { Video } from 'bunny-stream-react-native';
+import type { Video } from '@bunny.net/stream-react-native';
 
 import {
   BunnyStreamApi,
@@ -6,7 +6,7 @@ import {
   getOrNull,
   videoStatusLabel,
   VideoStatusEnum,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 

@@ -1,4 +1,4 @@
-import { LiveStreamStatusEnum } from 'bunny-stream-react-native';
+import { LiveStreamStatusEnum } from '@bunny.net/stream-react-native';
 
 import { colors } from '../../theme/colors';
 

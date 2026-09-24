@@ -7,7 +7,7 @@
  *
  * The module reaches the SDK through `BunnyStreamApi.getInstance()` — the same
  * instance that `initialize(accessKey, libraryId)` registered. Call
- * `initialize` (from `bunny-stream-react-native`) before any method here.
+ * `initialize` (from `@bunny.net/stream-react-native`) before any method here.
  *
  * Every method returns `Promise<BunnyResult<T>>` and never rejects — failures
  * arrive as `{ ok: false, error }` so the typed error taxonomy (terminal vs
@@ -15,7 +15,7 @@
  *
  * @example
  * ```ts
- * import { BunnyStreamApi, fold } from 'bunny-stream-react-native';
+ * import { BunnyStreamApi, fold } from '@bunny.net/stream-react-native';
  *
  * const result = await BunnyStreamApi.listVideos(libraryId);
  * fold(

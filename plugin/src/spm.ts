@@ -71,7 +71,7 @@ export const withSpmUuidFix: ConfigPlugin = (config) =>
       const spmPath = rnDir && path.join(rnDir, 'scripts', 'cocoapods', 'spm.rb');
       if (!spmPath || !fs.existsSync(spmPath)) {
         WarningAggregator.addWarningIOS(
-          'bunny-stream-react-native',
+          '@bunny.net/stream-react-native',
           'Could not locate react-native/scripts/cocoapods/spm.rb — skipping the SPM UUID-collision patch.',
         );
         return config;

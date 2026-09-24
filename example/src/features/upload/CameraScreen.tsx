@@ -20,7 +20,7 @@ import {
   type CameraPosition,
   type IngestEndpoint,
   type IngestState,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';

@@ -13,7 +13,7 @@ import {
   getOrNull,
   type Video,
   type VideoStatus,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { Header } from '../../components/Header';

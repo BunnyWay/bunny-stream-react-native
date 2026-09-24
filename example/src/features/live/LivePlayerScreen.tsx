@@ -13,7 +13,7 @@ import {
   useBunnyStreamPlayer,
   type LiveStream,
   type LiveStreamStatus,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { PropertiesCard } from '../../components/PropertiesCard';

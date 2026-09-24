@@ -1546,6 +1546,50 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@bunny.net/stream-react-native@npm:*, @bunny.net/stream-react-native@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@bunny.net/stream-react-native@workspace:."
+  dependencies:
+    "@commitlint/config-conventional": "npm:^21.0.2"
+    "@eslint/js": "npm:^9.39.0"
+    "@expo/config-plugins": "npm:>=9.0.0 <60.0.0"
+    "@jest/globals": "npm:^29.7.0"
+    "@react-native-community/cli": "npm:20.1.0"
+    "@react-native/babel-preset": "npm:0.86.2"
+    "@react-native/jest-preset": "npm:0.86.2"
+    "@release-it/conventional-changelog": "npm:^11.0.1"
+    "@testing-library/react-native": "npm:^14.0.1"
+    "@types/react": "npm:^19.2.0"
+    commitlint: "npm:^21.0.2"
+    del-cli: "npm:^7.0.0"
+    eslint: "npm:^9.39.4"
+    eslint-config-prettier: "npm:^10.1.8"
+    eslint-import-resolver-typescript: "npm:^4.4.4"
+    eslint-plugin-import-x: "npm:^4.16.2"
+    eslint-plugin-perfectionist: "npm:^5.9.0"
+    fallow: "npm:^2.87.0"
+    globals: "npm:^17.6.0"
+    jest: "npm:^29.7.0"
+    lefthook: "npm:^2.1.9"
+    prettier: "npm:^3.8.3"
+    react: "npm:19.2.3"
+    react-native: "npm:0.86.2"
+    react-native-builder-bob: "npm:^0.43.0"
+    release-it: "npm:^20.2.0"
+    test-renderer: "npm:1.2"
+    turbo: "npm:^2.9.16"
+    typescript: "npm:^5.9.3"
+    typescript-eslint: "npm:^8.59.1"
+  peerDependencies:
+    expo: ">=52.0.0"
+    react: ">=18.0.0"
+    react-native: ">=0.71.0"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+  languageName: unknown
+  linkType: soft
+
 "@commitlint/cli@npm:^21.2.2":
   version: 21.2.2
   resolution: "@commitlint/cli@npm:21.2.2"
@@ -5578,8 +5622,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "bunny-stream-react-native-example-expo@workspace:example-expo"
   dependencies:
+    "@bunny.net/stream-react-native": "npm:*"
     "@types/react": "npm:^19.2.0"
-    bunny-stream-react-native: "npm:*"
     expo: "npm:~57.0.24"
     expo-dev-client: "npm:~57.0.19"
     expo-status-bar: "npm:~57.0.1"
@@ -5618,50 +5662,6 @@ __metadata:
     react-native-safe-area-context: "npm:^5.5.2"
     react-native-screens: "npm:^4.27.0"
     react-native-test-app: "npm:^5.4.9"
-  languageName: unknown
-  linkType: soft
-
-"bunny-stream-react-native@npm:*, bunny-stream-react-native@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "bunny-stream-react-native@workspace:."
-  dependencies:
-    "@commitlint/config-conventional": "npm:^21.0.2"
-    "@eslint/js": "npm:^9.39.0"
-    "@expo/config-plugins": "npm:>=9.0.0 <60.0.0"
-    "@jest/globals": "npm:^29.7.0"
-    "@react-native-community/cli": "npm:20.1.0"
-    "@react-native/babel-preset": "npm:0.86.2"
-    "@react-native/jest-preset": "npm:0.86.2"
-    "@release-it/conventional-changelog": "npm:^11.0.1"
-    "@testing-library/react-native": "npm:^14.0.1"
-    "@types/react": "npm:^19.2.0"
-    commitlint: "npm:^21.0.2"
-    del-cli: "npm:^7.0.0"
-    eslint: "npm:^9.39.4"
-    eslint-config-prettier: "npm:^10.1.8"
-    eslint-import-resolver-typescript: "npm:^4.4.4"
-    eslint-plugin-import-x: "npm:^4.16.2"
-    eslint-plugin-perfectionist: "npm:^5.9.0"
-    fallow: "npm:^2.87.0"
-    globals: "npm:^17.6.0"
-    jest: "npm:^29.7.0"
-    lefthook: "npm:^2.1.9"
-    prettier: "npm:^3.8.3"
-    react: "npm:19.2.3"
-    react-native: "npm:0.86.2"
-    react-native-builder-bob: "npm:^0.43.0"
-    release-it: "npm:^20.2.0"
-    test-renderer: "npm:1.2"
-    turbo: "npm:^2.9.16"
-    typescript: "npm:^5.9.3"
-    typescript-eslint: "npm:^8.59.1"
-  peerDependencies:
-    expo: ">=52.0.0"
-    react: ">=18.0.0"
-    react-native: ">=0.71.0"
-  peerDependenciesMeta:
-    expo:
-      optional: true
   languageName: unknown
   linkType: soft
 

@@ -1,5 +1,5 @@
 {
-  "name": "bunny-stream-react-native",
+  "name": "@bunny.net/stream-react-native",
   "version": "0.1.0",
   "description": "Bunny Stream React Native SDK - native bridge for Bunny Stream, wrapping the official iOS and Android SDKs.",
   "main": "./lib/commonjs/index.js",
@@ -90,7 +90,8 @@
     "yarn": ">=4.0.0"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.0.2",
@@ -225,7 +226,7 @@
       "tagName": "v${version}"
     },
     "npm": {
-      "publish": true
+      "publish": false
     },
     "github": {
       "release": true

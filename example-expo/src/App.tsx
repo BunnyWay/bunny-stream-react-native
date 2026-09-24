@@ -1,6 +1,6 @@
-import type { Video } from 'bunny-stream-react-native';
+import type { Video } from '@bunny.net/stream-react-native';
 
-import { initialize } from 'bunny-stream-react-native';
+import { initialize } from '@bunny.net/stream-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';

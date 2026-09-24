@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { initialize } from 'bunny-stream-react-native';
+import { initialize } from '@bunny.net/stream-react-native';
 
 import { ScreenWrapper } from './components/ScreenWrapper';
 import { RootNavigator } from './navigation/RootNavigator';

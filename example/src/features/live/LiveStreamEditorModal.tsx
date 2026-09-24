@@ -1,6 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
+import type { LiveStream, UploadEvent } from '@bunny.net/stream-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { LiveStream, UploadEvent } from 'bunny-stream-react-native';
 
 import * as React from 'react';
 import {
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BunnyStreamApi, BunnyStreamUpload, fold } from 'bunny-stream-react-native';
+import { BunnyStreamApi, BunnyStreamUpload, fold } from '@bunny.net/stream-react-native';
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { OutlineButton } from '../../components/OutlineButton';

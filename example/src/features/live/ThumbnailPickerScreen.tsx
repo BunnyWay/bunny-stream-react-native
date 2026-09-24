@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamApi, fold, type LiveStreamThumbnail } from 'bunny-stream-react-native';
+import { BunnyStreamApi, fold, type LiveStreamThumbnail } from '@bunny.net/stream-react-native';
 
 import { BunnyThumbnail } from '../../components/BunnyThumbnail';
 import { Header } from '../../components/Header';

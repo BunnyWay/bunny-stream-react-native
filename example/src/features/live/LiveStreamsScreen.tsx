@@ -1,12 +1,12 @@
 import type { RootStackParamList } from '../../navigation/types';
+import type { LiveStream, LiveStreamStatus } from '@bunny.net/stream-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { LiveStream, LiveStreamStatus } from 'bunny-stream-react-native';
 
 import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamApi, LiveStreamStatusEnum, fold } from 'bunny-stream-react-native';
+import { BunnyStreamApi, LiveStreamStatusEnum, fold } from '@bunny.net/stream-react-native';
 
 import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';

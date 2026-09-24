@@ -1,4 +1,4 @@
-import type { LiveStream } from 'bunny-stream-react-native';
+import type { LiveStream } from '@bunny.net/stream-react-native';
 
 import Clipboard from '@react-native-clipboard/clipboard';
 import * as React from 'react';

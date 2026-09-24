@@ -123,6 +123,16 @@ This repository will publish a package used by external applications. Please be 
 
 If a change may be breaking, call it out clearly in the PR description.
 
+## Releasing
+
+Maintainers only. From an up-to-date `main`:
+
+```sh
+yarn release
+```
+
+`release-it` bumps the version, pushes the `v<version>` tag, and creates the GitHub Release with generated notes. The tag triggers `.github/workflows/publish.yml`, which publishes `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token). Prerelease versions go to the `next` dist-tag.
+
 ## Using AI Tools
 
 AI tools are welcome when they help you work faster or improve quality, but contributors remain responsible for the final contribution.

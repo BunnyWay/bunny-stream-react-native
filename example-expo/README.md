@@ -1,6 +1,6 @@
 # Bunny Stream React Native — Expo example
 
-Minimal Expo app that consumes `bunny-stream-react-native` through its config
+Minimal Expo app that consumes `@bunny.net/stream-react-native` through its config
 plugin (`app.plugin.js`). Home screen lists the videos in a library; tapping a
 playable row opens a simple `BunnyStreamPlayer` screen.
 
