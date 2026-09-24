@@ -1,6 +1,6 @@
-import type { Video } from 'bunny-stream-react-native';
+import type { Video } from '@bunny.net/stream-react-native';
 
-import { BunnyStreamPlayer } from 'bunny-stream-react-native';
+import { BunnyStreamPlayer } from '@bunny.net/stream-react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export function PlayerScreen({ video, onBack }: { video: Video; onBack: () => void }) {

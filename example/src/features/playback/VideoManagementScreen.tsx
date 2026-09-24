@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { BunnyStreamApi, type VideoCodec } from 'bunny-stream-react-native';
+import { BunnyStreamApi, type VideoCodec } from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';

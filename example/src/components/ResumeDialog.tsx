@@ -1,4 +1,4 @@
-import type { PlaybackPosition } from 'bunny-stream-react-native';
+import type { PlaybackPosition } from '@bunny.net/stream-react-native';
 
 import * as React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';

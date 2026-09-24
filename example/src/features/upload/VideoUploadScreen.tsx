@@ -17,7 +17,7 @@ import {
   type BunnyError,
   type UploadEvent,
   type UploadMode,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';

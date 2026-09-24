@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "bunny-stream-react-native": "*",
+    "@bunny.net/stream-react-native": "*",
     "expo": "~57.0.24",
     "expo-dev-client": "~57.0.19",
     "expo-status-bar": "~57.0.1",

@@ -5,7 +5,7 @@ import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
 import * as React from 'react';
 import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { initialize } from 'bunny-stream-react-native';
+import { initialize } from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
 import { loadSettings, saveSettings } from '../../storage/settings';

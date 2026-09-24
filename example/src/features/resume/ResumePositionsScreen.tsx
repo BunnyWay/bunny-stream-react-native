@@ -1,6 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
+import type { PlaybackPosition } from '@bunny.net/stream-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { PlaybackPosition } from 'bunny-stream-react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
@@ -22,7 +22,7 @@ import {
   exportResumePositions,
   getAllResumePositions,
   importResumePositions,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';

@@ -3,7 +3,7 @@ import type { ImageStyle, StyleProp } from 'react-native';
 import * as React from 'react';
 import { Image, View } from 'react-native';
 
-import { useBunnyImage } from 'bunny-stream-react-native';
+import { useBunnyImage } from '@bunny.net/stream-react-native';
 
 /**
  * Thumbnail renderer for Bunny CDN URLs.

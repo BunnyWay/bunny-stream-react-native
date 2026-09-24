@@ -38,7 +38,7 @@ This repository contains the TypeScript contract, Android and iOS native bridges
 `BunnyStreamBroadcaster` is a Fabric component that hosts the native Bunny Stream camera capture pipeline. It supports recording a new VOD or broadcasting to an existing live stream.
 
 ```tsx
-import { BunnyStreamBroadcaster } from 'bunny-stream-react-native';
+import { BunnyStreamBroadcaster } from '@bunny.net/stream-react-native';
 
 <BunnyStreamBroadcaster
   accessKey="access-key"
@@ -91,7 +91,7 @@ playerRef.current?.skipBackward();   // -10s (configurable)
 
 ```tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useResumePosition } from 'bunny-stream-react-native';
+import { useResumePosition } from '@bunny.net/stream-react-native';
 
 const { restoredPosition, savePosition, clearPosition, getAllPositions } = useResumePosition({
   playerRef,
@@ -114,7 +114,7 @@ import {
   exportResumePositions,
   importResumePositions,
   cleanupExpiredResumePositions,
-} from 'bunny-stream-react-native';
+} from '@bunny.net/stream-react-native';
 
 const positions = await getAllResumePositions(AsyncStorage); // storage arg is iOS-only
 await clearResumePosition('video-id', AsyncStorage);
@@ -127,7 +127,7 @@ await cleanupExpiredResumePositions(AsyncStorage, 7 /* retentionDays, iOS-only a
 **Playback speed list** — `getPlaybackSpeeds()` queries the native engine on Android (respects `allowedSpeeds` and dashboard `playerSettings`); on iOS it returns the SDK's hardcoded list `[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]`:
 
 ```tsx
-import { getPlaybackSpeeds } from 'bunny-stream-react-native';
+import { getPlaybackSpeeds } from '@bunny.net/stream-react-native';
 
 const speeds = await getPlaybackSpeeds();
 ```
@@ -137,7 +137,7 @@ const speeds = await getPlaybackSpeeds();
 **BunnyImage** — image component that renders Bunny CDN thumbnails through the native image pipeline (Fresco on Android, `RCTImageLoader` on iOS). Injects the `Referer` header that CDN hotlink protection requires; no JS `fetch` + base64, so lists stay cheap.
 
 ```tsx
-import { BunnyImage, bunnyImageSource } from 'bunny-stream-react-native';
+import { BunnyImage, bunnyImageSource } from '@bunny.net/stream-react-native';
 
 <BunnyImage source={video.thumbnailUrl} style={{ width: 160, height: 90 }} />
 <Image source={bunnyImageSource(video.thumbnailUrl)} /> // or with plain Image
@@ -200,10 +200,8 @@ For local development setup, running the example app, and contribution guideline
 ## Installation
 
 ```bash
-npm install bunny-stream-react-native
+npm install @bunny.net/stream-react-native
 ```
-
-> Not published yet. This section is a placeholder for the first release.
 
 ### Expo
 
@@ -214,7 +212,7 @@ The package ships an Expo config plugin (`app.plugin.js`). Because the library c
   "expo": {
     "plugins": [
       [
-        "bunny-stream-react-native",
+        "@bunny.net/stream-react-native",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to record and broadcast video.",
           "microphonePermission": "Allow $(PRODUCT_NAME) to capture audio during recording and broadcasting.",
