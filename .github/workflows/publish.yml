@@ -57,10 +57,18 @@ jobs:
         if: steps.check.outputs.published != 'true'
         run: yarn prepare
 
+      # npm tries trusted publishing (OIDC) first. NPM_TOKEN is a fallback for
+      # the first publish, before a trusted publisher can exist. Remove the
+      # secret once trusted publishing is configured.
       # Prerelease versions (e.g. 1.0.0-beta.1) go to the "next" dist-tag.
       - name: Publish
         if: steps.check.outputs.published != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > "$HOME/.npmrc"
+          fi
           VERSION="$(node -p 'require("./package.json").version')"
           DIST_TAG=latest
           if [[ "$VERSION" == *-* ]]; then DIST_TAG=next; fi
