@@ -1,5 +1,7 @@
 # Bunny Stream React Native
 
+[![npm](https://img.shields.io/npm/v/@bunny.net/stream-react-native)](https://www.npmjs.com/package/@bunny.net/stream-react-native)
+
 > 🚧 **Coming soon.** This SDK is currently in early development and is not yet ready for use. Follow this repository for updates.
 
 ## What is Bunny Stream?
