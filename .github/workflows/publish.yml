@@ -36,17 +36,30 @@ jobs:
             exit 1
           fi
 
+      - name: Skip if version is already on npm
+        id: check
+        run: |
+          SPEC="$(node -p 'const p=require("./package.json"); p.name+"@"+p.version')"
+          if npm view "$SPEC" version >/dev/null 2>&1; then
+            echo "::notice::$SPEC is already on npm. Nothing to publish."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Lint and typecheck
+        if: steps.check.outputs.published != 'true'
         run: yarn lint && yarn typecheck
 
       - name: Test
+        if: steps.check.outputs.published != 'true'
         run: yarn test --maxWorkers=2
 
       - name: Build package
+        if: steps.check.outputs.published != 'true'
         run: yarn prepare
 
       # Prerelease versions (e.g. 1.0.0-beta.1) go to the "next" dist-tag.
       - name: Publish
+        if: steps.check.outputs.published != 'true'
         run: |
           VERSION="$(node -p 'require("./package.json").version')"
           DIST_TAG=latest
