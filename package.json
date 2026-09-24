@@ -1,6 +1,6 @@
 {
   "name": "@bunny.net/stream-react-native",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bunny Stream React Native SDK - native bridge for Bunny Stream, wrapping the official iOS and Android SDKs.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
