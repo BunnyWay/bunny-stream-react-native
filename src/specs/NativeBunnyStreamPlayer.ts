@@ -7,7 +7,7 @@ export interface Spec extends TurboModule {
   // SDK 4.0.0 requires a non-null access key (BunnyStreamApi.initialize no
   // longer accepts null). The public `initialize` wrapper validates and rejects
   // empty strings before calling native, so the bridge never receives null.
-  initialize(accessKey: string, libraryId: Double): void;
+  initialize(accessKey: string, libraryId: Double, integratorVersion?: string): void;
   // Android TV detection (leanback system feature). Always returns
   // false on iOS — the iOS SDK does not support tvOS.
   isRunningOnTV(): boolean;

@@ -176,6 +176,11 @@ using namespace facebook::react;
 
   _impl.pendingAutoPlay = newProps.autoPlay;
   _impl.pendingControls = newProps.controls;
+  if (!newProps.watermark.empty()) {
+    _impl.pendingWatermark = [NSString stringWithUTF8String:newProps.watermark.c_str()];
+  } else {
+    _impl.pendingWatermark = nil;
+  }
 
   // resumeConfig is Android-only. iOS uses a JS-side fallback
   // (useResumePosition hook with AsyncStorage). The prop is accepted but

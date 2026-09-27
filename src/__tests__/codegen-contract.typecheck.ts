@@ -105,7 +105,10 @@ export type PlayerCommandContract = Assert<
 >;
 
 export type InitializationContract = Assert<
-  Compatible<Parameters<typeof initialize>, Parameters<PlayerSpec['initialize']>>
+  Compatible<
+    Parameters<typeof initialize>,
+    [Parameters<PlayerSpec['initialize']>[0], Parameters<PlayerSpec['initialize']>[1]]
+  >
 >;
 export type ApiMethodContract = Assert<
   Exclude<NativeApiMethods, PublicApiMethods> extends never ? true : false

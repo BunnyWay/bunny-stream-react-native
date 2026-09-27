@@ -62,6 +62,31 @@ import { BunnyStreamBroadcaster } from '@bunny.net/stream-react-native';
 
 **Background policy:** The broadcaster is foreground-only. Neither native SDK exposes a public background-broadcast or interruption-resume API. Host apps must stop the broadcast on app backgrounding.
 
+### iOS player presentation
+
+Set `controls={false}` to hide the native transport controls for VOD or live playback on iOS. Video, captions, countdown, trailer, thumbnail, watermark and error overlays remain available.
+
+The optional `watermark` prop renders a client-side overlay on iOS:
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'live', libraryId, streamId }}
+  controls={false}
+  watermark={{
+    imageUrl: 'https://cdn.example.com/logo.png',
+    position: 'topTrailing',
+    relativeWidth: 0.18,
+    opacity: 0.85,
+  }}
+/>
+```
+
+Watermark overlay rendering is currently iOS-only and is not backend watermark management. Android ignores this prop until its native SDK exposes equivalent support.
+
+The wrapper automatically appends `bunny-stream-react-native/<version>` to the native iOS SDK User-Agent. No additional initialization option is required.
+
+Pre-stream trailers use regular VOD assets: upload or select a video, assign its ID through `preStreamTrailerVideoId`, preview it with the VOD player, and remove it with the existing video API. There is no separate trailer-asset resource.
+
 ### Extended player controls
 
 Adds skip, chapters/moments/retention events, and resume position.
