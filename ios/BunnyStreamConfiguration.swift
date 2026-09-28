@@ -1,3 +1,4 @@
+import BunnyStreamAPI
 import Foundation
 
 /// Thread-safe in-memory configuration store for the React Native bridge.
@@ -28,6 +29,10 @@ import Foundation
     lock.lock()
     _config = Config(accessKey: accessKey, libraryId: libraryId)
     lock.unlock()
+  }
+
+  @objc public func configureIntegrator(version: String) {
+    SDKInfo.configureIntegrator(name: "bunny-stream-react-native", version: version)
   }
 
   /// Returns the stored access key, or `nil` if `initialize` was never called.

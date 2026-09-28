@@ -9,7 +9,13 @@ import type {
 import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 
 export type PlayerPlaybackState =
-  'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'playing'
+  | 'paused'
+  | 'ended'
+  | 'error';
 
 export type PlayerReadyEvent = Readonly<{
   videoId: string;
@@ -93,6 +99,7 @@ export interface NativeProps extends ViewProps {
   expires?: Double;
   autoPlay?: WithDefault<boolean, true>;
   controls?: WithDefault<boolean, true>;
+  watermark?: string;
   onReady?: DirectEventHandler<PlayerReadyEvent> | null;
   onPlaybackStateChange?: DirectEventHandler<PlayerStateChangeEvent> | null;
   onProgress?: DirectEventHandler<PlayerProgressEvent> | null;

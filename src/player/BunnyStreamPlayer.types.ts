@@ -1,7 +1,21 @@
 import type { ViewProps } from 'react-native';
 
 export type PlayerPlaybackState =
-  'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'playing'
+  | 'paused'
+  | 'ended'
+  | 'error';
+
+export type PlayerWatermark = Readonly<{
+  imageUrl: string;
+  position?: 'topLeading' | 'topTrailing' | 'bottomLeading' | 'bottomTrailing' | 'center';
+  relativeWidth?: number;
+  opacity?: number;
+  margin?: number;
+}>;
 
 export type PlayerReadyEvent = Readonly<{
   videoId: string;
@@ -175,7 +189,10 @@ export type BunnyStreamSource =
  * available renditions with `BunnyStreamApi.fetchVideoResolutions`.
  */
 export type VideoQualityPreference =
-  'auto' | { maxHeight: number } | { maxBitrate: number } | { maxWidth: number; maxHeight: number };
+  | 'auto'
+  | { maxHeight: number }
+  | { maxBitrate: number }
+  | { maxWidth: number; maxHeight: number };
 
 /**
  * Imperative commands available for VOD playback through
@@ -237,8 +254,10 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   source: BunnyStreamSource;
   /** Whether playback starts automatically. VOD only. Default: `true`. */
   autoPlay?: boolean;
-  /** Whether native playback controls are visible. VOD only. Default: `true`. */
+  /** Whether native playback controls are visible. Default: `true`. */
   controls?: boolean;
+  /** Optional client-side watermark overlay. Currently rendered on iOS only. */
+  watermark?: PlayerWatermark | null;
   onReady?: (event: NativeEvent<PlayerReadyEvent>) => void;
   onPlaybackStateChange?: (event: NativeEvent<PlayerStateChangeEvent>) => void;
   onProgress?: (event: NativeEvent<PlayerProgressEvent>) => void;

@@ -1,5 +1,10 @@
 import type { HostComponent, ViewProps } from 'react-native';
-import type { DirectEventHandler, Double, Int32 } from 'react-native/Libraries/Types/CodegenTypes';
+import type {
+  DirectEventHandler,
+  Double,
+  Int32,
+  WithDefault,
+} from 'react-native/Libraries/Types/CodegenTypes';
 
 import { codegenNativeComponent } from 'react-native';
 
@@ -46,6 +51,8 @@ export interface NativeProps extends ViewProps {
   streamId: string;
   token?: string;
   expires?: Double;
+  controls?: WithDefault<boolean, true>;
+  watermark?: string;
   onVideoSizeChange?: DirectEventHandler<LiveVideoSizeChangeEvent> | null;
   onLiveStateChange?: DirectEventHandler<LiveStateChangeEvent> | null;
   onLiveError?: DirectEventHandler<LiveErrorEvent> | null;

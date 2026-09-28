@@ -48,7 +48,7 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
   private fun positionManager(): PlaybackPositionManager =
     DefaultPlaybackPositionManager(reactApplicationContext, ResumeConfig())
 
-  override fun initialize(accessKey: String, libraryId: Double) {
+  override fun initialize(accessKey: String, libraryId: Double, integratorVersion: String?) {
     require(accessKey.isNotBlank()) {
       "accessKey must be a non-empty string (SDK 4.0.0 requirement)"
     }
