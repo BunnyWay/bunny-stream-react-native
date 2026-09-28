@@ -6,7 +6,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/BunnyWay/bunny-stream-ios",
       "state" : {
-        "revision" : "4158e2e1c1416d99aa0e4a39eb85a0ac8df0e570"
+        "revision" : "c58dd658ee5ec72d2dd15cbce03b45053b858eab"
       }
     },
     {
@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections",
       "state" : {
-        "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
-        "version" : "1.6.0"
+        "revision" : "98ef3c98609a1e31b7e157b5b619579001a789d6",
+        "version" : "1.7.1"
       }
     },
     {
@@ -140,8 +140,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/googleads/swift-package-manager-google-interactive-media-ads-ios.git",
       "state" : {
-        "revision" : "fed61380cddcc0e39709357418822e9e88ea07ae",
-        "version" : "3.18.4"
+        "revision" : "fdf54991c74edc228b59592a44f33c564abafcc0",
+        "version" : "3.32.0"
       }
     },
     {
