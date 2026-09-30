@@ -1,6 +1,19 @@
 # Bunny Stream React Native
 
-[![npm](https://img.shields.io/npm/v/@bunny.net/stream-react-native)](https://www.npmjs.com/package/@bunny.net/stream-react-native)
+<p align="center">
+  <img src="resources/bunnynet.svg" width="70%" alt="BunnyNet" />
+</p>
+<p align="center">
+    <a href="https://www.npmjs.com/package/@bunny.net/stream-react-native" alt="npm">
+        <img src="https://img.shields.io/npm/v/@bunny.net/stream-react-native" />
+    </a>
+    <a href="./LICENSE" alt="License">
+        <img src="https://img.shields.io/badge/License-MIT-green.svg" />
+    </a>
+    <a href="https://github.com/BunnyWay/bunny-stream-react-native/actions/workflows/ci.yml" alt="CI Status">
+        <img src="https://github.com/BunnyWay/bunny-stream-react-native/actions/workflows/ci.yml/badge.svg" />
+    </a>
+</p>
 
 > 🚧 **Coming soon.** This SDK is currently in early development and is not yet ready for use. Follow this repository for updates.
 

@@ -8,7 +8,7 @@ This project is currently in early, pre-release development. Security fixes are 
 
 Please do not report security vulnerabilities in public GitHub issues.
 
-To report a vulnerability, contact us privately at support@bunny.net with the subject line:
+To report a vulnerability, contact us privately at <support@bunny.net> with the subject line:
 
 ```text
 [Security] bunny-stream-react-native
@@ -16,7 +16,7 @@ To report a vulnerability, contact us privately at support@bunny.net with the su
 
 Include as much detail as you can safely share:
 
-- Affected area (`src` TypeScript API, native Android bridge, native iOS bridge, or example app, once available)
+- Affected area (`src` TypeScript API, native Android bridge, native iOS bridge, broadcaster, or example app)
 - Affected version or commit
 - Steps to reproduce
 - Impact and possible attack scenario
@@ -37,7 +37,7 @@ In scope:
 - Unsafe handling of access keys, tokens, or signed URLs
 - Upload or playback behavior that could expose private content
 - Dependency or build configuration issues that affect SDK users
-- Security-sensitive issues in the native bridge, once implemented
+- Security-sensitive issues in the native bridge, broadcaster, or camera recording flows
 
 Out of scope:
 
