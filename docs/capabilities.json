@@ -27,6 +27,15 @@
       "notes": "The wrapper currently exposes global initialization."
     },
     {
+      "id": "integration.user-agent",
+      "area": "React Native User-Agent",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "Both platforms append bunny-stream-react-native/<version> while preserving the native SDK User-Agent on REST, upload, and player media requests."
+    },
+    {
       "id": "player.vod",
       "area": "VOD playback",
       "android": "supported",
@@ -43,6 +52,15 @@
       "reactNative": "supported",
       "phase": "current",
       "notes": "Native SDKs own polling, recovery, DVR, and live-to-VOD transitions."
+    },
+    {
+      "id": "player.controls-visibility",
+      "area": "Native controls visibility",
+      "android": "supported",
+      "ios": "supported",
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "The controls prop hides native transport controls for VOD and live on both platforms without removing state overlays (countdown, trailer, thumbnail, live badge, errors, watermark). Dashboard-driven icons/theme remain native."
     },
     {
       "id": "player.vod-commands",
@@ -119,11 +137,11 @@
     {
       "id": "player.watermark",
       "area": "Watermark",
-      "android": "unsupported",
+      "android": "supported",
       "ios": "supported",
-      "reactNative": "unsupported",
-      "phase": "phase-6",
-      "notes": "No equivalent shared public native API."
+      "reactNative": "supported",
+      "phase": "current",
+      "notes": "The watermark prop renders a client-side overlay on VOD and live for both platforms. Backend watermark upload/list/delete is not part of this contract."
     },
     {
       "id": "player.theme-icons",

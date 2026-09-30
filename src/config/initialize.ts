@@ -1,3 +1,4 @@
+import packageJson from '../../package.json';
 import NativeBunnyStreamPlayer from '../specs/NativeBunnyStreamPlayer';
 import { validateAccessKey, validateLibraryId } from './validation';
 
@@ -12,5 +13,5 @@ import { validateAccessKey, validateLibraryId } from './validation';
 export function initialize(accessKey: string, libraryId: number): void {
   validateAccessKey(accessKey);
   validateLibraryId(libraryId);
-  NativeBunnyStreamPlayer.initialize(accessKey, libraryId);
+  NativeBunnyStreamPlayer.initialize(accessKey, libraryId, packageJson.version);
 }

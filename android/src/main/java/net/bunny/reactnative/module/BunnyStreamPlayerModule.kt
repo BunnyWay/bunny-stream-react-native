@@ -10,6 +10,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import net.bunny.api.BunnyStreamApi
+import net.bunny.api.BunnyStreamConfig
+import net.bunny.api.BunnyStreamIntegrator
 import net.bunny.api.playback.DefaultPlaybackPositionManager
 import net.bunny.api.playback.PlaybackPositionManager
 import net.bunny.api.playback.ResumeConfig
@@ -48,15 +50,26 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
   private fun positionManager(): PlaybackPositionManager =
     DefaultPlaybackPositionManager(reactApplicationContext, ResumeConfig())
 
-  override fun initialize(accessKey: String, libraryId: Double) {
+  override fun initialize(accessKey: String, libraryId: Double, integratorVersion: String?) {
     require(accessKey.isNotBlank()) {
       "accessKey must be a non-empty string (SDK 4.0.0 requirement)"
     }
     val libraryIdLong = validateLibraryId(libraryId)
+    val integrator = integratorVersion
+      ?.takeIf { it.isNotBlank() }
+      ?.let { version ->
+        BunnyStreamIntegrator(
+          name = INTEGRATOR_NAME,
+          version = version,
+        )
+      }
     BunnyStreamApi.initialize(
       context = reactApplicationContext.applicationContext,
-      accessKey = accessKey,
-      libraryId = libraryIdLong,
+      config = BunnyStreamConfig(
+        accessKey = accessKey,
+        libraryId = libraryIdLong,
+        integrator = integrator,
+      ),
     )
   }
 
@@ -157,6 +170,9 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
 
   companion object {
     const val NAME = "BunnyStreamPlayer"
+
+    /** Integrator name sent to the Android SDK for the User-Agent suffix. */
+    private const val INTEGRATOR_NAME = "bunny-stream-react-native"
 
     /** Mirrors the iOS SDK's hardcoded speed list; used when the engine is down. */
     private val DEFAULT_SPEEDS = doubleArrayOf(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)

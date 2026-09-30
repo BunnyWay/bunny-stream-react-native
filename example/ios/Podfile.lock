@@ -21,7 +21,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - BunnyStreamReactNative (0.1.0):
+  - BunnyStreamReactNative (0.1.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2323,7 +2323,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   AsyncStorage: dba9d05b9aa34413760ea5a74f63a7e7f9fddf73
-  BunnyStreamReactNative: b14582753b3019d2117195b65d955be6eab76aff
+  BunnyStreamReactNative: c8f908b079f7954e963a1386c78abf43bae1c313
   FBLazyVector: 3c3be9a019176b5699455f7f66c5444b78a411c6
   hermes-engine: 9d53d4bebaffc06f22cb98f78533f1567349b68b
   RCTDeprecation: bccb6545c26db881ecddfd83a3f9ea82aba1605f

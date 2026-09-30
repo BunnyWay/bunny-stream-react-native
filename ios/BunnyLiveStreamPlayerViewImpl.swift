@@ -30,6 +30,8 @@ import BunnyStreamPlayer
     var streamId: String = ""
     var token: String? = nil
     var expires: Int64? = nil
+    var controls: Bool = true
+    var watermark: String? = nil
   }
 
   private var hostingController: UIHostingController<AnyView>?
@@ -76,16 +78,25 @@ import BunnyStreamPlayer
   @objc public var pendingStreamId: String = ""
   @objc public var pendingToken: String? = nil
   @objc public var pendingExpires: NSNumber? = nil
+  @objc public var pendingControls: Bool = true
+  @objc public var pendingWatermark: String? = nil
 
   @objc public func commitProps() {
     let next = Props(
       libraryId: pendingLibraryId,
       streamId: pendingStreamId,
       token: pendingToken,
-      expires: pendingExpires?.int64Value
+      expires: pendingExpires?.int64Value,
+      controls: pendingControls,
+      watermark: pendingWatermark
     )
 
-    let sourceChanged = next != currentProps
+    let sourceChanged = next.libraryId != currentProps.libraryId
+      || next.streamId != currentProps.streamId
+      || next.token != currentProps.token
+      || next.expires != currentProps.expires
+    let presentationChanged = next.controls != currentProps.controls
+      || next.watermark != currentProps.watermark
     currentProps = next
 
     if sourceChanged {
@@ -99,6 +110,8 @@ import BunnyStreamPlayer
 
     if sourceChanged || !isMounted {
       reloadPlayer()
+    } else if presentationChanged {
+      updateHostedPlayer()
     }
   }
 
@@ -107,28 +120,7 @@ import BunnyStreamPlayer
 
     let accessKey = BunnyStreamConfiguration.shared.accessKey ?? ""
 
-    let onStateChange: (BunnyLiveStreamPlaybackState) -> Void = { [weak self] state in
-      self?.handleStateChange(state)
-    }
-
-    let onPlaybackError: (Error) -> Void = { [weak self] error in
-      self?.handlePlaybackError(error)
-    }
-
-    let livePlayer = BunnyStreamLivePlayer(
-      accessKey: accessKey,
-      libraryId: currentProps.libraryId,
-      streamId: currentProps.streamId,
-      token: currentProps.token,
-      expires: currentProps.expires,
-      onStateChange: onStateChange,
-      onPlaybackError: onPlaybackError
-    )
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .ignoresSafeArea()
-
-    // Wrap in AnyView so the hosting controller type is stable across reloads.
-    let host = UIHostingController(rootView: AnyView(livePlayer))
+    let host = UIHostingController(rootView: makeLivePlayerView(accessKey: accessKey))
     if #available(iOS 16.4, *) {
       host.safeAreaRegions = []
     }
@@ -163,6 +155,65 @@ import BunnyStreamPlayer
         self.dvrEnabled = stream.dvrEnabled
       }
     }
+  }
+
+  private func makeLivePlayerView(accessKey: String) -> AnyView {
+    let onStateChange: (BunnyLiveStreamPlaybackState) -> Void = { [weak self] state in
+      self?.handleStateChange(state)
+    }
+    let onPlaybackError: (Error) -> Void = { [weak self] error in
+      self?.handlePlaybackError(error)
+    }
+    return AnyView(
+      BunnyStreamLivePlayer(
+        accessKey: accessKey,
+        libraryId: currentProps.libraryId,
+        streamId: currentProps.streamId,
+        watermark: makeWatermark(from: currentProps.watermark),
+        token: currentProps.token,
+        expires: currentProps.expires,
+        controlsEnabled: currentProps.controls,
+        onStateChange: onStateChange,
+        onPlaybackError: onPlaybackError
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .ignoresSafeArea()
+    )
+  }
+
+  private func updateHostedPlayer() {
+    hostingController?.rootView = makeLivePlayerView(
+      accessKey: BunnyStreamConfiguration.shared.accessKey ?? ""
+    )
+  }
+
+  private func makeWatermark(from json: String?) -> PlayerWatermark? {
+    guard let json, let data = json.data(using: .utf8),
+          let config = try? JSONDecoder().decode(WatermarkConfig.self, from: data),
+          let url = URL(string: config.imageUrl) else { return nil }
+    let position: PlayerWatermark.Position
+    switch config.position {
+    case "topLeading": position = .topLeading
+    case "bottomLeading": position = .bottomLeading
+    case "bottomTrailing": position = .bottomTrailing
+    case "center": position = .center
+    default: position = .topTrailing
+    }
+    return PlayerWatermark(
+      imageURL: url,
+      position: position,
+      relativeWidth: CGFloat(config.relativeWidth ?? 0.18),
+      opacity: config.opacity ?? 0.85,
+      margin: CGFloat(config.margin ?? 12)
+    )
+  }
+
+  private struct WatermarkConfig: Decodable {
+    let imageUrl: String
+    let position: String?
+    let relativeWidth: Double?
+    let opacity: Double?
+    let margin: Double?
   }
 
   private func removeHostingController() {

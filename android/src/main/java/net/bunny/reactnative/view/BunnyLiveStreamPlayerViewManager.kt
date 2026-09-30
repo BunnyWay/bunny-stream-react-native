@@ -81,6 +81,14 @@ class BunnyLiveStreamPlayerViewManager :
     view.setExpires(value)
   }
 
+  override fun setControls(view: BunnyLiveStreamPlayerView, value: Boolean) {
+    view.setControls(value)
+  }
+
+  override fun setWatermark(view: BunnyLiveStreamPlayerView, value: String?) {
+    view.setWatermark(value)
+  }
+
   companion object {
     const val NAME = "BunnyLiveStreamPlayerView"
 

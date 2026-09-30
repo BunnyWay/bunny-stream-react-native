@@ -102,6 +102,13 @@ liveStateFromString(const std::string &s)
     _impl.pendingExpires = nil;
   }
 
+  _impl.pendingControls = newProps.controls;
+  if (!newProps.watermark.empty()) {
+    _impl.pendingWatermark = [NSString stringWithUTF8String:newProps.watermark.c_str()];
+  } else {
+    _impl.pendingWatermark = nil;
+  }
+
   [super updateProps:props oldProps:oldProps];
 }
 

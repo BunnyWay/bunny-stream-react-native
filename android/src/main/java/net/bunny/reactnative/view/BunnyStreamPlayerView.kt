@@ -32,6 +32,7 @@ import net.bunny.api.playback.ResumeConfig
 import net.bunny.api.playback.ResumePositionListener
 import net.bunny.bunnystreamplayer.model.Chapter
 import net.bunny.bunnystreamplayer.model.Moment
+import net.bunny.bunnystreamplayer.model.PlayerWatermark
 import net.bunny.bunnystreamplayer.model.RetentionGraphEntry
 import net.bunny.reactnative.R
 import net.bunny.reactnative.adapter.PlayerEventListener
@@ -324,12 +325,16 @@ class BunnyStreamPlayerView(
   private var pendingExpires: Long? = null
   private var pendingAutoPlay: Boolean = true
   private var pendingControls: Boolean = true
+  private var pendingWatermark: String? = null
   private var pendingResumeConfig: String? = null
   private var resumeConfigEnabled: Boolean = false
   private var pendingUseNativeTvPlayer: Boolean = false
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
+
+  /** Last watermark applied to the native player. */
+  private var committedWatermark: PlayerWatermark? = null
 
   // --- Setters called by the ViewManager delegate ---
 
@@ -363,6 +368,10 @@ class BunnyStreamPlayerView(
 
   fun setControls(value: Boolean) {
     pendingControls = value
+  }
+
+  fun setWatermark(value: String?) {
+    pendingWatermark = value
   }
 
   fun setResumeConfig(value: String?) {
@@ -413,6 +422,14 @@ class BunnyStreamPlayerView(
 
     if (!sourceChanged && oldProps.controls != newProps.controls) {
       applyControls(newProps.controls)
+    }
+
+    // Watermark is intentionally outside the source identity — changing it
+    // only updates the overlay, without reloading the video.
+    val newWatermark = parseWatermark(pendingWatermark)
+    if (newWatermark != committedWatermark) {
+      committedWatermark = newWatermark
+      player.watermark = newWatermark
     }
 
     // Resume position: enable/disable the native SDK's
@@ -543,6 +560,39 @@ class BunnyStreamPlayerView(
       null
     }
   }
+
+  /**
+   * Parses the JSON-serialized watermark prop into the SDK's [PlayerWatermark].
+   * Returns `null` when the prop is absent, blank, or malformed — malformed values
+   * are silently ignored to avoid a bad prop crashing the player; the JS side
+   * validates before sending.
+   */
+  private fun parseWatermark(json: String?): PlayerWatermark? {
+    if (json.isNullOrBlank()) return null
+    return try {
+      val obj = JSONObject(json)
+      PlayerWatermark(
+        imageUrl = obj.getString("imageUrl"),
+        position = parseWatermarkPosition(obj.optString("position", "topTrailing")),
+        relativeWidth = obj.optDouble("relativeWidth", 0.18).toFloat(),
+        opacity = obj.optDouble("opacity", 0.85).toFloat(),
+        marginDp = obj.optDouble("margin", 12.0).toFloat(),
+      )
+    } catch (_: Exception) {
+      Log.w(TAG, "Failed to parse watermark prop; ignoring: ${json.take(80)}")
+      null
+    }
+  }
+
+  private fun parseWatermarkPosition(value: String): PlayerWatermark.Position =
+    when (value) {
+      "topLeading" -> PlayerWatermark.Position.TOP_LEADING
+      "topTrailing" -> PlayerWatermark.Position.TOP_TRAILING
+      "bottomLeading" -> PlayerWatermark.Position.BOTTOM_LEADING
+      "bottomTrailing" -> PlayerWatermark.Position.BOTTOM_TRAILING
+      "center" -> PlayerWatermark.Position.CENTER
+      else -> PlayerWatermark.Position.TOP_TRAILING
+    }
 
   /**
    * Compatibility adapter for SDK 4.0.0: setting `controlsEnabled = true`

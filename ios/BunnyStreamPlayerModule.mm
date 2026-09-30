@@ -7,7 +7,9 @@
 
 RCT_EXPORT_MODULE("BunnyStreamPlayer")
 
-- (void)initialize:(NSString *)accessKey libraryId:(double)libraryId
+- (void)initialize:(NSString *)accessKey
+         libraryId:(double)libraryId
+ integratorVersion:(NSString *)integratorVersion
 {
   if (accessKey.length == 0) {
     @throw [NSException exceptionWithName:@"InvalidArgumentException"
@@ -18,6 +20,10 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
     @throw [NSException exceptionWithName:@"InvalidArgumentException"
                                    reason:@"libraryId must be a positive integer"
                                  userInfo:nil];
+  }
+
+  if (integratorVersion.length > 0) {
+    [[BunnyStreamConfiguration shared] configureIntegratorWithVersion:integratorVersion];
   }
 
   // Store the configuration in the bridge-owned configuration store.
