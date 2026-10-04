@@ -34,7 +34,9 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
   const [captionLabel, setCaptionLabel] = React.useState('English');
   const [captionBase64, setCaptionBase64] = React.useState('');
   const [deleteCaptionLang, setDeleteCaptionLang] = React.useState('en');
-  const [selectedCodec, setSelectedCodec] = React.useState<VideoCodec>('h264');
+  // Default to vp9: h264 is the codec every video is already encoded with,
+  // so requesting it always fails server-side validation.
+  const [selectedCodec, setSelectedCodec] = React.useState<VideoCodec>('vp9');
 
   const [status, setStatus] = React.useState<{ message: string; ok: boolean } | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -241,6 +243,10 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
               </TouchableOpacity>
             ))}
           </View>
+          <Text style={mgmtStyles.subLabel}>
+            Adds an output codec — requires Premium Encoding and the codec enabled in library
+            settings; fails if the codec was already processed.
+          </Text>
           <ActionButton label="Reencode with codec" onPress={handleReencodeCodec} />
           <ActionButton label="Repackage" onPress={handleRepackage} />
         </Section>

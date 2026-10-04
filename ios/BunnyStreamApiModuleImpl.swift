@@ -1088,8 +1088,17 @@ import React
             resolve(errEnvelope(kind: "Decode", httpStatus: 0,
                                 message: "Unexpected response body", isTerminal: true))
           }
-        case .badRequest:
-          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: "Bad request", isTerminal: true))
+        case .badRequest(let resp):
+          // This endpoint returns a plain string body with the validation
+          // failure reason ("codec already processed", "Premium Encoding not
+          // enabled", missing source file, ...).
+          let detail: String
+          if case .json(let message) = resp.body {
+            detail = message
+          } else {
+            detail = "Bad request"
+          }
+          resolve(errEnvelope(kind: "Http", httpStatus: 400, message: detail, isTerminal: true))
         case .unauthorized:
           resolve(errEnvelope(kind: "Auth", httpStatus: 401, message: "Unauthorized", isTerminal: true))
         case .notFound:
