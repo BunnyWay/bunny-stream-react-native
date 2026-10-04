@@ -84,6 +84,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         <BunnyStreamPlayer
           style={styles.player}
           source={source}
+          onError={eventHandlers.onError}
           onVideoSizeChange={(e) => {
             setVideoSize(e.nativeEvent);
             eventHandlers.onVideoSizeChange?.(e);
@@ -100,7 +101,11 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {loading ? (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.onPrimary} />
+            <ActivityIndicator
+              size="large"
+              color={colors.onPrimary}
+              accessibilityLabel="Loading live stream"
+            />
           </View>
         ) : null}
       </View>
@@ -109,6 +114,13 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         {/* Countdown display */}
         {liveState?.state === 'countdown' && liveState.targetEpochMs ? (
           <CountdownDisplay targetEpochMs={liveState.targetEpochMs} title={liveState.title} />
+        ) : null}
+
+        {state.error ? (
+          <StatusBanner
+            message={`Player error: ${state.error.message}`}
+            style={playerStyles.errorSpacing}
+          />
         ) : null}
 
         {/* Terminal live error */}

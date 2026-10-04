@@ -83,14 +83,14 @@ export type LibraryConfig = {
 
 /**
  * Resolves the effective library config: stored settings win, falling back to
- * `.env` defaults. `libraryId` is null when no valid numeric ID is configured.
+ * `.env` defaults. `libraryId` is null when no positive integer ID is configured.
  */
 export async function loadLibraryConfig(): Promise<LibraryConfig> {
   const stored = await loadSettings();
-  const accessKey = stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '';
+  const accessKey = (stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '').trim();
   const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
-  const libId = parseInt(libIdStr, 10);
-  return { accessKey, libraryId: isNaN(libId) ? null : libId };
+  const libId = Number(libIdStr);
+  return { accessKey, libraryId: Number.isInteger(libId) && libId > 0 ? libId : null };
 }
 
 // --- Direct play last-used values ---

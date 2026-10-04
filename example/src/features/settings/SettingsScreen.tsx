@@ -29,18 +29,26 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
   }, []);
 
   const handleSave = async () => {
-    const libId = parseInt(libraryId, 10);
-    if (!libraryId || isNaN(libId)) {
-      Alert.alert('Invalid input', 'Please enter a valid numeric Library ID.');
+    const libId = Number(libraryId);
+    if (!Number.isInteger(libId) || libId <= 0) {
+      Alert.alert('Invalid input', 'Please enter a positive integer Library ID.');
       return;
     }
     if (!accessKey.trim()) {
       Alert.alert('Invalid input', 'Please enter a non-empty Access Key (SDK 4.0.0 requirement).');
       return;
     }
-    initialize(accessKey, libId);
-    await saveSettings({ accessKey, libraryId });
-    navigation.goBack();
+    try {
+      const normalizedAccessKey = accessKey.trim();
+      initialize(normalizedAccessKey, libId);
+      await saveSettings({ accessKey: normalizedAccessKey, libraryId: String(libId) });
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert(
+        'SDK initialization failed',
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   };
 
   return (

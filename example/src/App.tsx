@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initialize } from '@bunny.net/stream-react-native';
@@ -15,14 +15,22 @@ export default function App() {
 
   React.useEffect(() => {
     (async () => {
-      const { accessKey, libraryId } = await loadLibraryConfig();
-      // SDK 4.0.0 requires a non-empty access key. Skip initialization when
-      // none is configured rather than throwing — the user can set it in
-      // Settings, and the player screens surface a clear message.
-      if (libraryId != null && accessKey.trim().length > 0) {
-        initialize(accessKey, libraryId);
+      try {
+        const { accessKey, libraryId } = await loadLibraryConfig();
+        // SDK 4.0.0 requires a non-empty access key. Skip initialization when
+        // none is configured rather than throwing — the user can set it in
+        // Settings, and the player screens surface a clear message.
+        if (libraryId != null && accessKey.trim().length > 0) {
+          initialize(accessKey, libraryId);
+        }
+      } catch (error) {
+        Alert.alert(
+          'SDK initialization failed',
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 
