@@ -31,7 +31,6 @@
 - [ ] `yarn typecheck`
 - [ ] `yarn lint`
 - [ ] `yarn test`
-- [ ] `yarn capabilities:check`
 - [ ] Android example builds (`yarn android` in `example/`)
 - [ ] iOS example builds (`yarn ios` in `example/`)
 - [ ] Manual playback/upload/broadcast test
@@ -49,7 +48,6 @@
 ## Checklist
 
 - [ ] The PR is focused on one clear change.
-- [ ] `docs/CAPABILITIES.md` was regenerated via `yarn capabilities:generate` if capabilities changed.
 - [ ] `native-sdk-baselines.json` points to a public, merged native SDK commit or tag when native APIs are required.
 - [ ] Public API or behavior changes are documented (README / docs).
 - [ ] Tests or manual verification are included where appropriate.
