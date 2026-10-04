@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,7 +18,6 @@ import { BunnyStreamApi, type VideoCodec } from '@bunny.net/stream-react-native'
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';
 import { StatusBanner } from '../../components/StatusBanner';
-import { pickImage } from '../../media/picker';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
@@ -30,13 +30,11 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
 
   const [thumbnailUrl, setThumbnailUrl] = React.useState('');
   const [fetchUrl, setFetchUrl] = React.useState('');
-  const [refetchUrl, setRefetchUrl] = React.useState('');
   const [captionLanguage, setCaptionLanguage] = React.useState('en');
   const [captionLabel, setCaptionLabel] = React.useState('English');
   const [captionBase64, setCaptionBase64] = React.useState('');
   const [deleteCaptionLang, setDeleteCaptionLang] = React.useState('en');
   const [selectedCodec, setSelectedCodec] = React.useState<VideoCodec>('h264');
-  const [resolutionInput, setResolutionInput] = React.useState('720p');
 
   const [status, setStatus] = React.useState<{ message: string; ok: boolean } | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -72,31 +70,11 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
       })),
     );
 
-  const handleUploadThumbnail = async () => {
-    const picked = await pickImage();
-    if (!picked) return;
-    runAction('uploadThumbnail', () =>
-      BunnyStreamApi.uploadThumbnail(libraryId, videoId, picked.uri).then((r) => ({
-        ok: r.ok,
-        error: r.ok ? undefined : { message: r.error.message },
-      })),
-    );
-  };
-
   const handleFetchNewVideo = () =>
     runAction('fetchNewVideo', () =>
       BunnyStreamApi.fetchNewVideo({
         libraryId,
         request: { url: fetchUrl },
-      }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
-    );
-
-  const handleRefetchVideo = () =>
-    runAction('refetchVideo', () =>
-      BunnyStreamApi.refetchVideo({
-        libraryId,
-        videoId,
-        request: { url: refetchUrl },
       }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
     );
 
@@ -141,48 +119,46 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
       })),
     );
 
-  const handleDeleteResolutionsDryRun = () =>
-    runAction('deleteResolutions (dryRun)', () =>
-      BunnyStreamApi.deleteResolutions({
-        libraryId,
-        videoId,
-        resolutions: resolutionInput
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        dryRun: true,
-      }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
-    );
-
-  const handleDeleteResolutionsConfirm = () =>
-    runAction('deleteResolutions', () =>
-      BunnyStreamApi.deleteResolutions({
-        libraryId,
-        videoId,
-        resolutions: resolutionInput
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        dryRun: false,
-      }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
-    );
-
   const handleTranscribe = () =>
     runAction('transcribeVideo', () =>
       BunnyStreamApi.transcribeVideo({
         libraryId,
         videoId,
-        request: { generateTitle: true, generateDescription: true },
+        // The API rejects re-transcription of already auto-transcribed videos
+        // unless force is set; an explicit user action implies re-queueing.
+        // sourceLanguage is required when the library has no transcription
+        // defaults to fall back on.
+        request: {
+          generateTitle: true,
+          generateDescription: true,
+          sourceLanguage: 'en',
+          targetLanguages: ['en'],
+        },
+        force: true,
       }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
     );
 
-  const handleSmartGenerate = () =>
-    runAction('smartGenerate', () =>
-      BunnyStreamApi.smartGenerate(libraryId, videoId, {
-        generateTitle: true,
-        generateDescription: true,
-      }).then((r) => ({ ok: r.ok, error: r.ok ? undefined : { message: r.error.message } })),
+  const handleDeleteVideo = () => {
+    Alert.alert(
+      'Delete video',
+      'This permanently deletes the video and all derived files. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            runAction('deleteVideo', async () => {
+              const r = await BunnyStreamApi.deleteVideo(libraryId, videoId);
+              if (r.ok) {
+                navigation.goBack();
+              }
+              return { ok: r.ok, error: r.ok ? undefined : { message: r.error.message } };
+            }),
+        },
+      ],
     );
+  };
 
   return (
     <>
@@ -212,17 +188,12 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
         <Section title="Thumbnail">
           <LabeledInput label="Thumbnail URL" value={thumbnailUrl} onChangeText={setThumbnailUrl} />
           <ActionButton label="Set thumbnail URL" onPress={handleSetThumbnail} />
-          <ActionButton label="Upload thumbnail (Android only)" onPress={handleUploadThumbnail} />
-          <PlatformNote note="uploadThumbnail is Android-only; iOS returns InvalidState." />
         </Section>
 
         {/* Import */}
         <Section title="Import">
           <LabeledInput label="Fetch URL" value={fetchUrl} onChangeText={setFetchUrl} />
           <ActionButton label="Fetch new video" onPress={handleFetchNewVideo} />
-          <LabeledInput label="Refetch URL" value={refetchUrl} onChangeText={setRefetchUrl} />
-          <ActionButton label="Refetch video" onPress={handleRefetchVideo} />
-          <PlatformNote note="refetchVideo is Android-native; iOS falls back to getVideo." />
         </Section>
 
         {/* Captions */}
@@ -274,23 +245,20 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
           <ActionButton label="Repackage" onPress={handleRepackage} />
         </Section>
 
-        {/* Delete resolutions */}
-        <Section title="Delete resolutions (destructive)">
-          <LabeledInput
-            label="Resolutions (comma-separated)"
-            value={resolutionInput}
-            onChangeText={setResolutionInput}
-          />
-          <ActionButton label="Dry run (preview)" onPress={handleDeleteResolutionsDryRun} />
-          <ActionButton label="Confirm delete" onPress={handleDeleteResolutionsConfirm} danger />
-          <PlatformNote note="Always dry-run first to preview what would be deleted." />
-        </Section>
-
         {/* AI */}
         <Section title="AI">
           <ActionButton label="Transcribe video" onPress={handleTranscribe} />
-          <ActionButton label="Smart generate (Android only)" onPress={handleSmartGenerate} />
-          <PlatformNote note="smartGenerate is Android-only; iOS returns InvalidState." />
+        </Section>
+
+        {/* Danger zone */}
+        <Section title="Danger zone">
+          <TouchableOpacity
+            style={[styles.primaryButton, mgmtStyles.dangerButton]}
+            onPress={handleDeleteVideo}
+          >
+            <Text style={styles.primaryButtonText}>Delete video</Text>
+          </TouchableOpacity>
+          <PlatformNote note="Permanently deletes the video and all derived files. Cannot be undone." />
         </Section>
       </ScrollView>
     </>
@@ -412,6 +380,11 @@ const mgmtStyles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
+  },
+  dangerButton: {
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    marginBottom: 8,
   },
   subLabel: {
     fontSize: 13,
