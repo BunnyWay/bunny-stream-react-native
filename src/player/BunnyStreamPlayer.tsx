@@ -4,6 +4,7 @@ import type {
   Chapter,
   Moment,
   PlaybackPosition,
+  PlayerType,
   RetentionGraphEntry,
   PlayerWatermark,
   VideoQualityPreference,
@@ -60,6 +61,21 @@ const serializeVideoQuality = (quality: VideoQualityPreference): string => {
   }
   return JSON.stringify({ mode: 'height', height: quality.maxHeight });
 };
+
+/** Transforms a native event prop; events whose payload fails to map are dropped. */
+const mappedEventProp = <N extends Record<string, unknown>, P>(
+  handler: ((event: { nativeEvent: P }) => void) | undefined,
+  map: (nativeEvent: N) => P,
+): ((event: { nativeEvent: N }) => void) | undefined =>
+  handler == null
+    ? undefined
+    : (event) => {
+        try {
+          handler({ nativeEvent: map(event.nativeEvent) });
+        } catch {
+          /* ignore malformed payload */
+        }
+      };
 
 /**
  * `BunnyStreamPlayer` renders the native Bunny Stream player for VOD or live
@@ -253,63 +269,22 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         onVideoSizeChange={onVideoSizeChange}
         onPlaybackError={onPlaybackError}
         resumeConfig={resumeConfig ? JSON.stringify(resumeConfig) : undefined}
-        onChaptersUpdated={
-          onChaptersUpdated
-            ? (e) => {
-                try {
-                  const chapters = JSON.parse(e.nativeEvent.chapters) as Chapter[];
-                  onChaptersUpdated({ nativeEvent: { chapters } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onMomentsUpdated={
-          onMomentsUpdated
-            ? (e) => {
-                try {
-                  const moments = JSON.parse(e.nativeEvent.moments) as Moment[];
-                  onMomentsUpdated({ nativeEvent: { moments } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onRetentionGraphUpdated={
-          onRetentionGraphUpdated
-            ? (e) => {
-                try {
-                  const points = JSON.parse(e.nativeEvent.points) as RetentionGraphEntry[];
-                  onRetentionGraphUpdated({ nativeEvent: { points } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onResumePositionAvailable={
-          onResumePositionAvailable
-            ? (e) => {
-                try {
-                  const position = JSON.parse(e.nativeEvent.position) as PlaybackPosition;
-                  onResumePositionAvailable({ nativeEvent: { position } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
+        onChaptersUpdated={mappedEventProp(onChaptersUpdated, (e) => ({
+          chapters: JSON.parse(e.chapters) as Chapter[],
+        }))}
+        onMomentsUpdated={mappedEventProp(onMomentsUpdated, (e) => ({
+          moments: JSON.parse(e.moments) as Moment[],
+        }))}
+        onRetentionGraphUpdated={mappedEventProp(onRetentionGraphUpdated, (e) => ({
+          points: JSON.parse(e.points) as RetentionGraphEntry[],
+        }))}
+        onResumePositionAvailable={mappedEventProp(onResumePositionAvailable, (e) => ({
+          position: JSON.parse(e.position) as PlaybackPosition,
+        }))}
         useNativeTvPlayer={useNativeTvPlayer}
-        onPlayerTypeChange={
-          onPlayerTypeChange
-            ? (e) => {
-                const playerType = e.nativeEvent.playerType === 'cast' ? 'cast' : 'default';
-                onPlayerTypeChange({ nativeEvent: { playerType } });
-              }
-            : undefined
-        }
+        onPlayerTypeChange={mappedEventProp(onPlayerTypeChange, (e) => ({
+          playerType: (e.playerType === 'cast' ? 'cast' : 'default') as PlayerType,
+        }))}
         style={style}
         {...viewProps}
       />
