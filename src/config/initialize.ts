@@ -2,6 +2,12 @@ import packageJson from '../../package.json';
 import NativeBunnyStreamPlayer from '../specs/NativeBunnyStreamPlayer';
 import { validateAccessKey, validateLibraryId } from './validation';
 
+let configuredLibraryId: number | undefined;
+
+export function getConfiguredLibraryId(): number | undefined {
+  return configuredLibraryId;
+}
+
 /**
  * Initialises the Bunny Stream SDK with an API access key and library ID.
  *
@@ -14,4 +20,5 @@ export function initialize(accessKey: string, libraryId: number): void {
   validateAccessKey(accessKey);
   validateLibraryId(libraryId);
   NativeBunnyStreamPlayer.initialize(accessKey, libraryId, packageJson.version);
+  configuredLibraryId = libraryId;
 }

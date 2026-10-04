@@ -16,6 +16,7 @@ import type {
   BunnyStreamBroadcasterRef,
   BunnyStreamPlayerProps,
   BunnyStreamPlayerRef,
+  BunnyStreamSource,
   BunnyStreamUpload,
   BunnyVodPlayerRef,
   CameraPosition,
@@ -190,6 +191,14 @@ export type LiveSourceContract = Assert<
     Pick<LiveNativeProps, 'streamId' | 'libraryId' | 'token' | 'expires'>,
     { streamId: string; libraryId: number; token?: string; expires?: number }
   >
+>;
+
+export type PublicLiveLibraryFallbackContract = Assert<
+  Compatible<{ type: 'live'; streamId: string }, Extract<BunnyStreamSource, { type: 'live' }>>
+>;
+
+export type PublicVodLibraryFallbackContract = Assert<
+  Compatible<{ type: 'vod'; videoId: string }, Extract<BunnyStreamSource, { type: 'vod' }>>
 >;
 
 // Broadcaster contracts.

@@ -8,6 +8,11 @@ import { BunnyStreamPlayer, serializeWatermark } from '../player/BunnyStreamPlay
 const mockVodHost = jest.fn();
 const mockLiveHost = jest.fn();
 
+jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
+  __esModule: true,
+  default: { initialize: jest.fn() },
+}));
+
 jest.mock('../specs/BunnyStreamPlayerNativeComponent', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react') as typeof ReactTypes;
@@ -47,7 +52,9 @@ jest.mock('../specs/BunnyLiveStreamPlayerNativeComponent', () => {
 
 describe('iOS player presentation props', () => {
   it('forwards controls=false to VOD and live hosts', async () => {
-    await render(<BunnyStreamPlayer source={{ type: 'vod', videoId: 'vod' }} controls={false} />);
+    await render(
+      <BunnyStreamPlayer source={{ type: 'vod', libraryId: 1, videoId: 'vod' }} controls={false} />,
+    );
     await render(
       <BunnyStreamPlayer
         source={{ type: 'live', libraryId: 1, streamId: 'live' }}
@@ -68,7 +75,10 @@ describe('iOS player presentation props', () => {
       margin: 8,
     };
     await render(
-      <BunnyStreamPlayer source={{ type: 'vod', videoId: 'vod' }} watermark={watermark} />,
+      <BunnyStreamPlayer
+        source={{ type: 'vod', libraryId: 1, videoId: 'vod' }}
+        watermark={watermark}
+      />,
     );
     await render(
       <BunnyStreamPlayer

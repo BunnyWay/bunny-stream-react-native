@@ -1,13 +1,7 @@
 import type { ViewProps } from 'react-native';
 
 export type PlayerPlaybackState =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'playing'
-  | 'paused'
-  | 'ended'
-  | 'error';
+  'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
 
 export type PlayerWatermark = Readonly<{
   imageUrl: string;
@@ -167,8 +161,8 @@ export type BunnyStreamSource =
       type: 'live';
       /** Bunny Stream live stream GUID to play. */
       streamId: string;
-      /** Library ID. Required for live because the native player requires it. */
-      libraryId: number;
+      /** Library ID. Falls back to the library passed to {@link initialize}. */
+      libraryId?: number;
       /** Embed view token for token-secured live streams. */
       token?: string;
       /** Token expiration timestamp (Unix seconds). */
@@ -189,10 +183,7 @@ export type BunnyStreamSource =
  * available renditions with `BunnyStreamApi.fetchVideoResolutions`.
  */
 export type VideoQualityPreference =
-  | 'auto'
-  | { maxHeight: number }
-  | { maxBitrate: number }
-  | { maxWidth: number; maxHeight: number };
+  'auto' | { maxHeight: number } | { maxBitrate: number } | { maxWidth: number; maxHeight: number };
 
 /**
  * Imperative commands available for VOD playback through
@@ -261,6 +252,12 @@ export interface BunnyStreamPlayerProps extends ViewProps {
   onReady?: (event: NativeEvent<PlayerReadyEvent>) => void;
   onPlaybackStateChange?: (event: NativeEvent<PlayerStateChangeEvent>) => void;
   onProgress?: (event: NativeEvent<PlayerProgressEvent>) => void;
+  /**
+   * Native VOD errors and JS configuration errors for both VOD and live.
+   * Missing or invalid library IDs report `MISSING_LIBRARY_ID` or
+   * `INVALID_LIBRARY_ID` without mounting a native player. Without this
+   * callback, configuration errors throw. Native live errors use `onLiveError`.
+   */
   onError?: (event: NativeEvent<PlayerErrorEvent>) => void;
   onBuffering?: (event: NativeEvent<PlayerBufferingEvent>) => void;
   onPlay?: (event: NativeEvent<PlayerPositionEvent>) => void;

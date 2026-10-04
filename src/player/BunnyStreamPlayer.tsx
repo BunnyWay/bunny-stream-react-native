@@ -20,6 +20,7 @@ import BunnyStreamPlayerNativeComponent, {
   Commands as NativeCommands,
   type NativeProps as VodNativeProps,
 } from '../specs/BunnyStreamPlayerNativeComponent';
+import { resolveLibraryId } from './resolveLibraryId';
 import { sourceIdentityKey } from './sourceIdentity';
 
 const NativeVodView = BunnyStreamPlayerNativeComponent as unknown as HostComponent<VodNativeProps>;
@@ -127,7 +128,10 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
 
     // A source identity change remounts the native host so the previous player
     // and SDK-owned state are fully released.
-    const hostKey = sourceIdentityKey(source);
+    const libraryIdResolution = resolveLibraryId(source.libraryId);
+    const hostKey = sourceIdentityKey(
+      libraryIdResolution.ok ? { ...source, libraryId: libraryIdResolution.libraryId } : source,
+    );
 
     // Keep generic ViewProps separate from host-specific props and events.
     const {
@@ -159,6 +163,30 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       ...viewProps
     } = rest;
 
+    const configurationError = libraryIdResolution.ok ? undefined : libraryIdResolution.error;
+    const configurationErrorKey = configurationError
+      ? JSON.stringify([hostKey, configurationError.code, configurationError.message])
+      : undefined;
+    const reportedErrorKey = React.useRef<string | undefined>(undefined);
+
+    React.useEffect(() => {
+      if (!configurationError) {
+        reportedErrorKey.current = undefined;
+        return;
+      }
+      if (onError && reportedErrorKey.current !== configurationErrorKey) {
+        reportedErrorKey.current = configurationErrorKey;
+        onError({ nativeEvent: configurationError });
+      }
+    }, [configurationError, configurationErrorKey, onError]);
+
+    if (!libraryIdResolution.ok) {
+      if (!onError) {
+        throw new Error(`${libraryIdResolution.error.code}: ${libraryIdResolution.error.message}`);
+      }
+      return null;
+    }
+
     const nativeWatermark = serializeWatermark(watermark);
 
     // Track the last known VOD position for skipForward/skipBackward.
@@ -186,7 +214,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
           ref={
             nativeRef as React.RefObject<React.ElementRef<HostComponent<LiveNativeProps>> | null>
           }
-          libraryId={source.libraryId}
+          libraryId={libraryIdResolution.libraryId}
           streamId={source.streamId}
           token={source.token}
           expires={source.expires}
@@ -206,7 +234,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         key={hostKey}
         ref={nativeRef as React.RefObject<React.ElementRef<HostComponent<VodNativeProps>> | null>}
         videoId={source.videoId}
-        libraryId={source.libraryId}
+        libraryId={libraryIdResolution.libraryId}
         token={source.token}
         expires={source.expires}
         autoPlay={autoPlay}
