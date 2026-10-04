@@ -111,4 +111,5 @@ embed-token authorization are separate concerns.
 
 For the native SDK security overviews, see the [Android SDK page](https://bunny.net/docs/stream/android-sdk)
 and [iOS SDK page](https://bunny.net/docs/stream/ios-sdk). For wrapper-specific limitations, use
-this guide and the [capability matrix](capability-matrix.md).
+this guide and the guides for [VOD playback](play-a-video.md), [live playback](play-a-live-stream.md),
+and [Picture-in-Picture and casting](picture-in-picture-and-cast.md).

@@ -137,4 +137,4 @@ flow. See [Secure playback](secure-playback.md).
 
 - [Play a video](play-a-video.md) or [play a live stream](play-a-live-stream.md).
 - [Upload videos](upload-videos.md) or [broadcast from the camera](go-live-from-the-camera.md).
-- [Handle errors](handle-errors.md) and review the [capability matrix](capability-matrix.md).
+- [Handle errors](handle-errors.md) and [troubleshoot integration issues](troubleshooting.md).

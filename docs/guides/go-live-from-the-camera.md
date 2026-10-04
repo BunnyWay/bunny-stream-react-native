@@ -113,5 +113,5 @@ Use the video management API to refresh the library afterward; broadcaster event
 the file uploader's `uploadId`/`videoId` event contract. For an existing device file and explicit
 TUS controls, use [BunnyStreamUpload](upload-videos.md) instead.
 
-The [broadcaster types](../../src/broadcaster/types.ts) list all props and events; the
-[capability matrix](capability-matrix.md) distinguishes accepted props from bridged behavior.
+The [broadcaster types](../../src/broadcaster/types.ts) list all props and events. Review the
+[platform limits](#platform-limits) before relying on an accepted prop or command on both platforms.

@@ -63,5 +63,8 @@ are not known in advance. Do not force every stream into a landscape frame.
 ## Protected streams
 
 Pass backend-issued `token` and `expires` on the live source. Authorize the stream ID, not a
-different video ID. See [Secure playback](secure-playback.md) and the
-[capability matrix](capability-matrix.md) for mode-specific limitations.
+different video ID. See [Secure playback](secure-playback.md) for authorization and DRM, and
+[Picture-in-Picture and casting](picture-in-picture-and-cast.md) for platform-specific controls.
+
+Live captions are not currently available end to end. Resume-position persistence is a VOD
+feature and is not exposed for the live host.
