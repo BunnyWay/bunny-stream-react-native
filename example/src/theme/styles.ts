@@ -177,6 +177,14 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  // Error text over the light list surface — `errorMessage` is white-on-dark
+  // for the player screens.
+  listErrorMessage: {
+    fontSize: 14,
+    color: colors.onSurfaceVariant,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   errorVideoId: {
     fontSize: 12,
     color: colors.onPrimary60,

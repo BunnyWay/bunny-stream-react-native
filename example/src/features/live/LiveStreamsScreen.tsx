@@ -24,6 +24,7 @@ type UiState =
   | { kind: 'loading' }
   | { kind: 'empty' }
   | { kind: 'loaded'; streams: LiveStream[] }
+  | { kind: 'unconfigured' }
   | { kind: 'error'; message: string };
 
 export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps) {
@@ -52,9 +53,9 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
   }, [route.params, navigation]);
 
   const loadStreams = React.useCallback(async () => {
-    const { libraryId: libId } = await loadLibraryConfig();
-    if (libId == null) {
-      setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
+    const { libraryId: libId, accessKey } = await loadLibraryConfig();
+    if (libId == null || !accessKey.trim()) {
+      setUiState({ kind: 'unconfigured' });
       return;
     }
     setLibraryId(libId);
@@ -74,9 +75,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     );
   }, []);
 
-  React.useEffect(() => {
-    loadStreams();
-  }, [loadStreams]);
+  // Load on focus — fires on mount and again when returning from Settings.
+  React.useEffect(() => navigation.addListener('focus', loadStreams), [navigation, loadStreams]);
 
   const handleWatch = (stream: LiveStream) => {
     if (libraryId == null) return;
@@ -146,7 +146,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     />
   );
 
-  const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
+  const isEmpty =
+    uiState.kind === 'empty' || uiState.kind === 'error' || uiState.kind === 'unconfigured';
 
   return (
     <>
@@ -170,19 +171,23 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
             state={uiState}
             emptyMessage="No live streams in this library."
             onRetry={loadStreams}
+            onOpenSettings={() => navigation.navigate('Settings')}
           />
         }
         contentContainerStyle={[isEmpty ? listStyles.emptyList : listStyles.list]}
       />
 
-      {/* FAB — mirrors the Android demo's FloatingActionButton */}
-      <TouchableOpacity
-        style={fabStyles.fab}
-        onPress={() => setCreateOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={fabStyles.fabIcon}>+</Text>
-      </TouchableOpacity>
+      {/* FAB — mirrors the Android demo's FloatingActionButton. Hidden until
+          the library is configured, like the AccessKey gate in the demo. */}
+      {libraryId != null && uiState.kind !== 'unconfigured' && (
+        <TouchableOpacity
+          style={fabStyles.fab}
+          onPress={() => setCreateOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={fabStyles.fabIcon}>+</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Create live stream modal */}
       <LiveStreamEditorModal
