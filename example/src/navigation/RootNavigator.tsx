@@ -8,7 +8,6 @@ import { HomeScreen } from '../features/home/HomeScreen';
 import { LivePlayerScreen } from '../features/live/LivePlayerScreen';
 import { LiveStreamsScreen } from '../features/live/LiveStreamsScreen';
 import { ThumbnailPickerScreen } from '../features/live/ThumbnailPickerScreen';
-import { TrailerPickerScreen } from '../features/live/TrailerPickerScreen';
 import { PlayerScreen } from '../features/playback/PlayerScreen';
 import { VideoListScreen } from '../features/playback/VideoListScreen';
 import { VideoManagementScreen } from '../features/playback/VideoManagementScreen';
@@ -33,7 +32,6 @@ export function RootNavigator() {
         <Stack.Screen name="VideoList" component={VideoListScreen} />
         <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
         <Stack.Screen name="LiveStreams" component={LiveStreamsScreen} />
-        <Stack.Screen name="TrailerPicker" component={TrailerPickerScreen} />
         <Stack.Screen name="ThumbnailPicker" component={ThumbnailPickerScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Player" component={PlayerScreen} />

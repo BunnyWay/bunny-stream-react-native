@@ -35,17 +35,12 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
   const [rtmpStream, setRtmpStream] = React.useState<LiveStream | null>(null);
 
-  // Results handed back from the TrailerPicker / ThumbnailPicker screens via
-  // route params. Forwarded to the editor modal, then cleared once consumed.
-  const [pickedTrailerVideoId, setPickedTrailerVideoId] = React.useState<string | null>(null);
+  // Result handed back from the ThumbnailPicker screen via route params.
+  // Forwarded to the editor modal, then cleared once consumed. (The trailer
+  // picker is a nested modal and reports its pick directly.)
   const [pickedThumbnailUrl, setPickedThumbnailUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (route.params?.pickedTrailerVideoId) {
-      setPickedTrailerVideoId(route.params.pickedTrailerVideoId);
-      // Clear the param so a re-mount doesn't re-apply a stale pick.
-      navigation.setParams({ pickedTrailerVideoId: undefined });
-    }
     if (route.params?.pickedThumbnailUrl) {
       setPickedThumbnailUrl(route.params.pickedThumbnailUrl);
       navigation.setParams({ pickedThumbnailUrl: undefined });
@@ -195,9 +190,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
         libraryId={libraryId}
         stream={null}
         navigation={navigation}
-        pickedTrailerVideoId={pickedTrailerVideoId}
         pickedThumbnailUrl={pickedThumbnailUrl}
-        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
         onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setCreateOpen(false)}
         onDone={handleCreated}
@@ -209,9 +202,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
         libraryId={libraryId}
         stream={editStream}
         navigation={navigation}
-        pickedTrailerVideoId={pickedTrailerVideoId}
         pickedThumbnailUrl={pickedThumbnailUrl}
-        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
         onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setEditStream(null)}
         onDone={handleEditSaved}
