@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Start with [Getting started](getting-started.md) and the [capability matrix](capability-matrix.md).
+Start with [Getting started](getting-started.md) and the relevant [integration guide](README.md).
 Test on both target platforms: a prop accepted by TypeScript may be platform-specific or ignored.
 
 ## Native module or Fabric component is missing
@@ -104,7 +104,8 @@ instead of mounting a player immediately. AI/encoding/import requests are also a
 
 ## API returns `InvalidState` on one platform
 
-Check initialization and the operation's [platform support](capability-matrix.md#management-api).
+Check initialization and the platform notes in [Manage videos](manage-videos.md) or
+[Manage live streams](manage-live-streams.md), depending on the operation.
 For example, local VOD thumbnail upload and `smartGenerate` return `InvalidState` on iOS.
 Other options can be silently ignored rather than rejected; do not retry an unsupported operation.
 

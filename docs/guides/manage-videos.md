@@ -164,5 +164,5 @@ later. Availability and processing depend on library/account settings.
 local state only after checking the result. Avoid automatically replaying destructive requests
 after an ambiguous network failure.
 
-See the [management API](../../src/api/BunnyStreamApi.ts), [request types](../../src/api/models/requests.ts),
-and [capability matrix](capability-matrix.md) for the full public surface.
+See the [management API](../../src/api/BunnyStreamApi.ts) and [request types](../../src/api/models/requests.ts)
+for the full public surface, or [Manage live streams](manage-live-streams.md) for live operations.

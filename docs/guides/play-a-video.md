@@ -26,6 +26,9 @@ Player appearance and available controls follow the library's dashboard settings
 exposes `controls` to show/hide the built-in controls and an iOS-only `watermark` overlay; it does
 not expose every native appearance API.
 
+The VOD callbacks `onChaptersUpdated`, `onMomentsUpdated`, and `onRetentionGraphUpdated` are
+Android-only; the iOS bridge does not expose these events.
+
 ## State and custom controls
 
 Use `useBunnyStreamPlayer` to aggregate events and expose VOD commands:

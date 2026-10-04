@@ -34,8 +34,11 @@ camera views; hooks and typed events connect those views to your application sta
 
 It does not render the web player in a WebView, and it does not support Expo Go or web.
 Native capabilities are not necessarily exposed as equivalent JavaScript APIs on both platforms.
-Use the [capability matrix](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/docs/guides/capability-matrix.md)
-to check operation-specific support.
+Check the platform notes in the [playback](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/docs/guides/play-a-video.md),
+[content management](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/docs/guides/manage-videos.md),
+[upload](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/docs/guides/upload-videos.md),
+and [broadcasting](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/docs/guides/go-live-from-the-camera.md)
+guides for operation-specific support.
 
 - [GitHub repository](https://github.com/BunnyWay/bunny-stream-react-native)
 - [npm package](https://www.npmjs.com/package/@bunny.net/stream-react-native)

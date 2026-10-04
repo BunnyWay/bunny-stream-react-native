@@ -28,7 +28,6 @@ Examples use the public exports from `@bunny.net/stream-react-native`, not the n
 ## Reference
 
 - [Handle errors](handle-errors.md) — results, callbacks, and configuration failures.
-- [Capability matrix](capability-matrix.md) — wrapper support and platform differences.
 - [Troubleshooting](troubleshooting.md).
 - [Public exports](../../src/index.ts), [player types](../../src/player/BunnyStreamPlayer.types.ts), and [management API](../../src/api/BunnyStreamApi.ts).
 
@@ -38,3 +37,4 @@ See [Contributing](../../CONTRIBUTING.md#running-the-example-app) to run the Rea
 
 Native capabilities are not automatically available through the wrapper. These guides describe
 the React Native API against the [pinned native SDK baselines](../../native-sdk-baselines.json).
+Platform-specific limitations are documented alongside each feature in the guides above.
