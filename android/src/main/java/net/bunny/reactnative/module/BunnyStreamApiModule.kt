@@ -737,8 +737,9 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
    * Returns `null` when the required `url` is missing.
    */
   private fun parseFetchVideoRequest(map: ReadableMap): FetchVideoRequest? {
+    // Blank is rejected like on iOS — the server answers 400 for an empty URL.
     val url = if (map.hasKey("url") && !map.isNull("url")) map.getString("url") else null
-    val urlSafe = url ?: return null
+    val urlSafe = url?.takeIf { it.isNotBlank() } ?: return null
     val title = if (map.hasKey("title") && !map.isNull("title")) map.getString("title") else null
     val headers = if (map.hasKey("headers") && !map.isNull("headers")) {
       map.getMap("headers")?.let { headersMap ->
@@ -779,9 +780,11 @@ class BunnyStreamApiModule(reactContext: ReactApplicationContext) :
    * Returns `null` when any required field is missing.
    */
   private fun parseAddCaptionRequest(map: ReadableMap): AddCaptionRequest? {
-    val languageCode = optString(map, "languageCode") ?: return null
-    val label = optString(map, "label") ?: return null
-    val captionsFileBase64 = optString(map, "captionsFileBase64") ?: return null
+    // Empty strings are rejected like on iOS — the server answers 400 for an
+    // empty captionsFile otherwise, hiding the real cause.
+    val languageCode = optString(map, "languageCode")?.takeIf { it.isNotBlank() } ?: return null
+    val label = optString(map, "label")?.takeIf { it.isNotBlank() } ?: return null
+    val captionsFileBase64 = optString(map, "captionsFileBase64")?.takeIf { it.isNotBlank() } ?: return null
     return AddCaptionRequest(
       languageCode = languageCode,
       label = label,

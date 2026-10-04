@@ -29,10 +29,17 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
   const { videoId, libraryId } = route.params;
 
   const [thumbnailUrl, setThumbnailUrl] = React.useState('');
-  const [fetchUrl, setFetchUrl] = React.useState('');
+  // Prefilled with a public test video so the fetch action works out of the box.
+  const [fetchUrl, setFetchUrl] = React.useState(
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  );
   const [captionLanguage, setCaptionLanguage] = React.useState('en');
   const [captionLabel, setCaptionLabel] = React.useState('English');
-  const [captionBase64, setCaptionBase64] = React.useState('');
+  // Prefilled with a minimal valid SRT file (base64). The API validates the
+  // decoded file content and rejects invalid caption files with 400.
+  const [captionBase64, setCaptionBase64] = React.useState(
+    'MQowMDowMDowMCwwMDAgLS0+IDAwOjAwOjAyLDAwMApIZWxsbyBjYXB0aW9ucwo=',
+  );
   const [deleteCaptionLang, setDeleteCaptionLang] = React.useState('en');
   // Default to vp9: h264 is the codec every video is already encoded with,
   // so requesting it always fails server-side validation.
