@@ -12,15 +12,17 @@ Built on our [iOS](https://github.com/BunnyWay/bunny-stream-ios) and [Android](h
 
 Your next video feature shouldn't mean building separate integrations for every platform. The Bunny Stream React Native SDK connects your shared application code to the native Bunny players and media tools on each device.
 
+### Resumable uploads for unreliable mobile connections
+
+Mobile connections don't always cooperate. With TUS resumable uploads, an interrupted transfer can pick up where it left off instead of sending the whole video again. Progress events and pause, resume, and cancel controls make it easy to build an upload experience that keeps people informed.
+
+Select TUS when starting an upload to enable resumable transfers. See the [upload notes](https://github.com/BunnyWay/bunny-stream-react-native#interrupted-uploads-and-background-behavior) for recovery and platform-specific background behavior.
+
 ### Familiar components, native playback
 
 Add on-demand or live video with `BunnyStreamPlayer`. Playback runs through the native media engines on iOS and Android, while typed props, events, and React hooks help you connect the player to the rest of your app.
 
 Player settings from your Bunny Stream dashboard carry through to the native experience, helping you keep your videos consistent with your brand. Captions, audio track selection, and adaptive playback give your audience the controls they expect.
-
-### Reliable uploads
-
-Mobile connections don't always cooperate. TUS resumable uploads let users continue an interrupted transfer without starting the whole video again. Progress events and pause, resume, and cancel controls make it easy to build an upload experience that keeps people informed.
 
 ### From camera to content
 
@@ -29,6 +31,8 @@ Let your users create as well as watch. Capture video directly from the device c
 ### More ways to watch
 
 Give viewers room to enjoy their content with fullscreen playback, picture-in-picture, AirPlay on iOS, and Chromecast on Android through the native player controls. For protected content, the SDK brings support for Apple FairPlay and Google Widevine. VAST/IMA ad support also connects your app to Bunny Stream's video monetization features.
+
+For Android TV, an optional native TV player integration brings playback to the big screen with an additional SDK dependency.
 
 ## Go live, from the first countdown to the replay
 
@@ -52,9 +56,9 @@ When a broadcast ends, streams configured to record can transition to on-demand 
 
 ## Using Expo? You're invited too.
 
-The SDK includes an **Expo config plugin** that applies the native project configuration needed by the library during prebuild. Add it to your app configuration and use an Expo development build, built locally or with EAS Build.
+Using Expo requires **Expo SDK 52+**. The included **Expo config plugin** applies the native project configuration needed by the library during prebuild. Add it to your app configuration and create a development build locally or with EAS Build; Expo Go is not supported because the SDK uses native modules.
 
-Because the SDK uses native modules, it requires a development build rather than Expo Go. It targets iOS and Android and uses React Native's New Architecture.
+The SDK targets iOS and Android and uses React Native's New Architecture. Android requires **API 26+**; the setup guide covers the remaining native build requirements.
 
 Install the package:
 
@@ -72,7 +76,7 @@ For Expo projects, add the plugin to your existing app configuration:
 }
 ```
 
-The [repository's setup guide](https://github.com/BunnyWay/bunny-stream-react-native#installation) covers native setup, initialization, and camera and microphone permissions. Example apps for React Native and Expo give you a starting point to explore.
+The [repository's setup guide](https://github.com/BunnyWay/bunny-stream-react-native#installation) covers native setup, initialization, and camera and microphone permissions. The plugin supplies default iOS permission messages; customize them through the `cameraPermission` and `microphonePermission` [plugin options](https://github.com/BunnyWay/bunny-stream-react-native/blob/main/plugin/src/types.ts). Example apps for React Native and Expo give you a starting point to explore.
 
 ## Just how easy is playback? This easy.
 
@@ -83,10 +87,7 @@ import { BunnyStreamPlayer } from '@bunny.net/stream-react-native';
 
 export function VideoScreen() {
   return (
-    <BunnyStreamPlayer
-      source={{ type: 'vod', videoId: 'YOUR_VIDEO_ID' }}
-      style={{ flex: 1 }}
-    />
+    <BunnyStreamPlayer source={{ type: 'vod', videoId: 'YOUR_VIDEO_ID' }} style={{ flex: 1 }} />
   );
 }
 ```
@@ -96,12 +97,13 @@ Showing a live stream uses the same component. Change the source:
 ```tsx
 source={{
   type: 'live',
-  libraryId: 12345,
   streamId: 'YOUR_STREAM_ID',
 }}
 ```
 
-The SDK also gives you typed APIs for managing videos, collections, and live streams, so your integration can grow beyond the player as your app grows.
+`libraryId` falls back to the library passed to `initialize()` for both VOD and live sources. Provide it explicitly on a source to override the initialized library.
+
+The SDK also gives you typed APIs for managing videos, collections, live streams, captions, reencoding, and AI transcription, so your integration can grow beyond the player as your app grows. Alongside these APIs, `BunnyImage` helps display thumbnails and other Bunny-hosted images with support for CDN hotlink protection. See the [platform notes](https://github.com/BunnyWay/bunny-stream-react-native#platform-differences) for links to operation-specific limitations.
 
 ## What will you build?
 
