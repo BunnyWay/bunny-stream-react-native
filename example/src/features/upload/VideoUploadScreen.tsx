@@ -55,27 +55,23 @@ interface UploadRow {
   } | null;
 }
 
+type RetryContext = { libraryId: number; uri: string; mode: UploadMode; videoId: string | null };
+
+// Module-level stores — they survive the screen being unmounted, so
+// navigating back keeps rows, titles, progress and retry context instead of
+// falling back to bare `restoreUploads()` snapshots.
+const uploadRows = new Map<string, UploadRow>();
+const retryContexts = new Map<string, RetryContext>();
+// Rows removed locally — a late native event (e.g. 'cancelled' fired when a
+// failed upload is evicted) must not resurrect the row.
+const removedUploadIds = new Set<string>();
+
 export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   const [useTus, setUseTus] = React.useState(true);
-  const [rows, setRows] = React.useState<UploadRow[]>([]);
+  const [rows, setRows] = React.useState<UploadRow[]>(() => Array.from(uploadRows.values()));
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  // Upload rows keyed by uploadId. Kept in a ref so the event listener (set
-  // up once) always reads the latest rows without re-subscribing.
-  const rowsRef = React.useRef<Map<string, UploadRow>>(new Map());
-
-  // Persisted retry context keyed by uploadId — the file URI and mode needed to
-  // restart an upload after a failure. Cleared on cancel/completed.
-  const retryContextRef = React.useRef<
-    Map<string, { libraryId: number; uri: string; mode: UploadMode; videoId: string | null }>
-  >(new Map());
-
-  // Rows removed locally. Any later native event for these ids (e.g. the
-  // 'cancelled' event fired when a failed upload is evicted) must not
-  // resurrect the row.
-  const removedUploadIdsRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
     (async () => {
@@ -85,12 +81,12 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   }, []);
 
   const syncRows = React.useCallback(() => {
-    setRows(Array.from(rowsRef.current.values()));
+    setRows(Array.from(uploadRows.values()));
   }, []);
 
   const upsertRow = React.useCallback(
     (uploadId: string, patch: Partial<UploadRow>) => {
-      const existing = rowsRef.current.get(uploadId);
+      const existing = uploadRows.get(uploadId);
       const next: UploadRow = {
         uploadId,
         title: existing?.title ?? '',
@@ -105,7 +101,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
         ...existing,
         ...patch,
       };
-      rowsRef.current.set(uploadId, next);
+      uploadRows.set(uploadId, next);
       syncRows();
     },
     [syncRows],
@@ -124,7 +120,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
 
   const handleEvent = React.useCallback(
     (event: UploadEvent) => {
-      if (removedUploadIdsRef.current.has(event.uploadId)) return;
+      if (removedUploadIds.has(event.uploadId)) return;
       switch (event.type) {
         case 'started':
           upsertRow(event.uploadId, {
@@ -144,7 +140,14 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           });
           break;
         case 'paused':
-          upsertRow(event.uploadId, { status: 'paused' });
+          upsertRow(event.uploadId, {
+            videoId: event.videoId,
+            status: 'paused',
+            progress: event.progress,
+            bytesUploaded: event.bytesUploaded,
+            totalBytes: event.totalBytes,
+            pauseSupported: event.pauseSupported,
+          });
           break;
         case 'completed':
           upsertRow(event.uploadId, {
@@ -152,11 +155,11 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             status: 'completed',
             progress: 1,
           });
-          retryContextRef.current.delete(event.uploadId);
+          retryContexts.delete(event.uploadId);
           break;
         case 'cancelled':
           upsertRow(event.uploadId, { status: 'cancelled' });
-          retryContextRef.current.delete(event.uploadId);
+          retryContexts.delete(event.uploadId);
           break;
         case 'failed': {
           upsertRow(event.uploadId, {
@@ -192,7 +195,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
         fold(
           result,
           (handle) => {
-            rowsRef.current.set(handle.uploadId, {
+            uploadRows.set(handle.uploadId, {
               uploadId: handle.uploadId,
               title: file.fileName ?? file.uri,
               videoId: null,
@@ -204,7 +207,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
               error: null,
               retry: { libraryId, uri: file.uri, mode },
             });
-            retryContextRef.current.set(handle.uploadId, {
+            retryContexts.set(handle.uploadId, {
               libraryId,
               uri: file.uri,
               mode,
@@ -239,15 +242,15 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   };
 
   const handleRetry = async (row: UploadRow) => {
-    const ctx = retryContextRef.current.get(row.uploadId);
+    const ctx = retryContexts.get(row.uploadId);
     if (!ctx) {
       setError('Retry context lost for this upload.');
       return;
     }
     setError(null);
     // Remove the failed row; a new uploadId will be returned.
-    rowsRef.current.delete(row.uploadId);
-    retryContextRef.current.delete(row.uploadId);
+    uploadRows.delete(row.uploadId);
+    retryContexts.delete(row.uploadId);
     syncRows();
 
     const result =
@@ -266,7 +269,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     fold(
       result,
       (handle) => {
-        rowsRef.current.set(handle.uploadId, {
+        uploadRows.set(handle.uploadId, {
           uploadId: handle.uploadId,
           title: row.title,
           videoId: ctx.videoId,
@@ -278,7 +281,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           error: null,
           retry: { libraryId: ctx.libraryId, uri: ctx.uri, mode: ctx.mode },
         });
-        retryContextRef.current.set(handle.uploadId, { ...ctx });
+        retryContexts.set(handle.uploadId, { ...ctx });
         syncRows();
       },
       (err) => setError(err.message),
@@ -297,7 +300,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           onPress: async () => {
             // Suppress late events for this id before deleting the row — a
             // native 'cancelled' event must not re-create it.
-            removedUploadIdsRef.current.add(row.uploadId);
+            removedUploadIds.add(row.uploadId);
             // For paused/failed uploads the native tracker entry (and TUS
             // cache on iOS) still exists — cancel releases it and deletes
             // the server-side video entry the upload created. Unknown ids
@@ -316,8 +319,8 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
                 return;
               }
             }
-            rowsRef.current.delete(row.uploadId);
-            retryContextRef.current.delete(row.uploadId);
+            uploadRows.delete(row.uploadId);
+            retryContexts.delete(row.uploadId);
             syncRows();
           },
         },
