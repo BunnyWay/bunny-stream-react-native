@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Platform,
   StyleSheet,
@@ -230,22 +231,11 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     if (!result.ok) setError(result.error.message);
   };
 
-  // startUpload creates an empty video entry before the transfer begins,
-  // so an aborted upload would otherwise leave an orphaned video in the
-  // library. Deletes it; a missing videoId just means no cleanup is needed.
-  const deleteVideoEntry = async (row: UploadRow) => {
-    if (libraryId == null || !row.videoId) return;
-    const result = await BunnyStreamApi.deleteVideo(libraryId, row.videoId);
-    if (!result.ok) setError(result.error.message);
-  };
-
   const handleCancel = async (row: UploadRow) => {
+    // cancelUpload also deletes the server-side video entry for uploads
+    // started via startUpload — the native bridge tracks ownership.
     const result = await BunnyStreamUpload.cancelUpload(row.uploadId);
-    if (!result.ok) {
-      setError(result.error.message);
-      return;
-    }
-    await deleteVideoEntry(row);
+    if (!result.ok) setError(result.error.message);
   };
 
   const handleRetry = async (row: UploadRow) => {
@@ -295,23 +285,44 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     );
   };
 
-  const handleRemove = async (row: UploadRow) => {
-    // Suppress late events for this id before deleting the row — a native
-    // 'cancelled' event must not re-create it.
-    removedUploadIdsRef.current.add(row.uploadId);
-    // For paused/failed uploads the native tracker entry (and TUS cache on
-    // iOS) still exists — cancel releases it. Unknown ids are a no-op.
-    if (row.status === 'paused' || row.status === 'failed') {
-      await BunnyStreamUpload.cancelUpload(row.uploadId);
-    }
-    // Aborted uploads leave an orphaned video entry — delete it. Completed
-    // uploads keep their video.
-    if (row.status !== 'completed') {
-      await deleteVideoEntry(row);
-    }
-    rowsRef.current.delete(row.uploadId);
-    retryContextRef.current.delete(row.uploadId);
-    syncRows();
+  const handleDelete = (row: UploadRow) => {
+    Alert.alert(
+      'Delete upload',
+      'This removes the upload entry and permanently deletes its video from the library.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Suppress late events for this id before deleting the row — a
+            // native 'cancelled' event must not re-create it.
+            removedUploadIdsRef.current.add(row.uploadId);
+            // For paused/failed uploads the native tracker entry (and TUS
+            // cache on iOS) still exists — cancel releases it and deletes
+            // the server-side video entry the upload created. Unknown ids
+            // are a no-op.
+            if (row.status === 'paused' || row.status === 'failed') {
+              await BunnyStreamUpload.cancelUpload(row.uploadId);
+            }
+            // The bridge deletes owned videos on cancel, but this covers
+            // uploads the bridge treats as unowned (restored after restart,
+            // continued uploads) and completed rows the user wants gone.
+            // NotFound means the video is already deleted — same end state.
+            if (row.videoId && libraryId != null) {
+              const res = await BunnyStreamApi.deleteVideo(libraryId, row.videoId);
+              if (!res.ok && res.error.kind !== 'NotFound') {
+                setError(res.error.message);
+                return;
+              }
+            }
+            rowsRef.current.delete(row.uploadId);
+            retryContextRef.current.delete(row.uploadId);
+            syncRows();
+          },
+        },
+      ],
+    );
   };
 
   const handlePlay = (row: UploadRow) => {
@@ -334,7 +345,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             onPauseResume={() => handlePauseResume(item)}
             onCancel={() => handleCancel(item)}
             onRetry={() => handleRetry(item)}
-            onRemove={() => handleRemove(item)}
+            onDelete={() => handleDelete(item)}
             onPlay={() => handlePlay(item)}
           />
         )}
@@ -388,14 +399,14 @@ function UploadRowCard({
   onPauseResume,
   onCancel,
   onRetry,
-  onRemove,
+  onDelete,
   onPlay,
 }: {
   row: UploadRow;
   onPauseResume: () => void;
   onCancel: () => void;
   onRetry: () => void;
-  onRemove: () => void;
+  onDelete: () => void;
   onPlay: () => void;
 }) {
   const percent = Math.round(row.progress * 100);
@@ -456,9 +467,7 @@ function UploadRowCard({
         {row.status === 'completed' && row.videoId ? (
           <OutlineButton label="Play" onPress={onPlay} />
         ) : null}
-        {isTerminal || row.status === 'paused' ? (
-          <OutlineButton label="Remove" onPress={onRemove} danger />
-        ) : null}
+        {isTerminal ? <OutlineButton label="Delete" onPress={onDelete} danger /> : null}
       </View>
     </View>
   );

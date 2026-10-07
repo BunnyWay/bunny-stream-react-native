@@ -68,6 +68,14 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
   /** Last observed event per `uploadId`, for [getUploadState] snapshots. */
   private val lastEvents = ConcurrentHashMap<String, UploadEvent>()
 
+  /**
+   * `uploadId` → `libraryId` for uploads started via [startUpload], whose
+   * video entry was created by the SDK as part of the upload. [cancelUpload]
+   * uses it to delete the orphaned server-side video. [continueUpload]
+   * uploads are never recorded — their `videoId` belongs to the caller.
+   */
+  private val ownedUploadLibraryIds = ConcurrentHashMap<String, Long>()
+
   // region — Upload lifecycle —
 
   override fun startUpload(
@@ -78,7 +86,7 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
     mode: String,
     promise: Promise,
   ) {
-    launchUpload(promise, mode) { uploader ->
+    launchUpload(promise, mode, ownedLibraryId = libraryId.toLong()) { uploader ->
       val parsed = resolveUploadUri(uri)
         ?: throw IllegalArgumentException("Invalid upload URI: $uri")
       // The Android SDK's VideoUploader.startUpload creates the video entry
@@ -125,13 +133,34 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
 
   override fun cancelUpload(uploadId: String, promise: Promise) {
     launchControl(promise) { api ->
+      val ownedLibraryId = ownedUploadLibraryIds.remove(uploadId)
+      val videoId = eventVideoId(lastEvents[uploadId])
       api.videoUploader.cancelUpload(uploadId)
       api.tusVideoUploader.cancelUpload(uploadId)
       activeJobs[uploadId]?.cancel()
       activeJobs.remove(uploadId)
       lastEvents.remove(uploadId)
+      // Cancelling an upload started via startUpload abandons it, so the
+      // video entry it created is deleted — it would otherwise linger in the
+      // library as a processing video. continueUpload videos belong to the
+      // caller and are never touched. Best-effort: a failed delete leaves an
+      // orphan but does not fail the cancel.
+      if (ownedLibraryId != null && videoId != null) {
+        scope.launch {
+          runCatching { api.videoRepository.deleteVideo(ownedLibraryId, videoId) }
+        }
+      }
       mappers.run { BunnyResult.Ok(Unit).toUnitEnvelope() }
     }
+  }
+
+  private fun eventVideoId(event: UploadEvent?): String? = when (event) {
+    is UploadEvent.Started -> event.videoId
+    is UploadEvent.Progress -> event.videoId
+    is UploadEvent.Completed -> event.videoId
+    is UploadEvent.Cancelled -> event.videoId
+    is UploadEvent.Failed -> event.videoId
+    else -> null
   }
 
   override fun getUploadState(uploadId: String, promise: Promise) {
@@ -216,6 +245,7 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
   private inline fun launchUpload(
     promise: Promise,
     mode: String,
+    ownedLibraryId: Long? = null,
     crossinline block: suspend (uploader: VideoUploader) -> String,
   ) {
     if (!BunnyStreamApi.isInitialized()) {
@@ -226,6 +256,7 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
       try {
         val api = BunnyStreamApi.getInstance()
         val uploadId = block(uploaderFor(api, mode))
+        if (ownedLibraryId != null) ownedUploadLibraryIds[uploadId] = ownedLibraryId
         // Resolve immediately with the handle so JS can subscribe to events.
         promise.resolve(
           WritableNativeMap().apply {
