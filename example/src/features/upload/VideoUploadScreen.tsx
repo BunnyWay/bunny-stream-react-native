@@ -5,6 +5,7 @@ import * as React from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 
 import {
+  BunnyStreamApi,
   BunnyStreamUpload,
   fold,
   type BunnyError,
@@ -69,6 +71,11 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     Map<string, { libraryId: number; uri: string; mode: UploadMode; videoId: string | null }>
   >(new Map());
 
+  // Rows removed locally. Any later native event for these ids (e.g. the
+  // 'cancelled' event fired when a failed upload is evicted) must not
+  // resurrect the row.
+  const removedUploadIdsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
     (async () => {
       const { libraryId: libId } = await loadLibraryConfig();
@@ -103,16 +110,20 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     [syncRows],
   );
 
-  // Subscribe to upload events once for the screen lifetime.
+  // Subscribe to upload events once for the screen lifetime, then reattach
+  // to uploads restored from a previous session (iOS TUS only; a no-op on
+  // Android — restored entries arrive through the same listener).
   React.useEffect(() => {
     const unsubscribe = BunnyStreamUpload.addUploadListener((event: UploadEvent) => {
       handleEvent(event);
     });
+    BunnyStreamUpload.restoreUploads();
     return unsubscribe;
   }, []);
 
   const handleEvent = React.useCallback(
     (event: UploadEvent) => {
+      if (removedUploadIdsRef.current.has(event.uploadId)) return;
       switch (event.type) {
         case 'started':
           upsertRow(event.uploadId, {
@@ -188,7 +199,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
               progress: 0,
               bytesUploaded: 0,
               totalBytes: 0,
-              pauseSupported: 'unsupported',
+              pauseSupported: pauseSupportFor(mode),
               error: null,
               retry: { libraryId, uri: file.uri, mode },
             });
@@ -219,9 +230,22 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     if (!result.ok) setError(result.error.message);
   };
 
+  // startUpload creates an empty video entry before the transfer begins,
+  // so an aborted upload would otherwise leave an orphaned video in the
+  // library. Deletes it; a missing videoId just means no cleanup is needed.
+  const deleteVideoEntry = async (row: UploadRow) => {
+    if (libraryId == null || !row.videoId) return;
+    const result = await BunnyStreamApi.deleteVideo(libraryId, row.videoId);
+    if (!result.ok) setError(result.error.message);
+  };
+
   const handleCancel = async (row: UploadRow) => {
     const result = await BunnyStreamUpload.cancelUpload(row.uploadId);
-    if (!result.ok) setError(result.error.message);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    await deleteVideoEntry(row);
   };
 
   const handleRetry = async (row: UploadRow) => {
@@ -260,7 +284,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           progress: 0,
           bytesUploaded: 0,
           totalBytes: 0,
-          pauseSupported: 'unsupported',
+          pauseSupported: pauseSupportFor(ctx.mode),
           error: null,
           retry: { libraryId: ctx.libraryId, uri: ctx.uri, mode: ctx.mode },
         });
@@ -269,6 +293,25 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
       },
       (err) => setError(err.message),
     );
+  };
+
+  const handleRemove = async (row: UploadRow) => {
+    // Suppress late events for this id before deleting the row — a native
+    // 'cancelled' event must not re-create it.
+    removedUploadIdsRef.current.add(row.uploadId);
+    // For paused/failed uploads the native tracker entry (and TUS cache on
+    // iOS) still exists — cancel releases it. Unknown ids are a no-op.
+    if (row.status === 'paused' || row.status === 'failed') {
+      await BunnyStreamUpload.cancelUpload(row.uploadId);
+    }
+    // Aborted uploads leave an orphaned video entry — delete it. Completed
+    // uploads keep their video.
+    if (row.status !== 'completed') {
+      await deleteVideoEntry(row);
+    }
+    rowsRef.current.delete(row.uploadId);
+    retryContextRef.current.delete(row.uploadId);
+    syncRows();
   };
 
   const handlePlay = (row: UploadRow) => {
@@ -291,6 +334,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             onPauseResume={() => handlePauseResume(item)}
             onCancel={() => handleCancel(item)}
             onRetry={() => handleRetry(item)}
+            onRemove={() => handleRemove(item)}
             onPlay={() => handlePlay(item)}
           />
         )}
@@ -332,22 +376,33 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   );
 }
 
+/** Whether pause/resume is meaningful for a given upload mode on this platform. */
+function pauseSupportFor(mode: UploadMode): 'supported' | 'unsupported' {
+  // TUS pause/resume works on both platforms. On iOS the basic uploader
+  // pauses via URLSessionTask.suspend; on Android basic pause is a no-op.
+  return mode === 'tus' || Platform.OS === 'ios' ? 'supported' : 'unsupported';
+}
+
 function UploadRowCard({
   row,
   onPauseResume,
   onCancel,
   onRetry,
+  onRemove,
   onPlay,
 }: {
   row: UploadRow;
   onPauseResume: () => void;
   onCancel: () => void;
   onRetry: () => void;
+  onRemove: () => void;
   onPlay: () => void;
 }) {
   const percent = Math.round(row.progress * 100);
   const canControl = row.status === 'uploading' || row.status === 'paused';
   const canPause = canControl && row.pauseSupported === 'supported';
+  const isTerminal =
+    row.status === 'completed' || row.status === 'cancelled' || row.status === 'failed';
 
   return (
     <View style={uploadStyles.card}>
@@ -400,6 +455,9 @@ function UploadRowCard({
         ) : null}
         {row.status === 'completed' && row.videoId ? (
           <OutlineButton label="Play" onPress={onPlay} />
+        ) : null}
+        {isTerminal || row.status === 'paused' ? (
+          <OutlineButton label="Remove" onPress={onRemove} danger />
         ) : null}
       </View>
     </View>

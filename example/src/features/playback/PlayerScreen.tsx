@@ -197,6 +197,35 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     controls.setPlaybackRate(speed);
   };
 
+  const speedRowSplit = Math.ceil(speedOptions.length / 2);
+  const speedRows = [speedOptions.slice(0, speedRowSplit), speedOptions.slice(speedRowSplit)];
+
+  const renderSpeedPicker = () => (
+    <>
+      <Text style={styles.speedTitle}>Playback Speed</Text>
+      <View style={playerScreenStyles.speedRows}>
+        {speedRows.map((row) => (
+          <View key={row[0]} style={styles.speedRow}>
+            {row.map((speed) => {
+              const isActive = speed === currentSpeed;
+              return (
+                <TouchableOpacity
+                  key={speed}
+                  style={[styles.speedButton, isActive && styles.speedButtonActive]}
+                  onPress={() => handleSpeedChange(speed)}
+                >
+                  <Text style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}>
+                    {speed}x
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </>
+  );
+
   const seekProgress =
     state.durationMs > 0 ? progress.positionMs / state.durationMs : progress.progress;
 
@@ -342,49 +371,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             </View>
 
             {/* Speed picker — visible alongside custom controls */}
-            <Text style={styles.speedTitle}>Playback Speed</Text>
-            <View style={styles.speedRow}>
-              {speedOptions.map((speed) => {
-                const isActive = speed === currentSpeed;
-                return (
-                  <TouchableOpacity
-                    key={speed}
-                    style={[styles.speedButton, isActive && styles.speedButtonActive]}
-                    onPress={() => handleSpeedChange(speed)}
-                  >
-                    <Text
-                      style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}
-                    >
-                      {speed}x
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {renderSpeedPicker()}
           </View>
         ) : (
           /* Speed picker — shown with native controls too */
-          <View style={styles.speedSection}>
-            <Text style={styles.speedTitle}>Playback Speed</Text>
-            <View style={styles.speedRow}>
-              {speedOptions.map((speed) => {
-                const isActive = speed === currentSpeed;
-                return (
-                  <TouchableOpacity
-                    key={speed}
-                    style={[styles.speedButton, isActive && styles.speedButtonActive]}
-                    onPress={() => handleSpeedChange(speed)}
-                  >
-                    <Text
-                      style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}
-                    >
-                      {speed}x
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <View style={styles.speedSection}>{renderSpeedPicker()}</View>
         )}
 
         {/* Video metadata card — like Android demo's VideoPropertiesCard */}
@@ -430,6 +421,9 @@ const playerScreenStyles = StyleSheet.create({
   primaryButtonSecondary: {
     marginTop: 8,
     backgroundColor: colors.onPrimary15,
+  },
+  speedRows: {
+    gap: 8,
   },
   toggleRow: {
     paddingHorizontal: 16,
