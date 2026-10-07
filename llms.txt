@@ -1,154 +1,452 @@
-# Bunny Stream React Native
+# @bunny.net/stream-react-native
 
-> `@bunny.net/stream-react-native` — React Native SDK for Bunny's video
-> platform. One TypeScript API over the official iOS/Android SDKs for VOD
-> playback, live streaming, camera broadcasting, resumable uploads, and library
-> management. New Architecture only (TurboModules + Fabric).
+> React Native SDK for Bunny's video platform — one TypeScript API over the official Bunny Stream iOS/Android SDKs for VOD playback, live streaming, camera broadcasting, resumable uploads, and library management. React Native **New Architecture only** (TurboModules + Fabric).
 
-This file is an integration cheat sheet for AI agents and developers. It lists
-the rules that are easy to get wrong; follow the linked guides for details.
+The public API is fully typed — every signature below ships in the package's `.d.ts` files with JSDoc. When a signature and this file disagree, the shipped types win.
 
-## Requirements
+## Documentation
 
-- React Native with the **New Architecture** enabled. There is no Old
-  Architecture fallback — do not generate bridge/legacy code.
-- Expo: SDK 52+ **development build** only. Expo Go and web are unsupported.
-- iOS 15+, CocoaPods with `spm_dependency` support. Android API 26+,
-  `compileSdk` 36+, Kotlin 2.2.20+, core library desugaring enabled.
-- A Bunny Stream library ID and API access key.
+- [Full integration guides](docs/guides/README.md) — setup, playback, uploads, broadcasting, content management
+- [Troubleshooting](docs/guides/troubleshooting.md) — common integration issues and platform-specific behavior
+- [README](README.md) — install, quickstart, platform differences
+- [Bunny Stream docs](https://docs.bunny.net/stream/mobile-sdk)
 
-## Critical integration rules
+## Platform Requirements
 
-Read these before writing code — each one is a common failure mode:
+- **React Native**: New Architecture enabled. No Old Arch fallback exists.
+- **iOS**: 15+, CocoaPods with `spm_dependency` support; consumers must embed `GoogleInteractiveMediaAds.framework` (Expo plugin does this; bare RN needs the Run Script phase from `plugin/src/ios.ts`).
+- **Android**: API 26+, `compileSdk` 36+, Kotlin 2.2.20+, core library desugaring, `android.permission.INTERNET`.
+- **Expo**: SDK 52+ development build. Expo Go and web are unsupported.
+- A Bunny Stream video library with its library ID and API access key.
+- A physical device for camera recording/broadcasting.
 
-1. `initialize(accessKey, libraryId)` must run once at app startup, before
-   mounting any player or calling the API. It validates inputs (non-empty key,
-   positive integer library ID) before reaching native code.
-2. API and upload calls return `Promise<BunnyResult<T>>` and **never reject**.
-   Do not rely on try/catch for API errors — check `result.ok`, then use
-   `result.value` or `result.error` (`BunnyError` has `kind` and `isTerminal`).
-3. `BunnyStreamUpload.startUpload()` defaults to `mode: 'basic'`
-   (non-resumable). Set `mode: 'tus'` explicitly for resumable uploads.
-   Uploads do **not** auto-retry when connectivity returns — persist the
-   video/file details and call `continueUpload()`.
-4. Only one `BunnyStreamPlayer` VOD instance can be active at a time (native
-   SDK singleton). The component remounts its native host when `source`
-   identity changes — never render two players simultaneously.
-5. `source.libraryId` is optional on every source type and falls back to the
-   library passed to `initialize()`.
-6. Request camera and microphone permissions at runtime **before** mounting
-   `BunnyStreamBroadcaster` — the SDK declares them but does not request them.
-7. Bare-RN iOS consumers must embed `GoogleInteractiveMediaAds.framework`
-   (a native-player dependency) via a Run Script phase. The Expo config plugin
-   does this automatically; see `plugin/src/ios.ts` for the script.
-8. Broadcasting is foreground-only — stop the broadcast when the app goes to
-   background.
-9. Platform behavior differs: upload pause/resume semantics, background
-   uploads (iOS TUS survives termination, Android dies with the process),
-   Android TV (`useNativeTvPlayer` + `net.bunny:tv`), broadcaster quality
-   configuration. Check JSDoc on the owning API and `docs/guides/` before
-   assuming symmetric behavior.
-10. Events arrive as component props (`onReady`, `onProgress`, `onError`,
-    `onLiveError`, `onStateChange`, …). Upload events go through
-    `BunnyStreamUpload.addUploadListener(listener)`, which returns an
-    unsubscribe function — call it on cleanup.
+## Quick Start
 
-## Canonical usage
+### Installation
+
+```bash
+npm install @bunny.net/stream-react-native
+# iOS only:
+cd ios && bundle exec pod install
+```
+
+Android also needs desugaring in `android/app/build.gradle`:
+
+```groovy
+android { compileOptions { coreLibraryDesugaringEnabled true } }
+dependencies { coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5" }
+```
+
+### Initialize (required, once)
 
 ```ts
 import { initialize } from '@bunny.net/stream-react-native';
 
-initialize('your-library-api-key', 12345); // once, at startup
+initialize('your-library-api-key', 12345); // accessKey, libraryId — call before any player/API use
 ```
+
+### Play a video
 
 ```tsx
 import { BunnyStreamPlayer } from '@bunny.net/stream-react-native';
 
-// VOD — libraryId optional, falls back to initialize()
 <BunnyStreamPlayer
-  source={{ type: 'vod', videoId: 'video-guid' }}
-  style={{ width: '100%', aspectRatio: 16 / 9 }}
-/>
-
-// Live — same component, separate native host
-<BunnyStreamPlayer
-  source={{ type: 'live', streamId: 'stream-guid' }}
+  source={{ type: 'vod', videoId: 'your-video-guid' }}
   style={{ width: '100%', aspectRatio: 16 / 9 }}
 />
 ```
 
-```ts
-import { BunnyStreamApi } from '@bunny.net/stream-react-native';
+## Design Patterns
 
-const result = await BunnyStreamApi.listVideos(12345);
+Read these before writing code — each is a common failure mode:
+
+### 1. `initialize` first
+
+`initialize(accessKey, libraryId)` validates inputs (non-empty key, positive integer libraryId) and throws synchronously on bad input. Everything else — players, `BunnyStreamApi`, uploads — fails without it.
+
+### 2. `BunnyResult` — API calls never reject
+
+Every `BunnyStreamApi`/`BunnyStreamUpload` method resolves with `{ ok: true, value }` or `{ ok: false, error }`. Do **not** try/catch API errors.
+
+```ts
+// ✅ CORRECT
+const result = await BunnyStreamApi.listVideos(libraryId);
 if (result.ok) {
-  console.log(result.value.items);
+  render(result.value.items);
+} else if (result.error.isTerminal) {
+  showFatalError(result.error.message); // 401/403/404/410, LocalFile, InvalidState — retry can't help
 } else {
-  console.warn(result.error.message, result.error.isTerminal);
+  showRetry(result.error.message); // Network, 5xx, Decode — transient
+}
+
+// ❌ WRONG
+try {
+  const videos = await BunnyStreamApi.listVideos(libraryId); // never throws for API failures
+} catch (e) { /* dead code for API errors */ }
+```
+
+Helpers: `fold(result, onOk, onErr)`, `getOrNull(result)`, `errorOrNull(result)`, `map(result, fn)`.
+
+### 3. Single VOD player + source-identity remount
+
+Only **one** `BunnyStreamPlayer` VOD instance can be active (native SDK singleton). Changing any identity field of `source` (`type`, `videoId`/`streamId`, `libraryId`, `token`) remounts the native host — teardown + recreate. Never render two players at once.
+
+```tsx
+// ✅ CORRECT — source change remounts cleanly
+<BunnyStreamPlayer source={{ type: 'vod', videoId }} />
+
+// ❌ WRONG — two mounted players fight over the singleton
+<><BunnyStreamPlayer source={a} /><BunnyStreamPlayer source={b} /></>
+```
+
+`source.libraryId` is optional on every source and falls back to the library passed to `initialize()`.
+
+### 4. Events are component props, wrapped in `{ nativeEvent }`
+
+Player/broadcaster events arrive as props whose payload is `event.nativeEvent`. Upload events are the exception — they go through `BunnyStreamUpload.addUploadListener`.
+
+### 5. Explicit `mode: 'tus'` for resumable uploads
+
+`startUpload()` defaults to `mode: 'basic'`. Uploads never auto-retry when connectivity returns — persist `{ libraryId, videoId, uri }` and call `continueUpload()`.
+
+### 6. Platform asymmetry is intentional
+
+Features marked "Android-only" or "iOS-only" in JSDoc are no-ops or stubs on the other platform, not bugs. Notable splits:
+
+- **Resume positions**: Android persists natively via `resumeConfig`; iOS uses the JS `useResumePosition` hook (AsyncStorage).
+- **Quality control** (`setVideoQuality`), **PiP** (`enterPiP`), **chapters/moments/retention events**, **TV** (`useNativeTvPlayer`), **cast** (`onPlayerTypeChange`) — Android only.
+- **Watermark** — iOS only.
+- **Broadcast `quality` + `startBroadcast`** — iOS only; Android quality is hard-coded 1080p30, `startBroadcast` simulates the built-in button.
+- **Uploads**: iOS TUS supports background transfer + `restoreUploads()`; Android dies with the process → `continueUpload()` after relaunch.
+
+## Core API Reference
+
+### `BunnyStreamPlayer` — VOD + live component
+
+```tsx
+interface BunnyStreamPlayerProps extends ViewProps {
+  source: BunnyStreamSource;           // required — selects VOD or live host
+  autoPlay?: boolean;                  // VOD only, default true
+  controls?: boolean;                  // built-in UI controls, default true
+  watermark?: PlayerWatermark | null;  // iOS only
+  resumeConfig?: ResumeConfig;         // Android only (iOS: useResumePosition hook)
+  useNativeTvPlayer?: boolean;         // Android only (needs net.bunny:tv artifact)
+
+  // VOD events — all receive { nativeEvent: ... }
+  onReady?: (e) => void;                    // { videoId, durationMs }
+  onPlaybackStateChange?: (e) => void;      // { state, positionMs }
+  onProgress?: (e) => void;                 // { positionMs, durationMs, progress } ~4×/s
+  onError?: (e) => void;                    // { code, message, nativeCode? } — also JS config errors
+  onBuffering?: (e) => void;                // { isBuffering }
+  onPlay / onPause / onEnd?: (e) => void;   // { positionMs, durationMs }
+  onVolumeChange?: (e) => void;             // { volume, isMuted }
+  onPlaybackRateChange?: (e) => void;       // { rate }
+  onVideoSizeChange?: (e) => void;          // { width, height }
+  onPlaybackError?: (e) => void;            // { message }
+
+  // Live events
+  onLiveStateChange?: (e) => void;          // { state, isLive, reason?, targetEpochMs?, ... }
+  onLiveError?: (e) => void;                // { message }
+
+  // Android-only events
+  onChaptersUpdated / onMomentsUpdated / onRetentionGraphUpdated?: (e) => void;
+  onResumePositionAvailable?: (e) => void;  // { position: PlaybackPosition }
+  onPlayerTypeChange?: (e) => void;         // { playerType: 'default' | 'cast' } — Chromecast handover
 }
 ```
 
+`onError` reports native VOD errors **and** JS configuration errors (`MISSING_LIBRARY_ID`, `INVALID_LIBRARY_ID`) for both source types — without it, config errors throw. Live errors use `onLiveError`.
+
+**Imperative ref (`BunnyVodPlayerRef`)** — VOD only; commands issued before `ready` are queued natively, ignored on live sources:
+
 ```ts
-import { BunnyStreamUpload } from '@bunny.net/stream-react-native';
-
-const result = await BunnyStreamUpload.startUpload({
-  libraryId: 12345,
-  uri: 'file:///path/to/video.mp4',
-  title: 'My video',
-  mode: 'tus', // required for resumable uploads
-});
-
-const unsubscribe = BunnyStreamUpload.addUploadListener((event) => {
-  // progress / completion / failure events
-});
+ref.current?.play();
+ref.current?.pause();
+ref.current?.seekTo(positionMs);        // ms, non-negative
+ref.current?.skipForward(10000);        // default 10s
+ref.current?.skipBackward(10000);
+ref.current?.setVolume(0.8);            // 0.0–1.0
+ref.current?.setPlaybackRate(1.5);      // must be > 0
+ref.current?.mute(); ref.current?.unmute();
+ref.current?.enterPiP();                // Android only
+ref.current?.setVideoQuality({ maxHeight: 720 }); // Android only; 'auto' clears
 ```
+
+### `useBunnyStreamPlayer` — state hook
+
+Aggregates all player events into React state. Spread `eventHandlers` onto the component and attach `ref`.
 
 ```tsx
-import { BunnyStreamBroadcaster, BunnyImage } from '@bunny.net/stream-react-native';
+const player = useBunnyStreamPlayer({ onError: (e) => log(e.message) });
+// player.ref          → <BunnyStreamPlayer ref={player.ref} />
+// player.state        → low-frequency: playbackState, isPlaying, isBuffering,
+//                       isLoading, durationMs, error, volume, isMuted,
+//                       playbackRate, videoId, videoSize, liveState, liveError
+// player.progress     → high-frequency ~4×/s: { positionMs, durationMs, progress }
+// player.controls     → stable BunnyVodPlayerRef proxy (play, seekTo, ...)
+// player.eventHandlers → <BunnyStreamPlayer {...player.eventHandlers} />
 
-// Broadcast to an existing live stream (needs runtime cam/mic permission)
-<BunnyStreamBroadcaster
-  accessKey="your-library-api-key"
-  source={{ type: 'live', libraryId: 12345, streamId: 'stream-guid' }}
-  onError={(e) => console.warn(e.message)}
-/>
-
-// CDN thumbnail with the Referer header hotlink protection requires
-<BunnyImage source={{ uri: video.thumbnailUrl }} style={styles.thumb} />
+<BunnyStreamPlayer ref={player.ref} {...player.eventHandlers} source={source} />
 ```
 
-## API surface
+**Design pattern:** `state` and `progress` are separate — reading only `state.*` does not re-render on every progress tick.
 
-- `initialize` — `src/config/initialize.ts`
-- `BunnyStreamPlayer`, `useBunnyStreamPlayer`, resume-position helpers,
-  `isRunningOnTV`, `getPlaybackSpeeds` — `src/player/` (types:
-  `src/player/BunnyStreamPlayer.types.ts`)
-- `BunnyStreamApi` (videos, collections, live streams, captions, thumbnails,
-  reencode, transcription, analytics) + `BunnyResult` helpers — `src/api/`
-- `BunnyStreamUpload` — `src/upload/BunnyStreamUpload.ts`
-- `BunnyStreamBroadcaster` — `src/broadcaster/`
-- `BunnyImage`, `bunnyImageSource`, `useBunnyImage` — `src/image/`
+### `BunnyStreamApi` — library management
 
-JSDoc on these files is the authoritative API reference — it ships inside the
-package's `.d.ts` files.
+All methods: `(libraryId, ...) => Promise<BunnyResult<T>>`, never reject.
 
-## Guides
+```ts
+import { BunnyStreamApi, fold, getOrNull } from '@bunny.net/stream-react-native';
 
-- [Getting started](docs/guides/getting-started.md)
-- [Expo setup](docs/guides/expo.md)
-- [Play a video](docs/guides/play-a-video.md)
-- [Play a live stream](docs/guides/play-a-live-stream.md)
-- [Broadcast from the camera](docs/guides/go-live-from-the-camera.md)
-- [Upload videos](docs/guides/upload-videos.md)
-- [Manage videos](docs/guides/manage-videos.md)
-- [Manage live streams](docs/guides/manage-live-streams.md)
-- [Error handling](docs/guides/handle-errors.md)
-- [Secure playback](docs/guides/secure-playback.md)
-- [Picture-in-Picture & Cast](docs/guides/picture-in-picture-and-cast.md)
-- [Troubleshooting](docs/guides/troubleshooting.md)
+// ── Videos ──
+listVideos(libraryId, opts?: ListOptions)              // → BunnyResult<VideoList>
+getVideo(libraryId, videoId)                           // → BunnyResult<Video>
+createVideo(libraryId, request: CreateVideoRequestInput) // → BunnyResult<Video>
+updateVideo(libraryId, videoId, request)               // → BunnyResult<void>
+deleteVideo(libraryId, videoId)                        // → BunnyResult<void>
+fetchVideoPlayData(libraryId, videoId, ...)            // → BunnyResult<VideoPlayData>
+fetchVideoHeatmap(libraryId, videoId)                  // → BunnyResult<VideoHeatmap>
+fetchVideoStatistics(libraryId, opts)                  // → BunnyResult<VideoStatistics>
+fetchVideoResolutions(libraryId, videoId)              // → BunnyResult<VideoResolutionsInfo>
+fetchVideoStorageSize(libraryId, videoId)              // → BunnyResult<VideoStorageSize>
+setThumbnail / uploadThumbnail(libraryId, videoId, ...)
+fetchNewVideo(options)                                 // import from remote URL
+refetchVideo(options)                                  // → BunnyResult<Video>
+addCaption / deleteCaption(libraryId, videoId, ...)
+reencodeVideo / reencodeUsingCodec / repackageVideo(...)
+deleteResolutions(options) / smartGenerate(options)    // AI metadata
+transcribeVideo(options)                               // AI transcription
 
-## Repository docs
+// ── Collections ──
+listCollections / getCollection / createCollection / updateCollection / deleteCollection
 
-- [README](README.md) — install, quickstart, platform differences
-- [ARCHITECTURE](ARCHITECTURE.md) — internals for contributors
-- [CONTRIBUTING](CONTRIBUTING.md) — dev setup and workflow
+// ── Live streams ──
+listLiveStreams / getLiveStream / fetchLiveStreamPlayData
+createLiveStream(libraryId, request)                   // → BunnyResult<LiveStream>
+updateLiveStream / deleteLiveStream
+startLiveStream / stopLiveStream / pollLiveStream(libraryId, streamId)
+getLiveStreamStatus(libraryId, streamId)
+setLiveStreamThumbnail / uploadLiveStreamThumbnail / listLiveStreamThumbnails / deleteLiveStreamThumbnail
+
+// ── Player settings ──
+fetchPlayerSettings(libraryId, videoId)
+```
+
+Status helpers: `VideoStatusEnum`, `videoStatusLabel`, `TRANSITIONAL_VIDEO_STATUSES`, `LiveStreamStatusEnum`, `liveStreamStatusLabel`.
+
+### `BunnyStreamUpload` — resumable uploads
+
+```ts
+const handle = await BunnyStreamUpload.startUpload({
+  libraryId, uri: 'file:///video.mp4', title: 'My video',
+  mode: 'tus',            // 'basic' (default) | 'tus' — TUS is resumable
+  collectionId,           // optional
+});                        // → BunnyResult<{ uploadId: string }>
+
+await BunnyStreamUpload.continueUpload({ libraryId, videoId, uri, mode: 'tus' });
+await BunnyStreamUpload.pauseUpload(uploadId);
+await BunnyStreamUpload.resumeUpload(uploadId);
+await BunnyStreamUpload.cancelUpload(uploadId);
+await BunnyStreamUpload.getUploadState(uploadId);  // → BunnyResult<UploadState | null>
+BunnyStreamUpload.restoreUploads();                // iOS TUS: reattach after relaunch
+
+const unsubscribe = BunnyStreamUpload.addUploadListener((event: UploadEvent) => {
+  // 'started' | 'progress' | 'paused' | 'completed' | 'cancelled' | 'failed'
+});
+unsubscribe(); // always clean up
+```
+
+Platform matrix: Android basic = no pause/resume/`continueUpload`; Android TUS = full control, dies with process; iOS basic = suspend/resume, dies with process; iOS TUS = background URLSession, `restoreUploads()` reattaches (user force-quit cancels).
+
+### `BunnyStreamBroadcaster` — camera broadcast
+
+Requires camera + microphone permissions granted **before** mount. Foreground-only.
+
+```tsx
+const ref = useRef<BunnyStreamBroadcasterRef>(null);
+
+<BunnyStreamBroadcaster
+  ref={ref}
+  accessKey="library-api-key"
+  source={{ type: 'live', libraryId, streamId }}   // or { type: 'new', libraryId } → records+uploads VOD
+  quality={{ resolution: 'hd720', frameRate: 30, videoBitrate: 2_500_000 }} // iOS only
+  cameraPosition="back"                             // 'front' | 'back'
+  hideDefaultControls={false}
+  dualPublish                                       // primary + backup ingest
+  autoStart
+  onStateChange={(e) => e.state}                    // 'idle' | 'preparing' | 'live'
+  onElapsedTime={(e) => e.formatted}                // "HH:MM:SS", ~1/s
+  onCameraChange / onMuteChange
+  onIngestStateChange={(e) => e.endpoint + e.state} // primary/backup × connecting/live/offline
+  onReconnecting={(e) => e.attempt}
+  onReconnectFailed={() => {}}
+  onFailover={(e) => e.usingBackup}
+  onError={(e) => e.message}
+/>
+
+// Ref commands — startBroadcast is iOS-only (Android: simulates built-in button)
+ref.current?.startBroadcast(); ref.current?.stopBroadcast();
+ref.current?.switchCamera(); ref.current?.setMuted(true); ref.current?.toggleMute();
+```
+
+### Resume positions
+
+```ts
+import {
+  useResumePosition,              // per-video hook — iOS path (AsyncStorage)
+  getAllResumePositions,          // Promise<PlaybackPosition[]>
+  clearResumePosition(videoId),
+  clearAllResumePositions(),
+  exportResumePositions(),        // → JSON string (backup/sync)
+  importResumePositions(json),    // → boolean
+  cleanupExpiredResumePositions(),
+  getPlaybackSpeeds(),            // allowed rates from the native engine
+  isRunningOnTV(),                // Android TV detection; always false on iOS
+} from '@bunny.net/stream-react-native';
+```
+
+Android: `resumeConfig` prop on the player enables native auto-save. iOS: use `useResumePosition(videoId, options)` and pass `onResumePositionAvailable`/seek yourself.
+
+### `BunnyImage` — CDN thumbnails
+
+```tsx
+import { BunnyImage, bunnyImageSource, useBunnyImage, isBunnyCdnUrl, BUNNY_REFERER } from '@bunny.net/stream-react-native';
+
+// Adds the Referer header Bunny CDN hotlink protection requires.
+// Uses the native image pipeline (Fresco/RCTImageLoader) — safe in lists.
+<BunnyImage source={{ uri: video.thumbnailUrl }} style={styles.thumb} />
+<BunnyImage source={video.thumbnailUrl} />  // string shorthand also works
+```
+
+## Key Types
+
+```ts
+type BunnyStreamSource =
+  | { type: 'vod'; videoId: string; libraryId?: number; token?: string; expires?: number }
+  | { type: 'live'; streamId: string; libraryId?: number; token?: string; expires?: number };
+// token/expires: embed-view token auth for token-secured pull zones
+
+type BunnyResult<T> = { ok: true; value: T } | { ok: false; error: BunnyError };
+
+interface BunnyError {
+  kind: 'Network' | 'Http' | 'Auth' | 'NotFound' | 'Decode' | 'LocalFile' | 'InvalidState';
+  httpStatus: number;    // 0 when no HTTP response existed
+  message: string;
+  isTerminal: boolean;   // 401/403/404/410, LocalFile, InvalidState → retry can't succeed
+}
+
+type UploadEvent =
+  | { type: 'started' | 'paused' | 'completed' | 'cancelled'; uploadId: string; videoId: string }
+  | { type: 'progress'; uploadId; videoId; bytesUploaded; totalBytes; progress /*0..1*/; pauseSupported }
+  | { type: 'failed'; uploadId; videoId: string | null; error: BunnyError };
+
+type BroadcastSource =
+  | { type: 'new'; libraryId: number }
+  | { type: 'live'; libraryId: number; streamId: string; ingestEndpoint?: string };
+
+type LiveStateChangeEvent = {
+  state: 'loading' | 'offline' | 'countdown' | 'trailer' | 'live' | 'vod';
+  isLive: boolean;               // true only for 'live'
+  reason?: string; targetEpochMs?: number;  // countdown target
+  title?: string; videoId?: string; message?: string; dvrEnabled?: boolean;
+};
+
+type VideoQualityPreference =
+  'auto' | { maxHeight: number } | { maxBitrate: number } | { maxWidth: number; maxHeight: number };
+```
+
+## Common Patterns
+
+### Play with error handling
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId }}
+  onError={(e) => {
+    if (e.nativeEvent.code === 'MISSING_LIBRARY_ID') {
+      // config bug — fix initialize(), don't retry
+    }
+    console.warn(e.nativeEvent.code, e.nativeEvent.message);
+  }}
+/>
+```
+
+### Resumable upload with progress + cancel
+
+```tsx
+const [progress, setProgress] = useState(0);
+const uploadId = useRef<string | null>(null);
+
+useEffect(() => {
+  const unsub = BunnyStreamUpload.addUploadListener((e) => {
+    if (e.type === 'progress') setProgress(e.progress);
+    if (e.type === 'failed') showError(e.error);
+  });
+  return unsub;
+}, []);
+
+const start = async () => {
+  const r = await BunnyStreamUpload.startUpload({ libraryId, uri, title, mode: 'tus' });
+  if (r.ok) uploadId.current = r.value.uploadId; // persist for continueUpload()
+};
+
+const cancel = () => uploadId.current && BunnyStreamUpload.cancelUpload(uploadId.current);
+```
+
+### Live stream with countdown handling
+
+```tsx
+<BunnyStreamPlayer
+  source={{ type: 'live', streamId }}
+  onLiveStateChange={(e) => {
+    const s = e.nativeEvent;
+    if (s.state === 'countdown') showCountdown(s.targetEpochMs);
+    if (s.state === 'trailer') /* playing pre-stream trailer */;
+    if (s.state === 'vod') /* live ended, now playing the recording */;
+    if (s.state === 'offline') showOffline(s.message);
+  }}
+/>
+```
+
+### Secure playback (token auth)
+
+```tsx
+// token + expires come from your backend's signed embed URL
+<BunnyStreamPlayer source={{ type: 'vod', videoId, token, expires }} />
+```
+
+## Expo Configuration
+
+```json
+{
+  "expo": {
+    "plugins": [
+      ["@bunny.net/stream-react-native", {
+        "cameraPermission": "Allow $(PRODUCT_NAME) to record and broadcast video.",
+        "microphonePermission": "Allow $(PRODUCT_NAME) to capture audio."
+      }]
+    ]
+  }
+}
+```
+
+The plugin configures permissions, desugaring, Kotlin version, PiP, framework embedding, and background audio during `expo prebuild`. Bare-RN apps must apply these manually (see `docs/guides/getting-started.md`).
+
+## Common Mistakes
+
+- try/catch around API calls → use `result.ok` (`BunnyResult` never rejects).
+- `startUpload` without `mode: 'tus'` → non-resumable upload.
+- Two mounted players → native singleton conflict.
+- Expecting uploads to resume after connectivity returns → call `continueUpload()`.
+- Mounting the broadcaster before runtime permissions → mount fails.
+- Assuming iOS/Android feature parity → check the per-API JSDoc platform notes.
+- Missing `GoogleInteractiveMediaAds.framework` embed on bare-RN iOS → App Store rejection.
+- Broadcasting in background → stop on `AppState` change.
+
+## Links
+
+- [GitHub](https://github.com/BunnyWay/bunny-stream-react-native)
+- [npm](https://www.npmjs.com/package/@bunny.net/stream-react-native)
+- [Bunny Stream docs](https://docs.bunny.net/stream/mobile-sdk)
+- [Example app](example/) — playback, uploads, library management, live
+- [Expo example](example-expo/) — config-plugin consumer path
