@@ -1,0 +1,154 @@
+# Bunny Stream React Native
+
+> `@bunny.net/stream-react-native` — React Native SDK for Bunny's video
+> platform. One TypeScript API over the official iOS/Android SDKs for VOD
+> playback, live streaming, camera broadcasting, resumable uploads, and library
+> management. New Architecture only (TurboModules + Fabric).
+
+This file is an integration cheat sheet for AI agents and developers. It lists
+the rules that are easy to get wrong; follow the linked guides for details.
+
+## Requirements
+
+- React Native with the **New Architecture** enabled. There is no Old
+  Architecture fallback — do not generate bridge/legacy code.
+- Expo: SDK 52+ **development build** only. Expo Go and web are unsupported.
+- iOS 15+, CocoaPods with `spm_dependency` support. Android API 26+,
+  `compileSdk` 36+, Kotlin 2.2.20+, core library desugaring enabled.
+- A Bunny Stream library ID and API access key.
+
+## Critical integration rules
+
+Read these before writing code — each one is a common failure mode:
+
+1. `initialize(accessKey, libraryId)` must run once at app startup, before
+   mounting any player or calling the API. It validates inputs (non-empty key,
+   positive integer library ID) before reaching native code.
+2. API and upload calls return `Promise<BunnyResult<T>>` and **never reject**.
+   Do not rely on try/catch for API errors — check `result.ok`, then use
+   `result.value` or `result.error` (`BunnyError` has `kind` and `isTerminal`).
+3. `BunnyStreamUpload.startUpload()` defaults to `mode: 'basic'`
+   (non-resumable). Set `mode: 'tus'` explicitly for resumable uploads.
+   Uploads do **not** auto-retry when connectivity returns — persist the
+   video/file details and call `continueUpload()`.
+4. Only one `BunnyStreamPlayer` VOD instance can be active at a time (native
+   SDK singleton). The component remounts its native host when `source`
+   identity changes — never render two players simultaneously.
+5. `source.libraryId` is optional on every source type and falls back to the
+   library passed to `initialize()`.
+6. Request camera and microphone permissions at runtime **before** mounting
+   `BunnyStreamBroadcaster` — the SDK declares them but does not request them.
+7. Bare-RN iOS consumers must embed `GoogleInteractiveMediaAds.framework`
+   (a native-player dependency) via a Run Script phase. The Expo config plugin
+   does this automatically; see `plugin/src/ios.ts` for the script.
+8. Broadcasting is foreground-only — stop the broadcast when the app goes to
+   background.
+9. Platform behavior differs: upload pause/resume semantics, background
+   uploads (iOS TUS survives termination, Android dies with the process),
+   Android TV (`useNativeTvPlayer` + `net.bunny:tv`), broadcaster quality
+   configuration. Check JSDoc on the owning API and `docs/guides/` before
+   assuming symmetric behavior.
+10. Events arrive as component props (`onReady`, `onProgress`, `onError`,
+    `onLiveError`, `onStateChange`, …). Upload events go through
+    `BunnyStreamUpload.addUploadListener(listener)`, which returns an
+    unsubscribe function — call it on cleanup.
+
+## Canonical usage
+
+```ts
+import { initialize } from '@bunny.net/stream-react-native';
+
+initialize('your-library-api-key', 12345); // once, at startup
+```
+
+```tsx
+import { BunnyStreamPlayer } from '@bunny.net/stream-react-native';
+
+// VOD — libraryId optional, falls back to initialize()
+<BunnyStreamPlayer
+  source={{ type: 'vod', videoId: 'video-guid' }}
+  style={{ width: '100%', aspectRatio: 16 / 9 }}
+/>
+
+// Live — same component, separate native host
+<BunnyStreamPlayer
+  source={{ type: 'live', streamId: 'stream-guid' }}
+  style={{ width: '100%', aspectRatio: 16 / 9 }}
+/>
+```
+
+```ts
+import { BunnyStreamApi } from '@bunny.net/stream-react-native';
+
+const result = await BunnyStreamApi.listVideos(12345);
+if (result.ok) {
+  console.log(result.value.items);
+} else {
+  console.warn(result.error.message, result.error.isTerminal);
+}
+```
+
+```ts
+import { BunnyStreamUpload } from '@bunny.net/stream-react-native';
+
+const result = await BunnyStreamUpload.startUpload({
+  libraryId: 12345,
+  uri: 'file:///path/to/video.mp4',
+  title: 'My video',
+  mode: 'tus', // required for resumable uploads
+});
+
+const unsubscribe = BunnyStreamUpload.addUploadListener((event) => {
+  // progress / completion / failure events
+});
+```
+
+```tsx
+import { BunnyStreamBroadcaster, BunnyImage } from '@bunny.net/stream-react-native';
+
+// Broadcast to an existing live stream (needs runtime cam/mic permission)
+<BunnyStreamBroadcaster
+  accessKey="your-library-api-key"
+  source={{ type: 'live', libraryId: 12345, streamId: 'stream-guid' }}
+  onError={(e) => console.warn(e.message)}
+/>
+
+// CDN thumbnail with the Referer header hotlink protection requires
+<BunnyImage source={{ uri: video.thumbnailUrl }} style={styles.thumb} />
+```
+
+## API surface
+
+- `initialize` — `src/config/initialize.ts`
+- `BunnyStreamPlayer`, `useBunnyStreamPlayer`, resume-position helpers,
+  `isRunningOnTV`, `getPlaybackSpeeds` — `src/player/` (types:
+  `src/player/BunnyStreamPlayer.types.ts`)
+- `BunnyStreamApi` (videos, collections, live streams, captions, thumbnails,
+  reencode, transcription, analytics) + `BunnyResult` helpers — `src/api/`
+- `BunnyStreamUpload` — `src/upload/BunnyStreamUpload.ts`
+- `BunnyStreamBroadcaster` — `src/broadcaster/`
+- `BunnyImage`, `bunnyImageSource`, `useBunnyImage` — `src/image/`
+
+JSDoc on these files is the authoritative API reference — it ships inside the
+package's `.d.ts` files.
+
+## Guides
+
+- [Getting started](docs/guides/getting-started.md)
+- [Expo setup](docs/guides/expo.md)
+- [Play a video](docs/guides/play-a-video.md)
+- [Play a live stream](docs/guides/play-a-live-stream.md)
+- [Broadcast from the camera](docs/guides/go-live-from-the-camera.md)
+- [Upload videos](docs/guides/upload-videos.md)
+- [Manage videos](docs/guides/manage-videos.md)
+- [Manage live streams](docs/guides/manage-live-streams.md)
+- [Error handling](docs/guides/handle-errors.md)
+- [Secure playback](docs/guides/secure-playback.md)
+- [Picture-in-Picture & Cast](docs/guides/picture-in-picture-and-cast.md)
+- [Troubleshooting](docs/guides/troubleshooting.md)
+
+## Repository docs
+
+- [README](README.md) — install, quickstart, platform differences
+- [ARCHITECTURE](ARCHITECTURE.md) — internals for contributors
+- [CONTRIBUTING](CONTRIBUTING.md) — dev setup and workflow

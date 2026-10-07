@@ -36,6 +36,7 @@ Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video plat
 - [React Native example](example/) — playback, uploads, library management, and live streaming; see [setup instructions](CONTRIBUTING.md#running-the-example-app).
 - [Expo example](example-expo/README.md) — a minimal app using the config plugin.
 - [Bunny Stream documentation](https://docs.bunny.net/stream/mobile-sdk).
+- [llms.txt](llms.txt) — integration cheat sheet for AI agents: setup requirements, common pitfalls, and canonical snippets.
 
 ## Requirements
 
