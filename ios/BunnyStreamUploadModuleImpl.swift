@@ -88,6 +88,21 @@ import React
   /// correlate tracker updates with the upload that created the video.
   private var videoIdToUploadId: [String: String] = [:]
 
+  /// Maps `videoId` → `libraryId` for videos this bridge created via
+  /// `createVideo` inside `startUpload`. `cancelUpload` uses it to delete the
+  /// orphaned server-side entry. `continueUpload` videos are never recorded —
+  /// the `videoId` belongs to the caller. In-memory only: uploads restored
+  /// after a process restart are treated as unowned.
+  private var ownedVideoLibraryIds: [String: Int] = [:]
+
+  /// `UUID.uuidString` uppercases the GUID, but Bunny's management API is
+  /// case-sensitive and only accepts the lowercase form it issued — an
+  /// uppercased videoId makes `deleteVideo` return 404. Always normalize
+  /// tracker-derived videoIds through this.
+  private func canonicalVideoId(_ uuid: UUID) -> String {
+    uuid.uuidString.lowercased()
+  }
+
   /// Delivers upload events to JS. `BunnyStreamUploadModule` (the
   /// `RCTEventEmitter`-backed TurboModule) installs this when it is
   /// created; `sendEventWithName` then routes through
@@ -159,16 +174,27 @@ import React
   @objc public func cancelUploadWithUploadId(_ uploadId: String,
                                              resolve: @escaping RCTPromiseResolveBlock) {
     guard isInitialized else { resolve(invalidState("BunnyStreamApi is not initialised. Call initialize(accessKey, libraryId) first.")); return }
-    // Unknown uploadIds are a no-op: the upload is already gone or never
-    // registered. This mirrors the Android bridge, where control calls on
-    // non-owned ids silently succeed.
-    guard let (uploader, info) = findOwner(of: uploadId) else {
-      resolve(okEnvelope(NSNull()))
-      return
+    // Resolve the videoId even when the tracker entry is already gone (e.g.
+    // failed uploads may lose it) — the ownership marker below is keyed by
+    // videoId and still needs cleanup.
+    let owner = findOwner(of: uploadId)
+    let videoId = owner.map { canonicalVideoId($0.info.videoUUID) }
+      ?? videoIdToUploadId.first(where: { $0.value == uploadId })?.key
+    if let (uploader, info) = owner {
+      try? uploader.removeUpload(for: info)
     }
-    try? uploader.removeUpload(for: info)
     lastStates.removeValue(forKey: uploadId)
-    videoIdToUploadId.removeValue(forKey: info.videoUUID.uuidString)
+    if let videoId { videoIdToUploadId.removeValue(forKey: videoId) }
+    // Cancelling an upload started via startUpload abandons it, so the video
+    // entry it created is deleted — it would otherwise linger in the library
+    // as a processing video. continueUpload videos belong to the caller and
+    // are never touched. Best-effort: a failed delete leaves an orphan but
+    // does not fail the cancel.
+    if let videoId,
+       let library = ownedVideoLibraryIds.removeValue(forKey: videoId),
+       let api {
+      deleteVideoEntry(api: api, libraryId: library, videoId: videoId)
+    }
     resolve(okEnvelope(NSNull()))
   }
 
@@ -179,7 +205,7 @@ import React
       return
     }
     let info = findUploadInfo(uploadId)
-    let videoId = info?.videoUUID.uuidString
+    let videoId = info.map { canonicalVideoId($0.videoUUID) }
     resolve(okEnvelope(stateDict(from: status, videoId: videoId)))
   }
 
@@ -204,7 +230,7 @@ import React
         guard let self else { return }
         for (info, status) in uploader.uploadTracker.uploads {
           let uploadId = info.uuid.uuidString
-          let videoId = info.videoUUID.uuidString
+          let videoId = canonicalVideoId(info.videoUUID)
           self.videoIdToUploadId[videoId] = uploadId
           self.lastStates[uploadId] = status
           self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
@@ -282,7 +308,7 @@ import React
         guard let self else { return }
         for (info, status) in uploads {
           let uploadId = info.uuid.uuidString
-          let videoId = info.videoUUID.uuidString
+          let videoId = canonicalVideoId(info.videoUUID)
           // Register the videoId → uploadId mapping if not already present.
           if self.videoIdToUploadId[videoId] == nil {
             self.videoIdToUploadId[videoId] = uploadId
@@ -291,6 +317,14 @@ import React
           if self.lastStates[uploadId] != status {
             self.lastStates[uploadId] = status
             self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+          }
+          // A completed or already-removed upload must never have its video
+          // deleted by a later cancel — drop the ownership marker.
+          switch status {
+          case .uploaded, .removed:
+            self.ownedVideoLibraryIds.removeValue(forKey: videoId)
+          default:
+            break
           }
         }
       }
@@ -313,12 +347,15 @@ import React
     let uploader = uploaderForMode(mode)
 
     Task {
+      var createdVideoId: String?
       do {
         // The iOS uploader requires a pre-provisioned videoId. Create the
         // video entry first via the generated API client.
         let videoId = try await createVideoEntry(api: api, libraryId: library,
                                                   title: resolvedTitle,
                                                   collectionId: collectionId)
+        createdVideoId = videoId.lowercased()
+        ownedVideoLibraryIds[videoId.lowercased()] = library
         let info = VideoInfo(content: .url(fileURL),
                              title: resolvedTitle,
                              fileType: fileTypeForURL(fileURL),
@@ -334,6 +371,8 @@ import React
         try await uploader.uploadVideo(with: info)
 
         guard let uploadInfo = findUploadInfoByVideoId(videoId) else {
+          ownedVideoLibraryIds.removeValue(forKey: videoId.lowercased())
+          deleteVideoEntry(api: api, libraryId: library, videoId: videoId.lowercased())
           resolve(errEnvelope(kind: "NotFound", httpStatus: 0,
                               message: "Upload was started but the tracker has no entry for videoId \(videoId).",
                               isTerminal: true))
@@ -342,6 +381,13 @@ import React
         let uploadId = uploadInfo.uuid.uuidString
         resolve(okEnvelope(["uploadId": uploadId] as [String: Any]))
       } catch {
+        // The upload never started (or failed immediately) — remove the
+        // video entry we created so it does not linger in the library as a
+        // processing video.
+        if let videoId = createdVideoId {
+          ownedVideoLibraryIds.removeValue(forKey: videoId)
+          deleteVideoEntry(api: api, libraryId: library, videoId: videoId)
+        }
         resolve(envelope(from: error))
       }
     }
@@ -410,6 +456,13 @@ import React
       throw VideoUploaderError.failedToCreateVideoWithReason(message: "Internal server error")
     case .undocumented(let code, _):
       throw VideoUploaderError.failedToCreateVideoWithReason(message: "HTTP \(code)")
+    }
+  }
+
+  /// Best-effort delete of a video entry created by `startUpload`.
+  private func deleteVideoEntry(api: BunnyStreamAPI, libraryId: Int, videoId: String) {
+    Task {
+      _ = try? await api.client.deleteVideo(.init(path: .init(libraryId: Int64(libraryId), videoId: videoId)))
     }
   }
 

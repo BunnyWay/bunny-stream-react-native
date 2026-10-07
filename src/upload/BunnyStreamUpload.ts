@@ -43,6 +43,11 @@ export const BunnyStreamUpload = {
    * Starts a new upload. The native SDK creates the video entry internally
    * and returns an `uploadId`.
    *
+   * The video entry is created in the library before the transfer begins, so
+   * it may briefly appear as "processing" in the Bunny panel while bytes are
+   * still uploading. If the upload is later cancelled via {@link cancelUpload},
+   * that entry is deleted automatically — see there for ownership semantics.
+   *
    * @param options Library, local file URI, optional title/collection/mode.
    * @returns `BunnyResult<UploadHandle>` — the `uploadId` identifies this
    *   upload for pause/resume/cancel and event correlation.
@@ -84,7 +89,18 @@ export const BunnyStreamUpload = {
     return NativeBunnyStreamUpload.resumeUpload(uploadId) as Promise<BunnyResult<void>>;
   },
 
-  /** Cancels an upload and releases its native resources. */
+  /**
+   * Cancels an upload and releases its native resources (transfer, tracker
+   * entry, TUS cache).
+   *
+   * For uploads started via {@link startUpload} this also deletes the
+   * server-side video entry the upload created — cancel means abandon, and
+   * an aborted entry would otherwise linger in the library as a processing
+   * video. Deletion is best-effort and does not fail the cancel. Videos of
+   * {@link continueUpload} calls belong to the caller and are never deleted.
+   *
+   * Unknown `uploadId`s (already finished or removed) are a safe no-op.
+   */
   async cancelUpload(uploadId: string): Promise<BunnyResult<void>> {
     return NativeBunnyStreamUpload.cancelUpload(uploadId) as Promise<BunnyResult<void>>;
   },
