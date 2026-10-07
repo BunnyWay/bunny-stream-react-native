@@ -4,6 +4,15 @@ const pkg = require('../package.json');
 
 const root = path.resolve(__dirname, '..');
 
+const embedSecrets = process.env.BUNNY_EMBED_SECRETS !== 'false';
+
+if (!embedSecrets) {
+  delete process.env.BUNNY_ACCESS_KEY;
+  delete process.env.BUNNY_LIBRARY_ID;
+  delete process.env.BUNNY_VIDEO_IDS;
+  delete process.env.BUNNY_VIDEO_ID;
+}
+
 module.exports = getConfig(
   {
     presets: ['module:@react-native/babel-preset'],
@@ -12,7 +21,7 @@ module.exports = getConfig(
         'module:react-native-dotenv',
         {
           moduleName: '@env',
-          path: '.env',
+          path: embedSecrets ? '.env' : '.env.release',
           safe: false,
           allowUndefined: true,
         },
