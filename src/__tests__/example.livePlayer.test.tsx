@@ -53,10 +53,15 @@ jest.mock(
 );
 jest.mock('../../example/src/components/Header', () => ({ Header: () => null }));
 jest.mock('../../example/src/components/PropertiesCard', () => ({ PropertiesCard: () => null }));
+jest.mock('../../example/src/storage/playbackSettings', () => ({
+  DEFAULT_PLAYBACK_SETTINGS: { autoPlay: true },
+  loadPlaybackSettings: async () => ({ autoPlay: true }),
+  savePlaybackSettings: async () => {},
+}));
 
 const { LivePlayerScreen } = jest.requireActual<{
   LivePlayerScreen: ReactTypes.ComponentType<{
-    navigation: { goBack: () => void };
+    navigation: { goBack: () => void; addListener: (event: string, cb: () => void) => () => void };
     route: { params: { libraryId: number; streamId: string } };
   }>;
 }>('../../example/src/features/live/LivePlayerScreen');
@@ -76,7 +81,7 @@ describe('live example configuration errors', () => {
       mockErrorCode = code;
       const view = await render(
         <LivePlayerScreen
-          navigation={{ goBack: jest.fn() }}
+          navigation={{ goBack: jest.fn(), addListener: jest.fn(() => () => {}) }}
           route={{ params: { libraryId: 123, streamId: 'stream-id' } }}
         />,
       );
