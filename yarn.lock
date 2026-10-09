@@ -6115,22 +6115,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"compression@npm:^1.7.1":
-  version: 1.8.1
-  resolution: "compression@npm:1.8.1"
-  dependencies:
-    bytes: "npm:3.1.2"
-    compressible: "npm:~2.0.18"
-    debug: "npm:2.6.9"
-    negotiator: "npm:~0.6.4"
-    on-headers: "npm:~1.1.0"
-    safe-buffer: "npm:5.2.1"
-    vary: "npm:~1.1.2"
-  checksum: 10c0/85114b0b91c16594dc8c671cd9b05ef5e465066a60e5a4ed8b4551661303559a896ed17bb72c4234c04064e078f6ca86a34b8690349499a43f6fc4b844475da4
-  languageName: node
-  linkType: hard
-
-"compression@npm:^1.7.4":
+"compression@npm:^1.7.1, compression@npm:^1.7.4":
   version: 1.8.2
   resolution: "compression@npm:1.8.2"
   dependencies:
