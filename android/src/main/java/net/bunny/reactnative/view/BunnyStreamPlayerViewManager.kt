@@ -81,7 +81,9 @@ class BunnyStreamPlayerViewManager : SimpleViewManager<BunnyStreamPlayerView>(),
     view.setControls(value)
   }
 
-  override fun setWatermark(view: BunnyStreamPlayerView, value: String?) = Unit
+  override fun setWatermark(view: BunnyStreamPlayerView, value: String?) {
+    view.setWatermark(value)
+  }
 
   override fun setResumeConfig(view: BunnyStreamPlayerView, value: String?) {
     view.setResumeConfig(value)

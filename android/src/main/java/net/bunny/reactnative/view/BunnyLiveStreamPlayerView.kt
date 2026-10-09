@@ -1,8 +1,10 @@
 package net.bunny.reactnative.view
 
 import android.content.Context
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import org.json.JSONObject
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -19,6 +21,8 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.compose.runtime.mutableStateOf
+import net.bunny.bunnystreamplayer.model.PlayerWatermark
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -233,6 +237,15 @@ class BunnyLiveStreamPlayerView(
   private var pendingStreamId: String = ""
   private var pendingToken: String? = null
   private var pendingExpires: Long? = null
+  private var pendingControls: Boolean = true
+  private var pendingWatermark: String? = null
+
+  /**
+   * Compose state exposed to [LivePlayerContent]. Updates trigger recomposition
+   * without reloading the source.
+   */
+  private val controlsState = mutableStateOf(true)
+  private val watermarkState = mutableStateOf<PlayerWatermark?>(null)
 
   fun setLibraryId(value: Double) {
     if (value.isFinite() && value > 0 && value % 1.0 == 0.0) {
@@ -246,6 +259,14 @@ class BunnyLiveStreamPlayerView(
 
   fun setToken(value: String?) {
     pendingToken = value
+  }
+
+  fun setControls(value: Boolean) {
+    pendingControls = value
+  }
+
+  fun setWatermark(value: String?) {
+    pendingWatermark = value
   }
 
   fun setExpires(value: Double) {
@@ -268,10 +289,22 @@ class BunnyLiveStreamPlayerView(
       expires = pendingExpires,
     )
     val prev = source
-    source = next
-    if (next == prev) return
-    if (next.streamId.isBlank()) return
-    composeView.setContent { LivePlayerContent(next) }
+    val sourceChanged = next != prev
+
+    if (sourceChanged && next.streamId.isNotBlank()) {
+      source = next
+      composeView.setContent { LivePlayerContent(next) }
+    }
+
+    // Apply non-source props even when the source is unchanged. These
+    // trigger Compose recomposition rather than a source reload.
+    if (controlsState.value != pendingControls) {
+      controlsState.value = pendingControls
+    }
+    val newWatermark = parseWatermark(pendingWatermark)
+    if (watermarkState.value != newWatermark) {
+      watermarkState.value = newWatermark
+    }
   }
 
   /**
@@ -300,6 +333,8 @@ class BunnyLiveStreamPlayerView(
       token = src.token,
       expires = src.expires,
       modifier = Modifier,
+      controlsEnabled = controlsState.value,
+      watermark = watermarkState.value,
       onVideoSizeChanged = rememberedOnSize,
       viewModel = viewModel,
     )
@@ -475,6 +510,37 @@ class BunnyLiveStreamPlayerView(
         "state" to "vod",
         "isLive" to false,
       )
+    }
+
+  /**
+   * Parses the JSON-serialized watermark prop into the SDK's [PlayerWatermark].
+   * Returns `null` when the prop is absent, blank, or malformed.
+   */
+  private fun parseWatermark(json: String?): PlayerWatermark? {
+    if (json.isNullOrBlank()) return null
+    return try {
+      val obj = JSONObject(json)
+      PlayerWatermark(
+        imageUrl = obj.getString("imageUrl"),
+        position = parseWatermarkPosition(obj.optString("position", "topTrailing")),
+        relativeWidth = obj.optDouble("relativeWidth", 0.18).toFloat(),
+        opacity = obj.optDouble("opacity", 0.85).toFloat(),
+        marginDp = obj.optDouble("margin", 12.0).toFloat(),
+      )
+    } catch (_: Exception) {
+      Log.w("BunnyLiveStreamPlayerView", "Failed to parse watermark prop; ignoring: ${json.take(80)}")
+      null
+    }
+  }
+
+  private fun parseWatermarkPosition(value: String): PlayerWatermark.Position =
+    when (value) {
+      "topLeading" -> PlayerWatermark.Position.TOP_LEADING
+      "topTrailing" -> PlayerWatermark.Position.TOP_TRAILING
+      "bottomLeading" -> PlayerWatermark.Position.BOTTOM_LEADING
+      "bottomTrailing" -> PlayerWatermark.Position.BOTTOM_TRAILING
+      "center" -> PlayerWatermark.Position.CENTER
+      else -> PlayerWatermark.Position.TOP_TRAILING
     }
 
   /** Immutable snapshot of the live source props. */

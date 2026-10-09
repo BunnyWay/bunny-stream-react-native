@@ -1,0 +1,51 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+      - dependabot[bot]
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking-change
+        - breaking
+    - title: Features
+      labels:
+        - enhancement
+        - feature
+    - title: Fixes
+      labels:
+        - bug
+        - fix
+    - title: Player
+      labels:
+        - player
+        - vod
+        - live
+        - dvr
+    - title: Uploads and Broadcasting
+      labels:
+        - upload
+        - video-upload
+        - broadcaster
+        - tus
+    - title: API
+      labels:
+        - api
+        - turbomodule
+    - title: Documentation
+      labels:
+        - documentation
+        - docs
+    - title: Build, CI, and Dependencies
+      labels:
+        - dependencies
+        - npm
+        - gradle
+        - github-actions
+        - ci
+        - build
+    - title: Other Changes
+      labels:
+        - "*"

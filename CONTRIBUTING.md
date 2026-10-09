@@ -1,19 +1,20 @@
 # Contributing to Bunny Stream React Native
 
-Thanks for your interest in Bunny Stream React Native. This package is in early setup and will become a React Native bridge/plugin on top of the official [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios) and [Bunny Stream Android SDK](https://github.com/BunnyWay/bunny-stream-android).
+Thanks for helping improve Bunny Stream React Native. This package is a React Native bridge/plugin on top of the official [Bunny Stream iOS SDK](https://github.com/BunnyWay/bunny-stream-ios) and [Bunny Stream Android SDK](https://github.com/BunnyWay/bunny-stream-android), used by developers who need reliable Bunny Stream API access, video playback, resumable uploads, live broadcasting, and camera recording in React Native apps.
 
 ## Current Stage
 
-The repository currently contains only the base npm package setup (TypeScript, linting, and build tooling). There is no native bridge yet. Please keep this in mind when opening issues or pull requests — API surface, native modules, and project structure are expected to change significantly.
+The package is in active pre-release development: the TypeScript contract, the Android and iOS native bridges, and the example apps already exist, but the public API surface and module structure can still change between releases. Please keep this in mind when opening issues or pull requests.
 
 ## Good First Contributions
 
-Good places to start at this stage:
+Good places to start:
 
 - README and documentation improvements
-- TypeScript, linting, and build tooling improvements
-- Feedback on the planned public API shape
-- Small, well-scoped proposals for the native bridge architecture
+- Test coverage for API, upload, player, or broadcaster behavior
+- Better error messages and edge-case handling
+- Improvements to CI reliability
+- Examples that make integration easier for React Native developers
 
 If you are unsure whether a change fits, open an issue first and describe the problem you want to solve.
 
