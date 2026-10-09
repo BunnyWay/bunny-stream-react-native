@@ -7,8 +7,9 @@ import BunnyStreamPlayer
 /// Swift wrapper that hosts the SDK's `BunnyStreamPlayer` SwiftUI view inside
 /// a `UIHostingController`, managed by the Fabric component view.
 ///
-/// The iOS SDK does not expose public playback callbacks, a public controller,
-/// `controlsEnabled`, or `autoPlay`. This wrapper:
+/// `autoPlay` and `controlsEnabled` are forwarded to the SDK initializer. The
+/// bridge still discovers the SDK's internal `AVPlayer` for event parity and
+/// commands until it is migrated to `BunnyStreamPlayerController` callbacks.
 ///
 /// - Creates a `BunnyStreamPlayer` with the current props and hosts it via
 ///   `UIHostingController`.
@@ -16,14 +17,12 @@ import BunnyStreamPlayer
 ///   `libraryId` + `token` + `expires`) changes, mirroring Android's
 ///   `commitProps` reload-on-source-change semantics.
 /// - Commands (`play`, `pause`, `seekTo`, `setVolume`, `setPlaybackRate`,
-///   `mute`, `unmute`) are applied to that same discovered `AVPlayer`, because
-///   the SDK does not expose a public controller. Commands issued before the
-///   player is discovered are queued and replayed on attach.
-/// - Events (`onReady`, `onProgress`, etc.) are emitted by discovering the
-///   SDK's internal `AVPlayer` through the `AVPlayerLayer` in the view
-///   hierarchy and observing it via KVO + periodic time observer.
-/// - TODO(iOS SDK): Replace AVPlayerLayer discovery and KVO after the public SDK
-///   exposes a stable VOD controller and playback event callbacks.
+///   `mute`, `unmute`) are applied to that same discovered `AVPlayer`. Commands
+///   issued before the player is discovered are queued and replayed on attach.
+/// - Events (`onReady`, `onProgress`, etc.) are emitted by observing the
+///   discovered `AVPlayer` via KVO + periodic time observer.
+/// - TODO(iOS SDK): Replace AVPlayerLayer discovery and KVO with the public
+///   VOD controller and playback event callbacks.
 @MainActor
 @objc public final class BunnyStreamPlayerViewImpl: UIView {
 
@@ -35,6 +34,7 @@ import BunnyStreamPlayer
     var expires: Int64? = nil
     var autoPlay: Bool = true
     var controls: Bool = true
+    var watermark: String? = nil
   }
 
   private var hostingController: UIHostingController<AnyView>?
@@ -121,6 +121,7 @@ import BunnyStreamPlayer
   @objc public var pendingExpires: NSNumber? = nil
   @objc public var pendingAutoPlay: Bool = true
   @objc public var pendingControls: Bool = true
+  @objc public var pendingWatermark: String? = nil
 
   /// Snapshots accumulated props and reloads the hosted player if the source
   /// identity changed. Called from the Fabric view's `finalizeUpdates`.
@@ -131,13 +132,16 @@ import BunnyStreamPlayer
       token: pendingToken,
       expires: pendingExpires?.int64Value,
       autoPlay: pendingAutoPlay,
-      controls: pendingControls
+      controls: pendingControls,
+      watermark: pendingWatermark
     )
 
     let sourceChanged = next.videoId != currentProps.videoId
       || next.libraryId != currentProps.libraryId
       || next.token != currentProps.token
       || next.expires != currentProps.expires
+    let presentationChanged = next.controls != currentProps.controls
+      || next.watermark != currentProps.watermark
 
     currentProps = next
 
@@ -146,11 +150,10 @@ import BunnyStreamPlayer
       return
     }
 
-    // Only (re)create the hosted view when the source identity changed.
-    // `autoPlay` and `controls` changes alone do NOT reload — the SDK does
-    // not expose these as public props anyway.
     if sourceChanged || !isMounted {
       reloadPlayer()
+    } else if presentationChanged {
+      updateHostedPlayer()
     }
   }
 
@@ -161,17 +164,7 @@ import BunnyStreamPlayer
     // `initialize(accessKey, libraryId)` stores it here.
     let accessKey = BunnyStreamConfiguration.shared.accessKey
 
-    let player = BunnyStreamPlayer(
-      accessKey: accessKey,
-      videoId: currentProps.videoId,
-      libraryId: currentProps.libraryId,
-      token: currentProps.token,
-      expires: currentProps.expires
-    )
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .ignoresSafeArea()
-
-    let host = UIHostingController(rootView: AnyView(player))
+    let host = UIHostingController(rootView: makePlayerView(accessKey: accessKey))
     if #available(iOS 16.4, *) {
       host.safeAreaRegions = []
     }
@@ -202,6 +195,58 @@ import BunnyStreamPlayer
     playerSearchAttempts = 0
     playerSearchGeneration += 1
     searchForPlayer(generation: playerSearchGeneration)
+  }
+
+  private func makePlayerView(accessKey: String?) -> AnyView {
+    AnyView(
+      BunnyStreamPlayer(
+        accessKey: accessKey,
+        videoId: currentProps.videoId,
+        libraryId: currentProps.libraryId,
+        token: currentProps.token,
+        expires: currentProps.expires,
+        watermark: makeWatermark(from: currentProps.watermark),
+        autoPlay: currentProps.autoPlay,
+        controlsEnabled: currentProps.controls
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .ignoresSafeArea()
+    )
+  }
+
+  private func updateHostedPlayer() {
+    hostingController?.rootView = makePlayerView(
+      accessKey: BunnyStreamConfiguration.shared.accessKey
+    )
+  }
+
+  private func makeWatermark(from json: String?) -> PlayerWatermark? {
+    guard let json, let data = json.data(using: .utf8),
+          let config = try? JSONDecoder().decode(WatermarkConfig.self, from: data),
+          let url = URL(string: config.imageUrl) else { return nil }
+    let position: PlayerWatermark.Position
+    switch config.position {
+    case "topLeading": position = .topLeading
+    case "bottomLeading": position = .bottomLeading
+    case "bottomTrailing": position = .bottomTrailing
+    case "center": position = .center
+    default: position = .topTrailing
+    }
+    return PlayerWatermark(
+      imageURL: url,
+      position: position,
+      relativeWidth: CGFloat(config.relativeWidth ?? 0.18),
+      opacity: config.opacity ?? 0.85,
+      margin: CGFloat(config.margin ?? 12)
+    )
+  }
+
+  private struct WatermarkConfig: Decodable {
+    let imageUrl: String
+    let position: String?
+    let relativeWidth: Double?
+    let opacity: Double?
+    let margin: Double?
   }
 
   private func removeHostingController() {
@@ -440,12 +485,6 @@ import BunnyStreamPlayer
             let durationMs = self.currentDurationMs(player)
             self.onReady?(self.currentProps.videoId, durationMs)
             self.onPlaybackStateChange?("ready", 0)
-            // The public SDK no longer starts playback on appear ("playback
-            // starts when the viewer taps the play button"), so honor the
-            // `autoPlay` prop here — once per item, before any user pause.
-            if self.currentProps.autoPlay, player.rate == 0 {
-              player.play()
-            }
           }
         case .failed:
           self.emitPlaybackFailure(it.error, player: player)
@@ -464,11 +503,6 @@ import BunnyStreamPlayer
         let durationMs = currentDurationMs(player)
         onReady?(currentProps.videoId, durationMs)
         onPlaybackStateChange?("ready", 0)
-        // Same autoPlay bridge as the KVO path above — the public SDK removed
-        // play-on-appear, so the wrapper starts playback itself.
-        if currentProps.autoPlay, player.rate == 0 {
-          player.play()
-        }
       }
     case .failed:
       emitPlaybackFailure(item.error, player: player)

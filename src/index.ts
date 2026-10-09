@@ -20,6 +20,7 @@ export type {
   BunnyStreamPlayerRef,
   BunnyStreamSource,
   BunnyVodPlayerRef,
+  PlayerWatermark,
   ChaptersUpdatedEvent,
   LiveErrorEvent,
   LiveStateChangeEvent,

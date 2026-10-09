@@ -5,6 +5,7 @@ import type {
   Moment,
   PlaybackPosition,
   RetentionGraphEntry,
+  PlayerWatermark,
   VideoQualityPreference,
 } from './BunnyStreamPlayer.types';
 import type { HostComponent } from 'react-native';
@@ -26,6 +27,28 @@ const NativeLiveView =
   BunnyLiveStreamPlayerNativeComponent as unknown as HostComponent<LiveNativeProps>;
 
 /** Serializes a {@link VideoQualityPreference} for the native bridge. */
+export const serializeWatermark = (
+  watermark: PlayerWatermark | null | undefined,
+): string | undefined => {
+  if (watermark == null) return undefined;
+  if (!/^https?:\/\//i.test(watermark.imageUrl)) {
+    throw new TypeError('watermark.imageUrl must be an absolute HTTP(S) URL');
+  }
+  if (
+    watermark.relativeWidth != null &&
+    (watermark.relativeWidth < 0 || watermark.relativeWidth > 1)
+  ) {
+    throw new RangeError('watermark.relativeWidth must be between 0 and 1');
+  }
+  if (watermark.opacity != null && (watermark.opacity < 0 || watermark.opacity > 1)) {
+    throw new RangeError('watermark.opacity must be between 0 and 1');
+  }
+  if (watermark.margin != null && watermark.margin < 0) {
+    throw new RangeError('watermark.margin must be non-negative');
+  }
+  return JSON.stringify(watermark);
+};
+
 const serializeVideoQuality = (quality: VideoQualityPreference): string => {
   if (quality === 'auto') return JSON.stringify({ mode: 'auto' });
   if ('maxBitrate' in quality) {
@@ -110,6 +133,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
     const {
       autoPlay,
       controls,
+      watermark,
       onReady,
       onPlaybackStateChange,
       onProgress,
@@ -134,6 +158,8 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       style,
       ...viewProps
     } = rest;
+
+    const nativeWatermark = serializeWatermark(watermark);
 
     // Track the last known VOD position for skipForward/skipBackward.
     const trackedOnProgress = onProgress
@@ -164,6 +190,8 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
           streamId={source.streamId}
           token={source.token}
           expires={source.expires}
+          controls={controls}
+          watermark={nativeWatermark}
           onVideoSizeChange={onVideoSizeChange}
           onLiveStateChange={nativeOnLiveStateChange}
           onLiveError={onLiveError}
@@ -183,6 +211,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         expires={source.expires}
         autoPlay={autoPlay}
         controls={controls}
+        watermark={nativeWatermark}
         onReady={onReady}
         onPlaybackStateChange={onPlaybackStateChange}
         onProgress={trackedOnProgress}
