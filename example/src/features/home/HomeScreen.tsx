@@ -18,16 +18,43 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [directPlayVisible, setDirectPlayVisible] = React.useState(false);
   const insets = useSafeAreaInsets();
 
-  React.useEffect(() => {
-    (async () => {
-      const { libraryId } = await loadLibraryConfig();
-      setHasConfig(libraryId != null);
-    })();
-  }, []);
+  // Re-check on focus so options unlock after saving in Settings.
+  React.useEffect(
+    () =>
+      navigation.addListener('focus', () => {
+        (async () => {
+          const { accessKey, libraryId } = await loadLibraryConfig();
+          setHasConfig(libraryId != null && accessKey.trim().length > 0);
+        })();
+      }),
+    [navigation],
+  );
 
   const handleDirectPlay = (videoId: string, libraryId: number) => {
     setDirectPlayVisible(false);
     navigation.navigate('Player', { videoId, libraryId });
+  };
+
+  // Unconfigured options stay tappable and route to Settings instead of
+  // their feature — mirrors the Android demo's AccessKey gate.
+  const goToSettings = () => navigation.navigate('Settings');
+
+  const openCameraUpload = () => {
+    (async () => {
+      const { libraryId } = await loadLibraryConfig();
+      if (libraryId != null) {
+        navigation.navigate('Camera', { mode: 'new', libraryId });
+      }
+    })();
+  };
+
+  const openResumePositions = () => {
+    (async () => {
+      const { libraryId } = await loadLibraryConfig();
+      if (libraryId != null) {
+        navigation.navigate('ResumePositions', { libraryId });
+      }
+    })();
   };
 
   return (
@@ -42,19 +69,22 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
           <HomeOption
             title="Video player"
             subtitle={hasConfig ? 'Library videos' : 'Not configured'}
-            onPress={() => navigation.navigate('VideoList')}
+            disabled={!hasConfig}
+            onPress={hasConfig ? () => navigation.navigate('VideoList') : goToSettings}
           />
           <View style={styles.divider} />
           <HomeOption
             title="Live streams"
             subtitle={hasConfig ? 'Library live streams' : 'Not configured'}
-            onPress={() => navigation.navigate('LiveStreams', {})}
+            disabled={!hasConfig}
+            onPress={hasConfig ? () => navigation.navigate('LiveStreams', {}) : goToSettings}
           />
           <View style={styles.divider} />
           <HomeOption
             title="Direct video play"
-            subtitle="Play by video ID"
-            onPress={() => setDirectPlayVisible(true)}
+            subtitle={hasConfig ? 'Play by video ID' : 'Not configured'}
+            disabled={!hasConfig}
+            onPress={hasConfig ? () => setDirectPlayVisible(true) : goToSettings}
           />
         </View>
 
@@ -64,21 +94,14 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             title="Video Upload"
             subtitle={hasConfig ? 'Upload videos to the library' : 'Not configured'}
             disabled={!hasConfig}
-            onPress={() => navigation.navigate('VideoUpload')}
+            onPress={hasConfig ? () => navigation.navigate('VideoUpload') : goToSettings}
           />
           <View style={styles.divider} />
           <HomeOption
             title="Camera upload"
             subtitle={hasConfig ? 'Record and broadcast live' : 'Not configured'}
             disabled={!hasConfig}
-            onPress={() => {
-              (async () => {
-                const { libraryId } = await loadLibraryConfig();
-                if (libraryId != null) {
-                  navigation.navigate('Camera', { mode: 'new', libraryId });
-                }
-              })();
-            }}
+            onPress={hasConfig ? openCameraUpload : goToSettings}
           />
         </View>
 
@@ -86,21 +109,16 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         <View style={styles.card}>
           <HomeOption
             title="Manage Resume Positions"
-            subtitle="List, export, import, delete"
-            onPress={() => {
-              (async () => {
-                const { libraryId } = await loadLibraryConfig();
-                if (libraryId != null) {
-                  navigation.navigate('ResumePositions', { libraryId });
-                }
-              })();
-            }}
+            subtitle={hasConfig ? 'List, export, import, delete' : 'Not configured'}
+            disabled={!hasConfig}
+            onPress={hasConfig ? openResumePositions : goToSettings}
           />
           <View style={styles.divider} />
           <HomeOption
             title="Resume Settings"
-            subtitle="Retention, thresholds, enable/disable"
-            onPress={() => navigation.navigate('ResumeSettings')}
+            subtitle={hasConfig ? 'Retention, thresholds, enable/disable' : 'Not configured'}
+            disabled={!hasConfig}
+            onPress={hasConfig ? () => navigation.navigate('ResumeSettings') : goToSettings}
           />
         </View>
 

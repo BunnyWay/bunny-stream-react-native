@@ -24,6 +24,7 @@ type UiState =
   | { kind: 'loading' }
   | { kind: 'empty' }
   | { kind: 'loaded'; streams: LiveStream[] }
+  | { kind: 'unconfigured' }
   | { kind: 'error'; message: string };
 
 export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps) {
@@ -34,17 +35,12 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
   const [rtmpStream, setRtmpStream] = React.useState<LiveStream | null>(null);
 
-  // Results handed back from the TrailerPicker / ThumbnailPicker screens via
-  // route params. Forwarded to the editor modal, then cleared once consumed.
-  const [pickedTrailerVideoId, setPickedTrailerVideoId] = React.useState<string | null>(null);
+  // Result handed back from the ThumbnailPicker screen via route params.
+  // Forwarded to the editor modal, then cleared once consumed. (The trailer
+  // picker is a nested modal and reports its pick directly.)
   const [pickedThumbnailUrl, setPickedThumbnailUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (route.params?.pickedTrailerVideoId) {
-      setPickedTrailerVideoId(route.params.pickedTrailerVideoId);
-      // Clear the param so a re-mount doesn't re-apply a stale pick.
-      navigation.setParams({ pickedTrailerVideoId: undefined });
-    }
     if (route.params?.pickedThumbnailUrl) {
       setPickedThumbnailUrl(route.params.pickedThumbnailUrl);
       navigation.setParams({ pickedThumbnailUrl: undefined });
@@ -52,9 +48,9 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
   }, [route.params, navigation]);
 
   const loadStreams = React.useCallback(async () => {
-    const { libraryId: libId } = await loadLibraryConfig();
-    if (libId == null) {
-      setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
+    const { libraryId: libId, accessKey } = await loadLibraryConfig();
+    if (libId == null || !accessKey.trim()) {
+      setUiState({ kind: 'unconfigured' });
       return;
     }
     setLibraryId(libId);
@@ -74,9 +70,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     );
   }, []);
 
-  React.useEffect(() => {
-    loadStreams();
-  }, [loadStreams]);
+  // Load on focus — fires on mount and again when returning from Settings.
+  React.useEffect(() => navigation.addListener('focus', loadStreams), [navigation, loadStreams]);
 
   const handleWatch = (stream: LiveStream) => {
     if (libraryId == null) return;
@@ -146,7 +141,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     />
   );
 
-  const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
+  const isEmpty =
+    uiState.kind === 'empty' || uiState.kind === 'error' || uiState.kind === 'unconfigured';
 
   return (
     <>
@@ -170,19 +166,23 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
             state={uiState}
             emptyMessage="No live streams in this library."
             onRetry={loadStreams}
+            onOpenSettings={() => navigation.navigate('Settings')}
           />
         }
         contentContainerStyle={[isEmpty ? listStyles.emptyList : listStyles.list]}
       />
 
-      {/* FAB — mirrors the Android demo's FloatingActionButton */}
-      <TouchableOpacity
-        style={fabStyles.fab}
-        onPress={() => setCreateOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={fabStyles.fabIcon}>+</Text>
-      </TouchableOpacity>
+      {/* FAB — mirrors the Android demo's FloatingActionButton. Hidden until
+          the library is configured, like the AccessKey gate in the demo. */}
+      {libraryId != null && uiState.kind !== 'unconfigured' && (
+        <TouchableOpacity
+          style={fabStyles.fab}
+          onPress={() => setCreateOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={fabStyles.fabIcon}>+</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Create live stream modal */}
       <LiveStreamEditorModal
@@ -190,9 +190,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
         libraryId={libraryId}
         stream={null}
         navigation={navigation}
-        pickedTrailerVideoId={pickedTrailerVideoId}
         pickedThumbnailUrl={pickedThumbnailUrl}
-        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
         onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setCreateOpen(false)}
         onDone={handleCreated}
@@ -204,9 +202,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
         libraryId={libraryId}
         stream={editStream}
         navigation={navigation}
-        pickedTrailerVideoId={pickedTrailerVideoId}
         pickedThumbnailUrl={pickedThumbnailUrl}
-        onConsumePickedTrailer={() => setPickedTrailerVideoId(null)}
         onConsumePickedThumbnail={() => setPickedThumbnailUrl(null)}
         onClose={() => setEditStream(null)}
         onDone={handleEditSaved}

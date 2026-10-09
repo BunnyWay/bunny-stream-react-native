@@ -34,6 +34,7 @@ type UiState =
   | { kind: 'loading' }
   | { kind: 'empty' }
   | { kind: 'loaded'; videos: Video[] }
+  | { kind: 'unconfigured' }
   | { kind: 'error'; message: string };
 
 export function VideoListScreen({ navigation }: VideoListScreenProps) {
@@ -44,9 +45,9 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
 
   const loadLibrary = React.useCallback(async () => {
-    const { libraryId: libId } = await loadLibraryConfig();
-    if (libId == null) {
-      setUiState({ kind: 'error', message: 'Library ID not configured. Set it in Settings.' });
+    const { libraryId: libId, accessKey } = await loadLibraryConfig();
+    if (libId == null || !accessKey.trim()) {
+      setUiState({ kind: 'unconfigured' });
       return;
     }
     setLibraryId(libId);
@@ -66,10 +67,9 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     );
   }, []);
 
-  // Initial load
-  React.useEffect(() => {
-    loadLibrary();
-  }, [loadLibrary]);
+  // Load on focus — fires on mount and again when returning from Settings,
+  // so configuring the app doesn't require a manual pull-to-refresh.
+  React.useEffect(() => navigation.addListener('focus', loadLibrary), [navigation, loadLibrary]);
 
   // Enrich thumbnails for videos that don't have one yet — calls
   // fetchPlayerSettings per video (like the Android demo). For token-auth
@@ -154,7 +154,8 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   };
 
   const videos = uiState.kind === 'loaded' ? uiState.videos : [];
-  const isEmpty = uiState.kind === 'empty' || uiState.kind === 'error';
+  const isEmpty =
+    uiState.kind === 'empty' || uiState.kind === 'error' || uiState.kind === 'unconfigured';
 
   return (
     <>
@@ -185,6 +186,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
             state={uiState}
             emptyMessage="No videos in this library."
             onRetry={loadLibrary}
+            onOpenSettings={() => navigation.navigate('Settings')}
           />
         }
         contentContainerStyle={[isEmpty ? sectionStyles.emptyList : sectionStyles.list]}

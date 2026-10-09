@@ -54,8 +54,6 @@
     "test": "jest",
     "release": "release-it --only-version",
     "fallow": "fallow health --report-only",
-    "capabilities:generate": "node scripts/generate-capabilities.mjs",
-    "capabilities:check": "node scripts/generate-capabilities.mjs --check",
     "native-baselines:check": "node scripts/verify-native-sdk-baselines.mjs",
     "native-android:publish": "node scripts/publish-android-sdk.mjs",
     "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",

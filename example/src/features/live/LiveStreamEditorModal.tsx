@@ -26,6 +26,7 @@ import { ToggleRow } from '../../components/ToggleRow';
 import { pickImage, pickVideo } from '../../media/picker';
 import { colors } from '../../theme/colors';
 import { formatHms, parseHms, updateRtmpRow, validateHms } from './time';
+import { TrailerPickerModal } from './TrailerPickerModal';
 
 /**
  * Live stream editor modal — mirrors the Android demo's
@@ -46,9 +47,7 @@ export function LiveStreamEditorModal({
   libraryId,
   stream,
   navigation,
-  pickedTrailerVideoId,
   pickedThumbnailUrl,
-  onConsumePickedTrailer,
   onConsumePickedThumbnail,
   onClose,
   onDone,
@@ -57,9 +56,7 @@ export function LiveStreamEditorModal({
   libraryId: number | null;
   stream: LiveStream | null;
   navigation: NativeStackNavigationProp<RootStackParamList, 'LiveStreams'>;
-  pickedTrailerVideoId: string | null;
   pickedThumbnailUrl: string | null;
-  onConsumePickedTrailer: () => void;
   onConsumePickedThumbnail: () => void;
   onClose: () => void;
   onDone: () => void;
@@ -84,6 +81,7 @@ export function LiveStreamEditorModal({
   // Trailer
   const [trailerEnabled, setTrailerEnabled] = React.useState(false);
   const [trailerVideoId, setTrailerVideoId] = React.useState('');
+  const [trailerPickerVisible, setTrailerPickerVisible] = React.useState(false);
   // In-progress trailer upload (basic uploader, like native demo apps).
   const [trailerUpload, setTrailerUpload] = React.useState<{
     uploadId: string;
@@ -106,15 +104,6 @@ export function LiveStreamEditorModal({
   const insets = useSafeAreaInsets();
 
   const MAX_RTMP = 4;
-
-  // Apply a trailer picked from the library picker screen.
-  React.useEffect(() => {
-    if (pickedTrailerVideoId) {
-      setTrailerEnabled(true);
-      setTrailerVideoId(pickedTrailerVideoId);
-      onConsumePickedTrailer();
-    }
-  }, [pickedTrailerVideoId, onConsumePickedTrailer]);
 
   // Apply a thumbnail URL picked from the generated-thumbnails picker screen.
   React.useEffect(() => {
@@ -198,7 +187,13 @@ export function LiveStreamEditorModal({
 
   const handleChooseTrailerFromLibrary = () => {
     if (libraryId == null) return;
-    navigation.navigate('TrailerPicker', { libraryId });
+    setTrailerPickerVisible(true);
+  };
+
+  const handleTrailerPicked = (videoId: string) => {
+    setTrailerEnabled(true);
+    setTrailerVideoId(videoId);
+    setTrailerPickerVisible(false);
   };
 
   const handleBrowseThumbnails = () => {
@@ -674,6 +669,16 @@ export function LiveStreamEditorModal({
             </View>
           ) : null}
         </ScrollView>
+
+        {/* Trailer picker — nested modal so the user stays on the editor. */}
+        {libraryId != null ? (
+          <TrailerPickerModal
+            visible={trailerPickerVisible}
+            libraryId={libraryId}
+            onPick={handleTrailerPicked}
+            onClose={() => setTrailerPickerVisible(false)}
+          />
+        ) : null}
       </View>
     </Modal>
   );

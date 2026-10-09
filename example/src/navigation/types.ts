@@ -3,8 +3,6 @@ export type RootStackParamList = {
   VideoList: undefined;
   VideoUpload: undefined;
   LiveStreams: {
-    /** Handed back from TrailerPickerScreen; consumed by the editor modal. */
-    pickedTrailerVideoId?: string;
     /** Handed back from ThumbnailPickerScreen; consumed by the editor modal. */
     pickedThumbnailUrl?: string;
   };
@@ -15,9 +13,6 @@ export type RootStackParamList = {
     libraryId: number;
     token?: string;
     expires?: number;
-  };
-  TrailerPicker: {
-    libraryId: number;
   };
   ThumbnailPicker: {
     libraryId: number;
