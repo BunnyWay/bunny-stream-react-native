@@ -35,6 +35,7 @@ import { ProgressBar } from '../../components/ProgressBar';
 import { PropertiesCard } from '../../components/PropertiesCard';
 import { ResumeDialog } from '../../components/ResumeDialog';
 import { ToggleRow } from '../../components/ToggleRow';
+import { loadPlaybackSettings } from '../../storage/playbackSettings';
 import {
   DEFAULT_RESUME_SETTINGS,
   loadResumeSettings,
@@ -60,7 +61,18 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   );
 
   const { state, progress, controls } = player;
-  const loading = state.playbackState === 'idle' || state.playbackState === 'loading';
+  // null = persisted setting not loaded yet — the player mounts only after
+  // the real value arrives, otherwise it would mount with the default
+  // autoPlay=true and start playing before the stored preference is read.
+  const [autoPlay, setAutoPlay] = React.useState<boolean | null>(null);
+  const settingsLoaded = autoPlay !== null;
+  // With autoPlay off, 'idle' means "waiting for the user to press play" —
+  // show the native controls instead of a spinner that would cover them.
+  const loading =
+    !settingsLoaded ||
+    state.playbackState === 'loading' ||
+    state.isBuffering ||
+    (autoPlay === true && state.playbackState === 'idle');
 
   const [currentSpeed, setCurrentSpeed] = React.useState(1.0);
   const [speedOptions, setSpeedOptions] = React.useState<number[]>(FALLBACK_SPEEDS);
@@ -91,10 +103,13 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     }
   }, [state.error]);
 
-  // Load persisted resume settings (and refresh them when returning from the
-  // settings screen).
+  // Load persisted resume and playback settings (and refresh them when
+  // returning from the settings screen).
   React.useEffect(() => {
-    const refresh = () => void loadResumeSettings().then(setResumeSettings);
+    const refresh = () => {
+      void loadResumeSettings().then(setResumeSettings);
+      void loadPlaybackSettings().then((s) => setAutoPlay(s.autoPlay));
+    };
     refresh();
     return navigation.addListener('focus', refresh);
   }, [navigation]);
@@ -182,6 +197,35 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     controls.setPlaybackRate(speed);
   };
 
+  const speedRowSplit = Math.ceil(speedOptions.length / 2);
+  const speedRows = [speedOptions.slice(0, speedRowSplit), speedOptions.slice(speedRowSplit)];
+
+  const renderSpeedPicker = () => (
+    <>
+      <Text style={styles.speedTitle}>Playback Speed</Text>
+      <View style={playerScreenStyles.speedRows}>
+        {speedRows.map((row) => (
+          <View key={row[0]} style={styles.speedRow}>
+            {row.map((speed) => {
+              const isActive = speed === currentSpeed;
+              return (
+                <TouchableOpacity
+                  key={speed}
+                  style={[styles.speedButton, isActive && styles.speedButtonActive]}
+                  onPress={() => handleSpeedChange(speed)}
+                >
+                  <Text style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}>
+                    {speed}x
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </>
+  );
+
   const seekProgress =
     state.durationMs > 0 ? progress.positionMs / state.durationMs : progress.progress;
 
@@ -217,13 +261,13 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
               once encoding finishes.
             </Text>
           </View>
-        ) : (
+        ) : autoPlay === null ? null : (
           <BunnyStreamPlayer
             key={playbackAttempt}
             ref={player.ref}
             style={styles.player}
             source={source}
-            autoPlay
+            autoPlay={autoPlay}
             controls={!useCustomControls}
             resumeConfig={
               isAndroid && resumeSettings.enabled ? toResumeConfig(resumeSettings) : undefined
@@ -327,49 +371,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
             </View>
 
             {/* Speed picker — visible alongside custom controls */}
-            <Text style={styles.speedTitle}>Playback Speed</Text>
-            <View style={styles.speedRow}>
-              {speedOptions.map((speed) => {
-                const isActive = speed === currentSpeed;
-                return (
-                  <TouchableOpacity
-                    key={speed}
-                    style={[styles.speedButton, isActive && styles.speedButtonActive]}
-                    onPress={() => handleSpeedChange(speed)}
-                  >
-                    <Text
-                      style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}
-                    >
-                      {speed}x
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {renderSpeedPicker()}
           </View>
         ) : (
           /* Speed picker — shown with native controls too */
-          <View style={styles.speedSection}>
-            <Text style={styles.speedTitle}>Playback Speed</Text>
-            <View style={styles.speedRow}>
-              {speedOptions.map((speed) => {
-                const isActive = speed === currentSpeed;
-                return (
-                  <TouchableOpacity
-                    key={speed}
-                    style={[styles.speedButton, isActive && styles.speedButtonActive]}
-                    onPress={() => handleSpeedChange(speed)}
-                  >
-                    <Text
-                      style={[styles.speedButtonText, isActive && styles.speedButtonTextActive]}
-                    >
-                      {speed}x
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <View style={styles.speedSection}>{renderSpeedPicker()}</View>
         )}
 
         {/* Video metadata card — like Android demo's VideoPropertiesCard */}
@@ -415,6 +421,9 @@ const playerScreenStyles = StyleSheet.create({
   primaryButtonSecondary: {
     marginTop: 8,
     backgroundColor: colors.onPrimary15,
+  },
+  speedRows: {
+    gap: 8,
   },
   toggleRow: {
     paddingHorizontal: 16,

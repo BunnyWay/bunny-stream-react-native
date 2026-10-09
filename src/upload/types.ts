@@ -19,7 +19,16 @@ export type UploadEvent =
       progress: number;
       pauseSupported: UploadPauseSupport;
     }
-  | { type: 'paused'; uploadId: string; videoId: string }
+  | {
+      type: 'paused';
+      uploadId: string;
+      videoId: string;
+      bytesUploaded: number;
+      totalBytes: number;
+      /** 0..1 */
+      progress: number;
+      pauseSupported: UploadPauseSupport;
+    }
   | { type: 'completed'; uploadId: string; videoId: string }
   | { type: 'cancelled'; uploadId: string; videoId: string }
   | { type: 'failed'; uploadId: string; videoId: string | null; error: BunnyError };

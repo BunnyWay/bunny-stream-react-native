@@ -42,19 +42,39 @@ import React
   /// Lazily-created uploaders keyed by mode. Each uploader has its own
   /// `UploadTracker`; we wrap each tracker in an `UploadTrackerObservable`
   /// (the only public way to observe it) and subscribe via Combine.
-  private lazy var basicUploader: URLSessionVideoUploader = {
-    let key = BunnyStreamConfiguration.shared.accessKey ?? ""
-    let uploader = URLSessionVideoUploader.make(accessKey: key)
-    observeTracker(uploader.uploadTracker)
-    return uploader
-  }()
+  ///
+  /// Initializing an uploader is expensive — `TUSVideoUploader.make` spawns
+  /// a background `URLSession` (synchronous IPC with `nsurlsessiond`) and
+  /// scans the on-disk TUS cache — so creation must never happen on the JS
+  /// thread, and lookups/control methods must not force-initialize an
+  /// uploader they do not need.
+  private var _basicUploader: URLSessionVideoUploader?
+  private var _tusUploader: TUSVideoUploader?
 
-  private lazy var tusUploader: TUSVideoUploader = {
-    let key = BunnyStreamConfiguration.shared.accessKey ?? ""
-    let uploader = TUSVideoUploader.make(accessKey: key)
+  private var basicUploader: URLSessionVideoUploader {
+    if let existing = _basicUploader { return existing }
+    let uploader = URLSessionVideoUploader.make(accessKey: BunnyStreamConfiguration.shared.accessKey ?? "")
     observeTracker(uploader.uploadTracker)
+    _basicUploader = uploader
     return uploader
-  }()
+  }
+
+  private var tusUploader: TUSVideoUploader {
+    if let existing = _tusUploader { return existing }
+    let uploader = TUSVideoUploader.make(accessKey: BunnyStreamConfiguration.shared.accessKey ?? "")
+    observeTracker(uploader.uploadTracker)
+    _tusUploader = uploader
+    return uploader
+  }
+
+  /// Uploaders already initialized — iterating this never triggers lazy
+  /// initialization of the other uploader.
+  private var createdUploaders: [any VideoUploader] {
+    var uploaders: [any VideoUploader] = []
+    if let _basicUploader { uploaders.append(_basicUploader) }
+    if let _tusUploader { uploaders.append(_tusUploader) }
+    return uploaders
+  }
 
   /// Holds the `UploadTrackerObservable` instances so they stay alive (they
   /// are the tracker's delegate and must not be deallocated).
@@ -67,6 +87,28 @@ import React
   /// Maps `videoId` (the Bunny Stream video GUID) to `uploadId` so we can
   /// correlate tracker updates with the upload that created the video.
   private var videoIdToUploadId: [String: String] = [:]
+
+  /// Maps `videoId` → `libraryId` for videos this bridge created via
+  /// `createVideo` inside `startUpload`. `cancelUpload` uses it to delete the
+  /// orphaned server-side entry. `continueUpload` videos are never recorded —
+  /// the `videoId` belongs to the caller. In-memory only: uploads restored
+  /// after a process restart are treated as unowned.
+  private var ownedVideoLibraryIds: [String: Int] = [:]
+
+  /// `UUID.uuidString` uppercases the GUID, but Bunny's management API is
+  /// case-sensitive and only accepts the lowercase form it issued — an
+  /// uppercased videoId makes `deleteVideo` return 404. Always normalize
+  /// tracker-derived videoIds through this.
+  private func canonicalVideoId(_ uuid: UUID) -> String {
+    uuid.uuidString.lowercased()
+  }
+
+  /// Delivers upload events to JS. `BunnyStreamUploadModule` (the
+  /// `RCTEventEmitter`-backed TurboModule) installs this when it is
+  /// created; `sendEventWithName` then routes through
+  /// `RCTCallableJSModules` → `RCTDeviceEventEmitter`, which also works in
+  /// bridgeless mode where `RCTBridge.current()` is `nil`.
+  @objc public var eventEmitter: ((_ name: String, _ body: [String: Any]) -> Void)?
 
   // MARK: - SDK access
 
@@ -104,40 +146,55 @@ import React
   @objc public func pauseUploadWithUploadId(_ uploadId: String,
                                             resolve: @escaping RCTPromiseResolveBlock) {
     guard isInitialized else { resolve(invalidState("BunnyStreamApi is not initialised. Call initialize(accessKey, libraryId) first.")); return }
-    guard let info = findUploadInfo(uploadId) else {
-      resolve(errEnvelope(kind: "NotFound", httpStatus: 0, message: "Unknown uploadId: \(uploadId)", isTerminal: true))
+    // Unknown uploadIds are a no-op: the upload is already gone or never
+    // registered. This mirrors the Android bridge, where control calls on
+    // non-owned ids silently succeed.
+    guard let (uploader, info) = findOwner(of: uploadId) else {
+      resolve(okEnvelope(NSNull()))
       return
     }
-    // Try both uploaders — only the one that owns this upload will act.
-    // URLSessionVideoUploader.pauseUpload is non-throwing; TUSVideoUploader.pauseUpload throws.
-    basicUploader.pauseUpload(for: info)
-    do { try tusUploader.pauseUpload(for: info) } catch {}
+    try? uploader.pauseUpload(for: info)
     resolve(okEnvelope(NSNull()))
   }
 
   @objc public func resumeUploadWithUploadId(_ uploadId: String,
                                              resolve: @escaping RCTPromiseResolveBlock) {
     guard isInitialized else { resolve(invalidState("BunnyStreamApi is not initialised. Call initialize(accessKey, libraryId) first.")); return }
-    guard let info = findUploadInfo(uploadId) else {
-      resolve(errEnvelope(kind: "NotFound", httpStatus: 0, message: "Unknown uploadId: \(uploadId)", isTerminal: true))
+    // Unknown uploadIds are a no-op: the upload is already gone or never
+    // registered. This mirrors the Android bridge, where control calls on
+    // non-owned ids silently succeed.
+    guard let (uploader, info) = findOwner(of: uploadId) else {
+      resolve(okEnvelope(NSNull()))
       return
     }
-    basicUploader.resumeUpload(for: info)
-    do { try tusUploader.resumeUpload(for: info) } catch {}
+    try? uploader.resumeUpload(for: info)
     resolve(okEnvelope(NSNull()))
   }
 
   @objc public func cancelUploadWithUploadId(_ uploadId: String,
                                              resolve: @escaping RCTPromiseResolveBlock) {
     guard isInitialized else { resolve(invalidState("BunnyStreamApi is not initialised. Call initialize(accessKey, libraryId) first.")); return }
-    guard let info = findUploadInfo(uploadId) else {
-      resolve(errEnvelope(kind: "NotFound", httpStatus: 0, message: "Unknown uploadId: \(uploadId)", isTerminal: true))
-      return
+    // Resolve the videoId even when the tracker entry is already gone (e.g.
+    // failed uploads may lose it) — the ownership marker below is keyed by
+    // videoId and still needs cleanup.
+    let owner = findOwner(of: uploadId)
+    let videoId = owner.map { canonicalVideoId($0.info.videoUUID) }
+      ?? videoIdToUploadId.first(where: { $0.value == uploadId })?.key
+    if let (uploader, info) = owner {
+      try? uploader.removeUpload(for: info)
     }
-    basicUploader.removeUpload(for: info)
-    do { try tusUploader.removeUpload(for: info) } catch {}
     lastStates.removeValue(forKey: uploadId)
-    videoIdToUploadId.removeValue(forKey: info.videoUUID.uuidString)
+    if let videoId { videoIdToUploadId.removeValue(forKey: videoId) }
+    // Cancelling an upload started via startUpload abandons it, so the video
+    // entry it created is deleted — it would otherwise linger in the library
+    // as a processing video. continueUpload videos belong to the caller and
+    // are never touched. Best-effort: a failed delete leaves an orphan but
+    // does not fail the cancel.
+    if let videoId,
+       let library = ownedVideoLibraryIds.removeValue(forKey: videoId),
+       let api {
+      deleteVideoEntry(api: api, libraryId: library, videoId: videoId)
+    }
     resolve(okEnvelope(NSNull()))
   }
 
@@ -148,7 +205,7 @@ import React
       return
     }
     let info = findUploadInfo(uploadId)
-    let videoId = info?.videoUUID.uuidString
+    let videoId = info.map { canonicalVideoId($0.videoUUID) }
     resolve(okEnvelope(stateDict(from: status, videoId: videoId)))
   }
 
@@ -161,15 +218,23 @@ import React
   /// explicit snapshot per entry so JS always learns each `uploadId`,
   /// even for uploads whose status never changes again.
   @objc public func restoreUploads() {
-    let uploader = tusUploader
-    DispatchQueue.main.async { [weak self, uploader] in
+    // `restoreUploads` is a synchronous TurboModule call — it runs on the JS
+    // thread. Creating the TUS uploader spawns a background `URLSession`
+    // (synchronous IPC with `nsurlsessiond`, which can block for a long
+    // time) and scans the on-disk TUS cache, so the lazy initialization
+    // must happen off the JS thread or the app will freeze.
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
       guard let self else { return }
-      for (info, status) in uploader.uploadTracker.uploads {
-        let uploadId = info.uuid.uuidString
-        let videoId = info.videoUUID.uuidString
-        self.videoIdToUploadId[videoId] = uploadId
-        self.lastStates[uploadId] = status
-        self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+      let uploader = self.tusUploader
+      DispatchQueue.main.async { [weak self, uploader] in
+        guard let self else { return }
+        for (info, status) in uploader.uploadTracker.uploads {
+          let uploadId = info.uuid.uuidString
+          let videoId = canonicalVideoId(info.videoUUID)
+          self.videoIdToUploadId[videoId] = uploadId
+          self.lastStates[uploadId] = status
+          self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+        }
       }
     }
   }
@@ -192,29 +257,40 @@ import React
   }
 
   /// Finds the `UploadVideoInfo` for a given `uploadId` (the `UploadVideoInfo.uuid`
-  /// string) by searching both uploaders' trackers.
+  /// string) by searching the trackers of already-initialized uploaders.
   private func findUploadInfo(_ uploadId: String) -> UploadVideoInfo? {
     guard let uuid = UUID(uuidString: uploadId) else { return nil }
-    for (info, _) in basicUploader.uploadTracker.uploads where info.uuid == uuid {
-      return info
+    for uploader in createdUploaders {
+      if let info = uploader.uploadTracker.uploads.keys.first(where: { $0.uuid == uuid }) {
+        return info
+      }
     }
-    for (info, _) in tusUploader.uploadTracker.uploads where info.uuid == uuid {
-      return info
+    return nil
+  }
+
+  /// Finds the `UploadVideoInfo` and the uploader that owns it, for a given
+  /// `uploadId`. Control methods should act on the owning uploader only —
+  /// calling into the other uploader would force-initialize it.
+  private func findOwner(of uploadId: String) -> (uploader: any VideoUploader, info: UploadVideoInfo)? {
+    guard let uuid = UUID(uuidString: uploadId) else { return nil }
+    for uploader in createdUploaders {
+      if let info = uploader.uploadTracker.uploads.keys.first(where: { $0.uuid == uuid }) {
+        return (uploader, info)
+      }
     }
     return nil
   }
 
   /// Finds the `UploadVideoInfo` for a given Bunny `videoId` (the `videoUUID`
-  /// string) by searching both uploaders' trackers. Used to resolve the
-  /// `uploadId` (the `UploadVideoInfo.uuid`) after `uploadVideo(with:)` adds
-  /// the entry to the tracker.
+  /// string) by searching the trackers of already-initialized uploaders.
+  /// Used to resolve the `uploadId` (the `UploadVideoInfo.uuid`) after
+  /// `uploadVideo(with:)` adds the entry to the tracker.
   private func findUploadInfoByVideoId(_ videoId: String) -> UploadVideoInfo? {
     guard let videoUUID = UUID(uuidString: videoId) else { return nil }
-    for (info, _) in basicUploader.uploadTracker.uploads where info.videoUUID == videoUUID {
-      return info
-    }
-    for (info, _) in tusUploader.uploadTracker.uploads where info.videoUUID == videoUUID {
-      return info
+    for uploader in createdUploaders {
+      if let info = uploader.uploadTracker.uploads.keys.first(where: { $0.videoUUID == videoUUID }) {
+        return info
+      }
     }
     return nil
   }
@@ -232,7 +308,7 @@ import React
         guard let self else { return }
         for (info, status) in uploads {
           let uploadId = info.uuid.uuidString
-          let videoId = info.videoUUID.uuidString
+          let videoId = canonicalVideoId(info.videoUUID)
           // Register the videoId → uploadId mapping if not already present.
           if self.videoIdToUploadId[videoId] == nil {
             self.videoIdToUploadId[videoId] = uploadId
@@ -241,6 +317,14 @@ import React
           if self.lastStates[uploadId] != status {
             self.lastStates[uploadId] = status
             self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+          }
+          // A completed or already-removed upload must never have its video
+          // deleted by a later cancel — drop the ownership marker.
+          switch status {
+          case .uploaded, .removed:
+            self.ownedVideoLibraryIds.removeValue(forKey: videoId)
+          default:
+            break
           }
         }
       }
@@ -263,12 +347,15 @@ import React
     let uploader = uploaderForMode(mode)
 
     Task {
+      var createdVideoId: String?
       do {
         // The iOS uploader requires a pre-provisioned videoId. Create the
         // video entry first via the generated API client.
         let videoId = try await createVideoEntry(api: api, libraryId: library,
                                                   title: resolvedTitle,
                                                   collectionId: collectionId)
+        createdVideoId = videoId.lowercased()
+        ownedVideoLibraryIds[videoId.lowercased()] = library
         let info = VideoInfo(content: .url(fileURL),
                              title: resolvedTitle,
                              fileType: fileTypeForURL(fileURL),
@@ -284,6 +371,8 @@ import React
         try await uploader.uploadVideo(with: info)
 
         guard let uploadInfo = findUploadInfoByVideoId(videoId) else {
+          ownedVideoLibraryIds.removeValue(forKey: videoId.lowercased())
+          deleteVideoEntry(api: api, libraryId: library, videoId: videoId.lowercased())
           resolve(errEnvelope(kind: "NotFound", httpStatus: 0,
                               message: "Upload was started but the tracker has no entry for videoId \(videoId).",
                               isTerminal: true))
@@ -292,6 +381,13 @@ import React
         let uploadId = uploadInfo.uuid.uuidString
         resolve(okEnvelope(["uploadId": uploadId] as [String: Any]))
       } catch {
+        // The upload never started (or failed immediately) — remove the
+        // video entry we created so it does not linger in the library as a
+        // processing video.
+        if let videoId = createdVideoId {
+          ownedVideoLibraryIds.removeValue(forKey: videoId)
+          deleteVideoEntry(api: api, libraryId: library, videoId: videoId)
+        }
         resolve(envelope(from: error))
       }
     }
@@ -363,6 +459,13 @@ import React
     }
   }
 
+  /// Best-effort delete of a video entry created by `startUpload`.
+  private func deleteVideoEntry(api: BunnyStreamAPI, libraryId: Int, videoId: String) {
+    Task {
+      _ = try? await api.client.deleteVideo(.init(path: .init(libraryId: Int64(libraryId), videoId: videoId)))
+    }
+  }
+
   private func fileTypeForURL(_ url: URL) -> String {
     let ext = url.pathExtension.lowercased()
     switch ext {
@@ -376,13 +479,15 @@ import React
   // MARK: - Event emission
 
   private func emitEvent(uploadId: String, videoId: String, status: UploadStatus) {
-    guard let bridge = RCTBridge.current() else { return }
-    // `sendAppEvent` is deprecated in favor of subclassing RCTEventEmitter,
-    // but for TurboModules that emit device events (not component events),
-    // this remains the standard approach.
-    // TODO(RN): Migrate to RCTEventEmitter subclass if a non-deprecated
-    // TurboModule event API becomes available.
-    bridge.eventDispatcher().sendAppEvent(withName: Self.eventName, body: eventDict(uploadId: uploadId, videoId: videoId, status: status))
+    let body = eventDict(uploadId: uploadId, videoId: videoId, status: status)
+    if let eventEmitter {
+      eventEmitter(Self.eventName, body)
+      return
+    }
+    // Fallback for setups where the TurboModule-backed RCTEventEmitter has
+    // not been created yet (e.g. a classic bridge). In bridgeless mode
+    // `RCTBridge.current()` is `nil` and this path is a no-op.
+    RCTBridge.current()?.eventDispatcher().sendAppEvent(withName: Self.eventName, body: body)
   }
 
   private func eventDict(uploadId: String, videoId: String, status: UploadStatus) -> [String: Any] {
@@ -487,5 +592,5 @@ import React
 
   // MARK: - Constants
 
-  static let eventName = "bunnyStreamUploadEvent"
+  @objc public static let eventName = "bunnyStreamUploadEvent"
 }

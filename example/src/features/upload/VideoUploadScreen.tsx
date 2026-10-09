@@ -4,7 +4,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +14,7 @@ import {
 } from 'react-native';
 
 import {
+  BunnyStreamApi,
   BunnyStreamUpload,
   fold,
   type BunnyError,
@@ -52,22 +55,23 @@ interface UploadRow {
   } | null;
 }
 
+type RetryContext = { libraryId: number; uri: string; mode: UploadMode; videoId: string | null };
+
+// Module-level stores — they survive the screen being unmounted, so
+// navigating back keeps rows, titles, progress and retry context instead of
+// falling back to bare `restoreUploads()` snapshots.
+const uploadRows = new Map<string, UploadRow>();
+const retryContexts = new Map<string, RetryContext>();
+// Rows removed locally — a late native event (e.g. 'cancelled' fired when a
+// failed upload is evicted) must not resurrect the row.
+const removedUploadIds = new Set<string>();
+
 export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   const [useTus, setUseTus] = React.useState(true);
-  const [rows, setRows] = React.useState<UploadRow[]>([]);
+  const [rows, setRows] = React.useState<UploadRow[]>(() => Array.from(uploadRows.values()));
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  // Upload rows keyed by uploadId. Kept in a ref so the event listener (set
-  // up once) always reads the latest rows without re-subscribing.
-  const rowsRef = React.useRef<Map<string, UploadRow>>(new Map());
-
-  // Persisted retry context keyed by uploadId — the file URI and mode needed to
-  // restart an upload after a failure. Cleared on cancel/completed.
-  const retryContextRef = React.useRef<
-    Map<string, { libraryId: number; uri: string; mode: UploadMode; videoId: string | null }>
-  >(new Map());
 
   React.useEffect(() => {
     (async () => {
@@ -77,12 +81,12 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   }, []);
 
   const syncRows = React.useCallback(() => {
-    setRows(Array.from(rowsRef.current.values()));
+    setRows(Array.from(uploadRows.values()));
   }, []);
 
   const upsertRow = React.useCallback(
     (uploadId: string, patch: Partial<UploadRow>) => {
-      const existing = rowsRef.current.get(uploadId);
+      const existing = uploadRows.get(uploadId);
       const next: UploadRow = {
         uploadId,
         title: existing?.title ?? '',
@@ -97,22 +101,26 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
         ...existing,
         ...patch,
       };
-      rowsRef.current.set(uploadId, next);
+      uploadRows.set(uploadId, next);
       syncRows();
     },
     [syncRows],
   );
 
-  // Subscribe to upload events once for the screen lifetime.
+  // Subscribe to upload events once for the screen lifetime, then reattach
+  // to uploads restored from a previous session (iOS TUS only; a no-op on
+  // Android — restored entries arrive through the same listener).
   React.useEffect(() => {
     const unsubscribe = BunnyStreamUpload.addUploadListener((event: UploadEvent) => {
       handleEvent(event);
     });
+    BunnyStreamUpload.restoreUploads();
     return unsubscribe;
   }, []);
 
   const handleEvent = React.useCallback(
     (event: UploadEvent) => {
+      if (removedUploadIds.has(event.uploadId)) return;
       switch (event.type) {
         case 'started':
           upsertRow(event.uploadId, {
@@ -132,7 +140,14 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           });
           break;
         case 'paused':
-          upsertRow(event.uploadId, { status: 'paused' });
+          upsertRow(event.uploadId, {
+            videoId: event.videoId,
+            status: 'paused',
+            progress: event.progress,
+            bytesUploaded: event.bytesUploaded,
+            totalBytes: event.totalBytes,
+            pauseSupported: event.pauseSupported,
+          });
           break;
         case 'completed':
           upsertRow(event.uploadId, {
@@ -140,11 +155,11 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             status: 'completed',
             progress: 1,
           });
-          retryContextRef.current.delete(event.uploadId);
+          retryContexts.delete(event.uploadId);
           break;
         case 'cancelled':
           upsertRow(event.uploadId, { status: 'cancelled' });
-          retryContextRef.current.delete(event.uploadId);
+          retryContexts.delete(event.uploadId);
           break;
         case 'failed': {
           upsertRow(event.uploadId, {
@@ -180,7 +195,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
         fold(
           result,
           (handle) => {
-            rowsRef.current.set(handle.uploadId, {
+            uploadRows.set(handle.uploadId, {
               uploadId: handle.uploadId,
               title: file.fileName ?? file.uri,
               videoId: null,
@@ -188,11 +203,11 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
               progress: 0,
               bytesUploaded: 0,
               totalBytes: 0,
-              pauseSupported: 'unsupported',
+              pauseSupported: pauseSupportFor(mode),
               error: null,
               retry: { libraryId, uri: file.uri, mode },
             });
-            retryContextRef.current.set(handle.uploadId, {
+            retryContexts.set(handle.uploadId, {
               libraryId,
               uri: file.uri,
               mode,
@@ -220,20 +235,22 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   };
 
   const handleCancel = async (row: UploadRow) => {
+    // cancelUpload also deletes the server-side video entry for uploads
+    // started via startUpload — the native bridge tracks ownership.
     const result = await BunnyStreamUpload.cancelUpload(row.uploadId);
     if (!result.ok) setError(result.error.message);
   };
 
   const handleRetry = async (row: UploadRow) => {
-    const ctx = retryContextRef.current.get(row.uploadId);
+    const ctx = retryContexts.get(row.uploadId);
     if (!ctx) {
       setError('Retry context lost for this upload.');
       return;
     }
     setError(null);
     // Remove the failed row; a new uploadId will be returned.
-    rowsRef.current.delete(row.uploadId);
-    retryContextRef.current.delete(row.uploadId);
+    uploadRows.delete(row.uploadId);
+    retryContexts.delete(row.uploadId);
     syncRows();
 
     const result =
@@ -252,7 +269,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     fold(
       result,
       (handle) => {
-        rowsRef.current.set(handle.uploadId, {
+        uploadRows.set(handle.uploadId, {
           uploadId: handle.uploadId,
           title: row.title,
           videoId: ctx.videoId,
@@ -260,14 +277,54 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           progress: 0,
           bytesUploaded: 0,
           totalBytes: 0,
-          pauseSupported: 'unsupported',
+          pauseSupported: pauseSupportFor(ctx.mode),
           error: null,
           retry: { libraryId: ctx.libraryId, uri: ctx.uri, mode: ctx.mode },
         });
-        retryContextRef.current.set(handle.uploadId, { ...ctx });
+        retryContexts.set(handle.uploadId, { ...ctx });
         syncRows();
       },
       (err) => setError(err.message),
+    );
+  };
+
+  const handleDelete = (row: UploadRow) => {
+    Alert.alert(
+      'Delete upload',
+      'This removes the upload entry and permanently deletes its video from the library.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Suppress late events for this id before deleting the row — a
+            // native 'cancelled' event must not re-create it.
+            removedUploadIds.add(row.uploadId);
+            // For paused/failed uploads the native tracker entry (and TUS
+            // cache on iOS) still exists — cancel releases it and deletes
+            // the server-side video entry the upload created. Unknown ids
+            // are a no-op.
+            if (row.status === 'paused' || row.status === 'failed') {
+              await BunnyStreamUpload.cancelUpload(row.uploadId);
+            }
+            // The bridge deletes owned videos on cancel, but this covers
+            // uploads the bridge treats as unowned (restored after restart,
+            // continued uploads) and completed rows the user wants gone.
+            // NotFound means the video is already deleted — same end state.
+            if (row.videoId && libraryId != null) {
+              const res = await BunnyStreamApi.deleteVideo(libraryId, row.videoId);
+              if (!res.ok && res.error.kind !== 'NotFound') {
+                setError(res.error.message);
+                return;
+              }
+            }
+            uploadRows.delete(row.uploadId);
+            retryContexts.delete(row.uploadId);
+            syncRows();
+          },
+        },
+      ],
     );
   };
 
@@ -291,6 +348,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             onPauseResume={() => handlePauseResume(item)}
             onCancel={() => handleCancel(item)}
             onRetry={() => handleRetry(item)}
+            onDelete={() => handleDelete(item)}
             onPlay={() => handlePlay(item)}
           />
         )}
@@ -332,22 +390,33 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   );
 }
 
+/** Whether pause/resume is meaningful for a given upload mode on this platform. */
+function pauseSupportFor(mode: UploadMode): 'supported' | 'unsupported' {
+  // TUS pause/resume works on both platforms. On iOS the basic uploader
+  // pauses via URLSessionTask.suspend; on Android basic pause is a no-op.
+  return mode === 'tus' || Platform.OS === 'ios' ? 'supported' : 'unsupported';
+}
+
 function UploadRowCard({
   row,
   onPauseResume,
   onCancel,
   onRetry,
+  onDelete,
   onPlay,
 }: {
   row: UploadRow;
   onPauseResume: () => void;
   onCancel: () => void;
   onRetry: () => void;
+  onDelete: () => void;
   onPlay: () => void;
 }) {
   const percent = Math.round(row.progress * 100);
   const canControl = row.status === 'uploading' || row.status === 'paused';
   const canPause = canControl && row.pauseSupported === 'supported';
+  const isTerminal =
+    row.status === 'completed' || row.status === 'cancelled' || row.status === 'failed';
 
   return (
     <View style={uploadStyles.card}>
@@ -401,6 +470,7 @@ function UploadRowCard({
         {row.status === 'completed' && row.videoId ? (
           <OutlineButton label="Play" onPress={onPlay} />
         ) : null}
+        {isTerminal ? <OutlineButton label="Delete" onPress={onDelete} danger /> : null}
       </View>
     </View>
   );

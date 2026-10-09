@@ -8,6 +8,12 @@ import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
 import { initialize } from '@bunny.net/stream-react-native';
 
 import { Header } from '../../components/Header';
+import { ToggleRow } from '../../components/ToggleRow';
+import {
+  DEFAULT_PLAYBACK_SETTINGS,
+  loadPlaybackSettings,
+  savePlaybackSettings,
+} from '../../storage/playbackSettings';
 import { loadSettings, saveSettings } from '../../storage/settings';
 import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
@@ -17,6 +23,7 @@ type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [accessKey, setAccessKey] = React.useState('');
   const [libraryId, setLibraryId] = React.useState('');
+  const [autoPlay, setAutoPlay] = React.useState(DEFAULT_PLAYBACK_SETTINGS.autoPlay);
 
   React.useEffect(() => {
     (async () => {
@@ -25,6 +32,8 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       // sees pre-filled fields instead of empty inputs.
       setAccessKey(stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '');
       setLibraryId(String(stored?.libraryId ?? BUNNY_LIBRARY_ID ?? ''));
+      const playback = await loadPlaybackSettings();
+      setAutoPlay(playback.autoPlay);
     })();
   }, []);
 
@@ -76,6 +85,16 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <View style={styles.saveButtonContainer}>
           <Button title="Save" onPress={handleSave} color={colors.primary} />
         </View>
+        <Text style={styles.sectionTitle}>Playback</Text>
+        <ToggleRow
+          label="Auto-play videos"
+          subtitle="Start VOD playback automatically when opening the player"
+          value={autoPlay}
+          onValueChange={(value) => {
+            setAutoPlay(value);
+            void savePlaybackSettings({ autoPlay: value });
+          }}
+        />
       </ScrollView>
     </>
   );
