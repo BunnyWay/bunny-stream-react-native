@@ -63,6 +63,7 @@ jobs:
       contents: read
       security-events: write
       pull-requests: write
+      checks: write
 
     steps:
       - name: Checkout
@@ -80,6 +81,7 @@ jobs:
           format: sarif
           auto-changed-since: true
           comment: true
+          fail-on-issues: 'false'
           github-token: ${{ github.token }}
           args: --report-only
 

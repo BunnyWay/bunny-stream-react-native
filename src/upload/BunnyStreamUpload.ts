@@ -26,13 +26,14 @@ import NativeBunnyStreamUpload from '../specs/NativeBunnyStreamUpload';
  *   `InvalidState`. The SDK does not run a foreground service — uploads
  *   survive navigation but not process death.
  * - **Android TUS**: pause/resume/cancel work; `continueUpload` resumes.
- *   Progress is persisted per-library but the upload still does not survive
- *   process death without a host foreground service.
+ *   Upload URLs are persisted by library and video. Process death stops the
+ *   transfer; call `continueUpload` after relaunch with the same video/file.
  * - **iOS basic**: pause/resume work via `URLSessionTask.suspend/resume`.
  *   Uploads do not survive process death.
- * - **iOS TUS**: pause/resume/cancel work. Uploads survive process death via
- *   a background `URLSession`; call {@link restoreUploads} after app launch
- *   to reattach to in-flight TUS uploads.
+ * - **iOS TUS**: pause/resume/cancel work. Background `URLSession` and cache
+ *   support recovery after system termination; user force-quit cancels
+ *   background transfers until relaunch. Subscribe to events and call
+ *   {@link restoreUploads} after initialization to reattach to cached uploads.
  *
  * All control methods resolve with a {@link BunnyResult} envelope
  * (`{ ok: true, value }` / `{ ok: false, error }`) rather than throwing.
@@ -122,10 +123,13 @@ export const BunnyStreamUpload = {
   /**
    * Reattaches to in-flight TUS uploads after an app relaunch.
    *
-   * On iOS TUS, the background `URLSession` persists uploads across process
-   * death. Call this once during app startup (after `initialize`) to restore
-   * the tracker and resume pending transfers. On Android and on the basic
-   * uploader this is a no-op.
+   * On iOS TUS, a background `URLSession` and persistent cache allow recovery
+   * after system termination. User force-quit cancels background transfers
+   * until relaunch. After `initialize`, subscribe to events and call this
+   * once during startup to restore the tracker and receive upload snapshots.
+   * Recovery depends on cached files, authorization, and server state.
+   * On Android and on the basic uploader this is a no-op; use
+   * `continueUpload` with saved video/file details for Android TUS recovery.
    */
   restoreUploads(): void {
     // Android is a native no-op (in-process uploads can't survive process

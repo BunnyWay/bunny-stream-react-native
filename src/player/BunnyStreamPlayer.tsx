@@ -4,6 +4,7 @@ import type {
   Chapter,
   Moment,
   PlaybackPosition,
+  PlayerType,
   RetentionGraphEntry,
   PlayerWatermark,
   VideoQualityPreference,
@@ -20,6 +21,7 @@ import BunnyStreamPlayerNativeComponent, {
   Commands as NativeCommands,
   type NativeProps as VodNativeProps,
 } from '../specs/BunnyStreamPlayerNativeComponent';
+import { resolveLibraryId } from './resolveLibraryId';
 import { sourceIdentityKey } from './sourceIdentity';
 
 const NativeVodView = BunnyStreamPlayerNativeComponent as unknown as HostComponent<VodNativeProps>;
@@ -59,6 +61,21 @@ const serializeVideoQuality = (quality: VideoQualityPreference): string => {
   }
   return JSON.stringify({ mode: 'height', height: quality.maxHeight });
 };
+
+/** Transforms a native event prop; events whose payload fails to map are dropped. */
+const mappedEventProp = <N extends Record<string, unknown>, P>(
+  handler: ((event: { nativeEvent: P }) => void) | undefined,
+  map: (nativeEvent: N) => P,
+): ((event: { nativeEvent: N }) => void) | undefined =>
+  handler == null
+    ? undefined
+    : (event) => {
+        try {
+          handler({ nativeEvent: map(event.nativeEvent) });
+        } catch {
+          /* ignore malformed payload */
+        }
+      };
 
 /**
  * `BunnyStreamPlayer` renders the native Bunny Stream player for VOD or live
@@ -127,7 +144,10 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
 
     // A source identity change remounts the native host so the previous player
     // and SDK-owned state are fully released.
-    const hostKey = sourceIdentityKey(source);
+    const libraryIdResolution = resolveLibraryId(source.libraryId);
+    const hostKey = sourceIdentityKey(
+      libraryIdResolution.ok ? { ...source, libraryId: libraryIdResolution.libraryId } : source,
+    );
 
     // Keep generic ViewProps separate from host-specific props and events.
     const {
@@ -159,6 +179,30 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
       ...viewProps
     } = rest;
 
+    const configurationError = libraryIdResolution.ok ? undefined : libraryIdResolution.error;
+    const configurationErrorKey = configurationError
+      ? JSON.stringify([hostKey, configurationError.code, configurationError.message])
+      : undefined;
+    const reportedErrorKey = React.useRef<string | undefined>(undefined);
+
+    React.useEffect(() => {
+      if (!configurationError) {
+        reportedErrorKey.current = undefined;
+        return;
+      }
+      if (onError && reportedErrorKey.current !== configurationErrorKey) {
+        reportedErrorKey.current = configurationErrorKey;
+        onError({ nativeEvent: configurationError });
+      }
+    }, [configurationError, configurationErrorKey, onError]);
+
+    if (!libraryIdResolution.ok) {
+      if (!onError) {
+        throw new Error(`${libraryIdResolution.error.code}: ${libraryIdResolution.error.message}`);
+      }
+      return null;
+    }
+
     const nativeWatermark = serializeWatermark(watermark);
 
     // Track the last known VOD position for skipForward/skipBackward.
@@ -186,7 +230,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
           ref={
             nativeRef as React.RefObject<React.ElementRef<HostComponent<LiveNativeProps>> | null>
           }
-          libraryId={source.libraryId}
+          libraryId={libraryIdResolution.libraryId}
           streamId={source.streamId}
           token={source.token}
           expires={source.expires}
@@ -206,7 +250,7 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         key={hostKey}
         ref={nativeRef as React.RefObject<React.ElementRef<HostComponent<VodNativeProps>> | null>}
         videoId={source.videoId}
-        libraryId={source.libraryId}
+        libraryId={libraryIdResolution.libraryId}
         token={source.token}
         expires={source.expires}
         autoPlay={autoPlay}
@@ -225,63 +269,22 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         onVideoSizeChange={onVideoSizeChange}
         onPlaybackError={onPlaybackError}
         resumeConfig={resumeConfig ? JSON.stringify(resumeConfig) : undefined}
-        onChaptersUpdated={
-          onChaptersUpdated
-            ? (e) => {
-                try {
-                  const chapters = JSON.parse(e.nativeEvent.chapters) as Chapter[];
-                  onChaptersUpdated({ nativeEvent: { chapters } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onMomentsUpdated={
-          onMomentsUpdated
-            ? (e) => {
-                try {
-                  const moments = JSON.parse(e.nativeEvent.moments) as Moment[];
-                  onMomentsUpdated({ nativeEvent: { moments } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onRetentionGraphUpdated={
-          onRetentionGraphUpdated
-            ? (e) => {
-                try {
-                  const points = JSON.parse(e.nativeEvent.points) as RetentionGraphEntry[];
-                  onRetentionGraphUpdated({ nativeEvent: { points } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
-        onResumePositionAvailable={
-          onResumePositionAvailable
-            ? (e) => {
-                try {
-                  const position = JSON.parse(e.nativeEvent.position) as PlaybackPosition;
-                  onResumePositionAvailable({ nativeEvent: { position } });
-                } catch {
-                  /* ignore malformed payload */
-                }
-              }
-            : undefined
-        }
+        onChaptersUpdated={mappedEventProp(onChaptersUpdated, (e) => ({
+          chapters: JSON.parse(e.chapters) as Chapter[],
+        }))}
+        onMomentsUpdated={mappedEventProp(onMomentsUpdated, (e) => ({
+          moments: JSON.parse(e.moments) as Moment[],
+        }))}
+        onRetentionGraphUpdated={mappedEventProp(onRetentionGraphUpdated, (e) => ({
+          points: JSON.parse(e.points) as RetentionGraphEntry[],
+        }))}
+        onResumePositionAvailable={mappedEventProp(onResumePositionAvailable, (e) => ({
+          position: JSON.parse(e.position) as PlaybackPosition,
+        }))}
         useNativeTvPlayer={useNativeTvPlayer}
-        onPlayerTypeChange={
-          onPlayerTypeChange
-            ? (e) => {
-                const playerType = e.nativeEvent.playerType === 'cast' ? 'cast' : 'default';
-                onPlayerTypeChange({ nativeEvent: { playerType } });
-              }
-            : undefined
-        }
+        onPlayerTypeChange={mappedEventProp(onPlayerTypeChange, (e) => ({
+          playerType: (e.playerType === 'cast' ? 'cast' : 'default') as PlayerType,
+        }))}
         style={style}
         {...viewProps}
       />

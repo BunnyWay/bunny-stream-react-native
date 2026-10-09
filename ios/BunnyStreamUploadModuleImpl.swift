@@ -20,8 +20,9 @@ import React
 /// Platform notes:
 /// - **Basic (URLSessionVideoUploader)**: pause/resume work via
 ///   `URLSessionTask.suspend/resume`. Uploads do not survive process death.
-/// - **TUS (TUSVideoUploader)**: pause/resume/cancel work. Uploads survive
-///   process death via a background `URLSession` and persistent cache.
+/// - **TUS (TUSVideoUploader)**: pause/resume/cancel work. A background
+///   `URLSession` and persistent cache support recovery after system termination.
+///   User force-quit cancels background transfers until relaunch.
 ///   `TUSVideoUploader.make` calls `start()` internally, which restores
 ///   stored uploads from previous sessions.
 ///

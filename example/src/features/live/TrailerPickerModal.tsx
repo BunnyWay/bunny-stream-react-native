@@ -138,7 +138,7 @@ const pickerStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.outline,
+    borderBottomColor: colors.hairlineStrong,
   },
   closeButton: {
     fontSize: 16,

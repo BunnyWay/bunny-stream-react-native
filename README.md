@@ -15,8 +15,6 @@
     </a>
 </p>
 
-> 🚧 **Coming soon.** This SDK is currently in early development and is not yet ready for use. Follow this repository for updates.
-
 ## What is Bunny Stream?
 
 Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video platform. It wraps the official [iOS](https://github.com/BunnyWay/bunny-stream-ios) and [Android](https://github.com/BunnyWay/bunny-stream-android) SDKs with one TypeScript API for video management, uploads, playback, and live broadcasting.
@@ -32,7 +30,7 @@ Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video plat
 
 ## Documentation
 
-- [Platform support](docs/CAPABILITIES.md) — available features and differences between iOS and Android.
+- [Platform notes](#platform-differences) — platform-specific options and limitations.
 - [React Native example](example/) — playback, uploads, library management, and live streaming; see [setup instructions](CONTRIBUTING.md#running-the-example-app).
 - [Expo example](example-expo/README.md) — a minimal app using the config plugin.
 - [Bunny Stream documentation](https://docs.bunny.net/stream/mobile-sdk).
@@ -40,6 +38,7 @@ Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video plat
 ## Requirements
 
 - React Native with the **New Architecture** enabled (TurboModules and Fabric). The example app uses React Native 0.86.2.
+- **Expo** (if used): SDK 52+ with a development build. Expo Go is not supported.
 - **iOS**: Xcode and CocoaPods; use the minimum iOS deployment target required by your React Native version (the native Bunny SDK requires iOS 15+). The CocoaPods setup must support React Native's `spm_dependency` helper.
 - **Android**: Android 8.0 (API 26)+, `compileSdk` 36+, JDK 17, Kotlin 2.2.20+, and core library desugaring.
 - A [Bunny Stream video library](https://bunny.net/stream/) with its library ID and API access key.
@@ -142,18 +141,22 @@ export function VideoScreen() {
 }
 ```
 
-The player uses the library passed to `initialize`. Set `controls={false}` to hide its built-in controls. See the [player types](src/player/BunnyStreamPlayer.types.ts) for props, events, and commands.
+For both VOD and live sources, `source.libraryId` is optional and falls back to the library passed to `initialize()`. Set it on the source to override the initialized library.
+
+Set `controls={false}` to hide the player's built-in controls. See the [player types](src/player/BunnyStreamPlayer.types.ts) for props, events, and commands.
 
 ### Play a live stream
 
-Use the same component with a live source and an explicit library ID:
+Use the same component with a live source. It also uses the initialized library unless you explicitly provide `libraryId`:
 
 ```tsx
 <BunnyStreamPlayer
-  source={{ type: 'live', libraryId: 12345, streamId: 'your-stream-guid' }}
+  source={{ type: 'live', streamId: 'your-stream-guid' }}
   style={{ width: '100%', aspectRatio: 16 / 9 }}
 />
 ```
+
+Missing or invalid library IDs report `MISSING_LIBRARY_ID` or `INVALID_LIBRARY_ID` through `onError`; without a handler, configuration errors throw. Native live errors use `onLiveError`.
 
 ### Broadcast from the camera
 
@@ -188,7 +191,7 @@ if (result.ok) {
 }
 ```
 
-The [API reference in source](src/api/BunnyStreamApi.ts) also covers collections, live stream creation and scheduling, thumbnails, and analytics.
+The [API reference in source](src/api/BunnyStreamApi.ts) also covers collections, live stream creation and scheduling, thumbnails, captions, reencoding, AI transcription, and analytics. See [platform differences](#platform-differences) for capabilities that are not shared by both SDKs.
 
 ### Upload a video
 
@@ -211,7 +214,17 @@ if (result.ok) {
 }
 ```
 
-Subscribe with `BunnyStreamUpload.addUploadListener` to track progress and completion; call the returned unsubscribe function when finished. See the [upload API](src/upload/BunnyStreamUpload.ts) for pause, resume, cancellation, and background behavior.
+Subscribe with `BunnyStreamUpload.addUploadListener` to track progress and completion; call the returned unsubscribe function when finished. `startUpload()` defaults to `basic`, so set `mode: 'tus'` explicitly for resumable uploads. See the [upload API](src/upload/BunnyStreamUpload.ts) for pause, resume, and cancellation.
+
+### Interrupted uploads and background behavior
+
+Use `continueUpload()` to resume an interrupted TUS transfer. Do not assume uploads automatically retry when connectivity returns.
+
+On iOS, TUS supports background uploads and reattaching to cached transfers with `restoreUploads()`; user force-quit cancels background transfers. On Android, uploads stop with the process; use `continueUpload()` with saved video/file details to resume after relaunch. Recovery depends on file availability, authorization, and server state.
+
+## Platform differences
+
+Feature availability and options differ between platforms. See the [player types](src/player/BunnyStreamPlayer.types.ts) and [API source](src/api/BunnyStreamApi.ts) for operation-specific limitations. Android TV requires `useNativeTvPlayer` and the optional `net.bunny:tv` dependency.
 
 ## Contributing
 

@@ -189,6 +189,11 @@
   },
   "jest": {
     "preset": "@react-native/jest-preset",
+    "moduleNameMapper": {
+      "^react$": "<rootDir>/node_modules/react",
+      "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+      "^react-native$": "<rootDir>/node_modules/react-native"
+    },
     "testEnvironmentOptions": {
       "customExportConditions": [
         "require",

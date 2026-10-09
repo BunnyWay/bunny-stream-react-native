@@ -4,7 +4,7 @@ Thanks for helping improve Bunny Stream React Native. This package is a React Na
 
 ## Current Stage
 
-The package is in active pre-release development: the TypeScript contract, the Android and iOS native bridges, and the example apps already exist, but the public API surface and module structure can still change between releases. Please keep this in mind when opening issues or pull requests.
+The package has a 0.x release and is under active development. The TypeScript API, Android and iOS native bridges, and example apps already exist, but the public API surface and module structure can still change between releases. Please keep this in mind when opening issues or pull requests.
 
 ## Good First Contributions
 
