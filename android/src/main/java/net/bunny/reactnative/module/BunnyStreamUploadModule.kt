@@ -304,6 +304,10 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
     val job = scope.launch {
       flow.onEach { event ->
         lastEvents[uploadId] = event
+        // A completed upload produced a real video — drop ownership so a
+        // later cancelUpload cannot delete it. Failed/cancelled uploads keep
+        // the marker so cancel still removes the abandoned entry.
+        if (event is UploadEvent.Completed) ownedUploadLibraryIds.remove(uploadId)
         emitEvent(uploadId, event)
       }.collect { }
       // Flow completed (terminal event) — clean up the active job but keep
