@@ -423,6 +423,10 @@ const playerScreenStyles = StyleSheet.create({
     backgroundColor: colors.onPrimary15,
   },
   speedRows: {
+    // alignSelf:'stretch' overrides controlsSection's alignItems:'center' —
+    // without it the rows shrink to content width and the flex:1 buttons
+    // collapse into thin strips when custom controls are enabled.
+    alignSelf: 'stretch',
     gap: 8,
   },
   toggleRow: {
