@@ -31,6 +31,7 @@
     "plugin/build",
     "react-native.config.js",
     "native-sdk-baselines.json",
+    "llms.txt",
     "docs/CAPABILITIES.md",
     "!ios/build",
     "!android/build",
