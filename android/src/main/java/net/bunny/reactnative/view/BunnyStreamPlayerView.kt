@@ -233,6 +233,15 @@ class BunnyStreamPlayerView(
     }
     player.onVideoSizeChanged = { width, height ->
       if (generationToken.isActive(playbackGeneration)) {
+        // Media3's AspectRatioFrameLayout letterboxes the video surface in
+        // response to this callback via requestLayout — which is swallowed by
+        // the RN view hierarchy, so the inner surface view is never
+        // re-measured and stays at its initial full-box size, stretching
+        // portrait video to full width. Force the measure/layout pass the
+        // swallowed requestLayout was meant to trigger; the SDK's own
+        // resize_mode="fit" then letterboxes correctly (video and controls
+        // keep their proper bounds inside the full-size player view).
+        post { remeasureChild() }
         em.dispatch(
           net.bunny.reactnative.state.RnEvent("onVideoSizeChange") {
             mapOf("width" to width, "height" to height)
@@ -893,30 +902,40 @@ class BunnyStreamPlayerView(
   /**
    * Fabric calls `measure(EXACTLY, EXACTLY)` before `layout`, so the measured
    * width/height are already the exact pixel dimensions assigned by Yoga.
-   * We forward them unchanged to `setMeasuredDimension`.
+   * We forward them unchanged to `setMeasuredDimension` and measure the
+   * single child at the full box.
    */
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     val width = MeasureSpec.getSize(widthMeasureSpec)
     val height = MeasureSpec.getSize(heightMeasureSpec)
     setMeasuredDimension(width, height)
-    measureChildWithMargins(
-      player,
-      widthMeasureSpec,
-      0,
-      heightMeasureSpec,
-      0,
+    player.measure(
+      MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+      MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY),
     )
   }
 
   /**
-   * Lays out the single child ([player]) to fill the wrapper exactly.
+   * Lays out the single child ([player]) at the full box.
    */
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-    if (childCount == 0) return
-    val child = getChildAt(0)
-    val width = right - left
-    val height = bottom - top
-    child.layout(0, 0, width, height)
+    player.layout(0, 0, right - left, bottom - top)
+  }
+
+  /**
+   * Re-measures and re-lays out the SDK view at the full box. Called when the
+   * video's dimensions arrive: inside the SDK view, Media3's
+   * AspectRatioFrameLayout then letterboxes the surface view itself (the
+   * `requestLayout` it issues on `setAspectRatio` never propagates through
+   * the RN view hierarchy, so this manual pass is required).
+   */
+  private fun remeasureChild() {
+    if (width <= 0 || height <= 0) return
+    player.measure(
+      MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+      MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY),
+    )
+    player.layout(0, 0, width, height)
   }
 
   // --- Cleanup ---
