@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload build log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: apk-build-log-${{ github.run_id }}
           path: build.log
@@ -86,7 +86,7 @@ jobs:
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.rename.outputs.apk_name }}
           path: example/android/app/build/outputs/apk/release/${{ steps.rename.outputs.apk_name }}
