@@ -7,6 +7,34 @@
 
 RCT_EXPORT_MODULE("BunnyStreamUpload")
 
+// Disabled observation lets `sendEventWithName` emit regardless of the
+// listener counter — JS-side `NativeEventEmitter` delivers through
+// `RCTDeviceEventEmitter` and simply drops events with no subscribers.
+- (instancetype)init
+{
+  self = [super initWithDisabledObservation];
+  if (self) {
+    __weak BunnyStreamUploadModule *weakSelf = self;
+    BunnyStreamUploadModuleImpl.shared.eventEmitter = ^(NSString *name, NSDictionary *body) {
+      [weakSelf sendEventWithName:name body:body];
+    };
+  }
+  return self;
+}
+
+- (NSArray<NSString *> *)supportedEvents
+{
+  return @[ BunnyStreamUploadModuleImpl.eventName ];
+}
+
+// A custom init would otherwise push module creation onto the main queue.
+// This module does no UIKit work, so it can be created on any thread and
+// avoids stalling the JS thread on a main-queue dispatch.
++ (BOOL)requiresMainQueueSetup
+{
+  return NO;
+}
+
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
 {

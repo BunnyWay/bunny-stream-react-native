@@ -2,7 +2,14 @@ import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import * as React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import {
   BunnyStreamApi,
@@ -19,6 +26,7 @@ import { Header } from '../../components/Header';
 import { PropertiesCard } from '../../components/PropertiesCard';
 import { StatusBanner } from '../../components/StatusBanner';
 import { StatusPill } from '../../components/StatusPill';
+import { loadPlaybackSettings } from '../../storage/playbackSettings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatTimestamp } from '../../utils/format';
@@ -30,9 +38,17 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   const { streamId, libraryId, token, expires } = route.params;
   const [videoSize, setVideoSize] = React.useState<{ width: number; height: number } | null>(null);
   const [stream, setStream] = React.useState<LiveStream | null>(null);
+  // null = persisted setting not loaded yet. The live host has no play/pause
+  // commands (the SDK exposes no public live controller), so "autoPlay off"
+  // is honored by not mounting the native view until the user taps play.
+  const [autoPlay, setAutoPlay] = React.useState<boolean | null>(null);
+  const [started, setStarted] = React.useState(false);
 
   const source = { type: 'live' as const, streamId, libraryId, token, expires };
   const sourceKey = sourceIdentityKey(source);
+
+  const shouldMount = autoPlay === true || started;
+  const awaitingTap = autoPlay === false && !started;
 
   // Debug logs — the source (token presence, not the token itself) and
   // live state/error transitions, for diagnosing platform-specific failures.
@@ -45,10 +61,16 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
     });
   }, [streamId, libraryId, token, expires]);
 
+  React.useEffect(() => {
+    const refresh = () => void loadPlaybackSettings().then((s) => setAutoPlay(s.autoPlay));
+    refresh();
+    return navigation.addListener('focus', refresh);
+  }, [navigation]);
+
   const { state, eventHandlers } = useBunnyStreamPlayer(undefined, sourceKey);
 
   const liveState = state.liveState;
-  const loading = state.isLoading;
+  const loading = autoPlay === null || (shouldMount && state.isLoading);
 
   // Fetch live stream metadata for the properties card — mirrors the
   // Android demo's LiveStreamPropertiesCard. Re-fetches when the live
@@ -81,23 +103,33 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
     <View style={styles.playerContainer}>
       <Header title={stream?.title || 'Live Player'} onBack={() => navigation.goBack()} />
       <View style={styles.playerWrapper}>
-        <BunnyStreamPlayer
-          style={styles.player}
-          source={source}
-          onError={eventHandlers.onError}
-          onVideoSizeChange={(e) => {
-            setVideoSize(e.nativeEvent);
-            eventHandlers.onVideoSizeChange?.(e);
-          }}
-          onLiveStateChange={(e) => {
-            console.log('[LivePlayerScreen] live state:', e.nativeEvent);
-            eventHandlers.onLiveStateChange?.(e);
-          }}
-          onLiveError={(e) => {
-            console.warn('[LivePlayerScreen] live error:', e.nativeEvent);
-            eventHandlers.onLiveError?.(e);
-          }}
-        />
+        {shouldMount ? (
+          <BunnyStreamPlayer
+            style={styles.player}
+            source={source}
+            onError={eventHandlers.onError}
+            onVideoSizeChange={(e) => {
+              setVideoSize(e.nativeEvent);
+              eventHandlers.onVideoSizeChange?.(e);
+            }}
+            onLiveStateChange={(e) => {
+              console.log('[LivePlayerScreen] live state:', e.nativeEvent);
+              eventHandlers.onLiveStateChange?.(e);
+            }}
+            onLiveError={(e) => {
+              console.warn('[LivePlayerScreen] live error:', e.nativeEvent);
+              eventHandlers.onLiveError?.(e);
+            }}
+          />
+        ) : null}
+
+        {awaitingTap ? (
+          <View style={styles.loadingOverlay}>
+            <TouchableOpacity style={styles.primaryButton} onPress={() => setStarted(true)}>
+              <Text style={styles.primaryButtonText}>Play</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {loading ? (
           <View style={styles.loadingOverlay}>

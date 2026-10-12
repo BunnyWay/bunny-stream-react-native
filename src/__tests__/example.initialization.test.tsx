@@ -56,6 +56,11 @@ jest.mock('../../example/src/storage/settings', () => ({
   loadSettings: mockLoadSettings,
   saveSettings: mockSaveSettings,
 }));
+jest.mock('../../example/src/storage/playbackSettings', () => ({
+  DEFAULT_PLAYBACK_SETTINGS: { autoPlay: true },
+  loadPlaybackSettings: async () => ({ autoPlay: true }),
+  savePlaybackSettings: async () => {},
+}));
 
 const { default: ExpoApp } = jest.requireActual<{ default: ReactTypes.ComponentType }>(
   '../../example-expo/src/App',

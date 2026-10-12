@@ -15,9 +15,6 @@ import React
 /// stored in `BunnyStreamConfiguration` by the `BunnyStreamPlayer` TurboModule's
 /// `initialize(accessKey, libraryId)`, and this module reads them to construct
 /// a `BunnyStreamAPI` instance lazily.
-///
-/// TODO(iOS SDK): Replace generated video API models with stable domain
-/// VideoRepository and CollectionRepository surfaces when they become public.
 @objc public final class BunnyStreamApiModuleImpl: NSObject {
 
   @objc public static let shared = BunnyStreamApiModuleImpl()
@@ -602,9 +599,9 @@ import React
 
   /// Play data enriched with heatmap data.
   ///
-  /// TODO(iOS SDK): The generated OpenAPI client does not expose
-  /// `GET /videos/{id}/play/heatmap`. Resolves with an `InvalidState` error
-  /// until the iOS SDK adds this operation.
+  /// The generated OpenAPI client does not expose
+  /// `GET /videos/{id}/play/heatmap`, so this resolves with an `InvalidState`
+  /// error.
   func fetchVideoHeatmapData(
     libraryId: Double,
     videoId: String,
@@ -619,9 +616,9 @@ import React
 
   /// Per-rendition storage breakdown.
   ///
-  /// TODO(iOS SDK): The generated OpenAPI client does not expose
-  /// `GET /videos/{id}/storage`. Resolves with an `InvalidState` error until
-  /// the iOS SDK adds this operation.
+  /// The generated OpenAPI client does not expose
+  /// `GET /videos/{id}/storage`, so this resolves with an `InvalidState`
+  /// error.
   func fetchVideoStorageSize(libraryId: Double, videoId: String, resolve: @escaping RCTPromiseResolveBlock) {
     resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
                         message: "fetchVideoStorageSize is not supported on iOS. The generated OpenAPI client does not expose the storage endpoint.",
@@ -852,11 +849,10 @@ import React
 
   /// Uploads a thumbnail from a local file URI.
   ///
-  /// TODO(iOS SDK): The generated OpenAPI client does not expose a VOD
+  /// The generated OpenAPI client does not expose a VOD
   /// `uploadThumbnail` operation — `Video_SetThumbnail` only accepts a
-  /// `thumbnailUrl` query param, not a file body. This method resolves with
-  /// an `InvalidState` error until the iOS SDK exposes a file-upload
-  /// endpoint. Use `setThumbnail` with a remote URL on iOS.
+  /// `thumbnailUrl` query param, not a file body — so this resolves with an
+  /// `InvalidState` error. Use `setThumbnail` with a remote URL on iOS.
   func uploadThumbnail(libraryId: Double, videoId: String, uri: String,
                        resolve: @escaping RCTPromiseResolveBlock) {
     resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
@@ -920,10 +916,10 @@ import React
 
   /// Re-fetches an existing video's source from a remote URL.
   ///
-  /// TODO(iOS SDK): The generated OpenAPI client does not expose a
-  /// `refetchVideo` operation. This method falls back to `getVideo`
-  /// (metadata-only refresh) — the `request`, `enabledResolutions`, and
-  /// `lowPriority` fields are ignored.
+  /// The generated OpenAPI client does not expose a `refetchVideo`
+  /// operation, so this falls back to `getVideo` (metadata-only refresh) —
+  /// the `request`, `enabledResolutions`, and `lowPriority` fields are
+  /// ignored.
   func refetchVideo(libraryId: Double, videoId: String, request: NSDictionary,
                     resolve: @escaping RCTPromiseResolveBlock) {
     // Fallback: iOS does not expose a refetchVideo operation. Refresh
@@ -1210,9 +1206,8 @@ import React
 
   /// Triggers AI smart generation.
   ///
-  /// TODO(iOS SDK): The generated OpenAPI client does not expose a
-  /// `smartGenerate` operation. This method resolves with an `InvalidState`
-  /// error until the iOS SDK exposes this endpoint.
+  /// The generated OpenAPI client does not expose a `smartGenerate`
+  /// operation, so this resolves with an `InvalidState` error.
   func smartGenerate(libraryId: Double, videoId: String, request: NSDictionary,
                      resolve: @escaping RCTPromiseResolveBlock) {
     resolve(errEnvelope(kind: "InvalidState", httpStatus: 0,
