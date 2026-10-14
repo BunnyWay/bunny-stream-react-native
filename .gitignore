@@ -90,9 +90,6 @@ example/build/generated/codegen
 # React Native Nitro Modules
 nitrogen/
 
-# Fallow
-.fallow/
-
 # Env files (keep .env.example tracked)
 .env
 !.env.example

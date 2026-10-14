@@ -291,6 +291,9 @@ export const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   // Modal
+  flex1: {
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: colors.scrim,
