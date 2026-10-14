@@ -19,7 +19,6 @@
   },
   "ios": {
     "bundleIdentifier": "net.bunny.StreamSDKRNDemo",
-    "buildNumber": "8",
     "icons": {
       "primaryIcon": {
         "filename": "../ios/AppIcon.png",
