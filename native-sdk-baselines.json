@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "android": {
     "repository": "BunnyWay/bunny-stream-android",
-    "ref": "4.1.0",
-    "commit": "508c712fea36e4290bc1c0be1aedf6580f920928",
-    "mavenVersion": "4.1.0",
+    "ref": "4.1.1",
+    "commit": "e1c0217a7dfba5e987064763644f3ec1b74b1dd0",
+    "mavenVersion": "4.1.1",
     "defaultLocalPath": "../bunny-stream-android"
   },
   "ios": {
     "repository": "BunnyWay/bunny-stream-ios",
-    "ref": "1.0.1",
-    "commit": "ae9a58fae41d29e327697c50dc1159091874a8ec",
+    "ref": "1.0.2",
+    "commit": "b0dac2990baf2da0794728f7e2b11c0fb31a9093",
     "defaultLocalPath": "../bunny-stream-ios"
   }
 }
