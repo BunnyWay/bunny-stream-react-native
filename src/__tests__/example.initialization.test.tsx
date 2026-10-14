@@ -139,6 +139,14 @@ describe('React Native startup', () => {
     expect(mockNavigatorRender).toHaveBeenCalled();
   });
 
+  it('initializes in playback-only mode when no access key is configured', async () => {
+    mockLoadLibraryConfig.mockResolvedValueOnce({ accessKey: '', libraryId: 123 });
+    await render(<NativeApp />);
+
+    expect(mockInitialize).toHaveBeenCalledWith('', 123);
+    expect(mockNavigatorRender).toHaveBeenCalled();
+  });
+
   it('reports native initialization errors and still allows access to settings', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     mockInitialize.mockImplementationOnce(() => {
@@ -193,6 +201,18 @@ describe('React Native settings', () => {
 
     expect(mockInitialize).toHaveBeenCalledWith('saved-key', 456);
     expect(mockSaveSettings).toHaveBeenCalledWith({ accessKey: 'saved-key', libraryId: '456' });
+    expect(goBack).toHaveBeenCalled();
+  });
+
+  it('initializes and saves in playback-only mode when the access key is empty', async () => {
+    const goBack = jest.fn();
+    const view = await render(<SettingsScreen navigation={{ goBack }} />);
+    await fireEvent.changeText(view.getByPlaceholderText('Enter your Library ID'), '456');
+    await fireEvent.changeText(view.getByPlaceholderText('Enter your Library API Key'), '');
+    await fireEvent.press(view.getByText('Save'));
+
+    expect(mockInitialize).toHaveBeenCalledWith('', 456);
+    expect(mockSaveSettings).toHaveBeenCalledWith({ accessKey: '', libraryId: '456' });
     expect(goBack).toHaveBeenCalled();
   });
 

@@ -173,7 +173,7 @@ export function CameraScreen({ navigation, route }: CameraScreenProps) {
         <View style={cameraStyles.permissionContainer}>
           <Text style={cameraStyles.permissionTitle}>Not configured</Text>
           <Text style={cameraStyles.permissionText}>
-            Set your access key and library ID in Settings first.
+            Broadcasting requires an API access key. Set your key and library ID in Settings.
           </Text>
         </View>
       </>
