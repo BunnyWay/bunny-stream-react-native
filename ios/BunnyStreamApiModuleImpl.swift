@@ -24,9 +24,10 @@ import React
   // MARK: - SDK access
 
   /// Returns a `BunnyStreamAPI` configured with the stored access key, or `nil`
-  /// when `initialize` was never called. `BunnyStreamConfiguration` is thread-
-  /// safe so this can be called from any queue (TurboModule methods run on a
-  /// background queue, not the main thread).
+  /// when `initialize` was never called or ran in playback-only mode (blank
+  /// key). `BunnyStreamConfiguration` is thread-safe so this can be called from
+  /// any queue (TurboModule methods run on a background queue, not the main
+  /// thread).
   private var api: BunnyStreamAPI? {
     let cfg = BunnyStreamConfiguration.shared
     guard cfg.isConfigured, let key = cfg.accessKey else { return nil }

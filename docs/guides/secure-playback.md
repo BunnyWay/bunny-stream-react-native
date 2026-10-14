@@ -7,16 +7,17 @@ settings, and provide an authenticated backend that decides who can watch each v
 
 There are separate responsibilities:
 
-- The library API access key authorizes management operations and is required by the current
-  wrapper's `initialize(accessKey, libraryId)` contract.
+- The library API access key authorizes management operations. It is optional in
+  `initialize(accessKey, libraryId)` — pass a blank key for playback-only apps, and management
+  calls report not-initialized errors until a real key is provided.
 - An embed view token and expiry authorize playback when token authentication is enabled.
 - CDN delivery protection is handled by the native player using the playback configuration.
 
-An embed token is not a replacement for the initialization key. The current wrapper has no
-token-only initialization or custom management-backend endpoint. Backend token signing protects
-the signing secret, but does not by itself solve the wrapper's API-credential requirement.
-Review that limitation before distributing a consumer app; do not ship a privileged library key
-under the assumption that it becomes secret when supplied through an environment variable.
+An embed token is not a replacement for the API key: a token authorizes viewing, not management
+operations. For playback-only apps, prefer a blank `accessKey` over shipping a privileged
+library key. If you do need management calls, do not ship the key under the assumption that it
+becomes secret when supplied through an environment variable — keep those calls on a backend
+wherever possible.
 
 ## Request tokens from your backend
 

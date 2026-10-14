@@ -100,10 +100,11 @@ describe('public package API', () => {
 
     publicApi.initialize('access-key', 123);
     expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123, '0.1.1');
-    expect(() => publicApi.initialize('', 123)).toThrow('accessKey must be a non-empty string');
+    publicApi.initialize('', 123);
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('', 123, '0.1.1');
     expect(() => publicApi.initialize('access-key', 0)).toThrow(
       'libraryId must be a positive integer',
     );
-    expect(nativePlayer.initialize).toHaveBeenCalledTimes(1);
+    expect(nativePlayer.initialize).toHaveBeenCalledTimes(2);
   });
 });

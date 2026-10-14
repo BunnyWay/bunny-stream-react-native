@@ -11,11 +11,7 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
          libraryId:(double)libraryId
  integratorVersion:(NSString *)integratorVersion
 {
-  if (accessKey.length == 0) {
-    @throw [NSException exceptionWithName:@"InvalidArgumentException"
-                                   reason:@"accessKey must be a non-empty string"
-                                 userInfo:nil];
-  }
+  // accessKey may be empty: playback-only mode (public videos need no key).
   if (!isfinite(libraryId) || libraryId <= 0 || libraryId != floor(libraryId)) {
     @throw [NSException exceptionWithName:@"InvalidArgumentException"
                                    reason:@"libraryId must be a positive integer"

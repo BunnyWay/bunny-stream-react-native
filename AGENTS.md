@@ -11,7 +11,8 @@ codegen contract, platform invariants, and the checklist for spec changes.
 - All native access goes through `src/specs/` (codegen). A spec change requires
   matching iOS (`.mm` + `*Impl.swift`) **and** Kotlin updates in one change.
 - API/upload methods return `Promise<BunnyResult<T>>` — never reject.
-- `initialize(accessKey, libraryId)` must run before players/API use.
+- `initialize(accessKey, libraryId)` must run before players/API use; a blank
+  `accessKey` selects playback-only mode (management/upload/broadcast need a real key).
 - Expo plugin sources live in `plugin/src`; run `yarn plugin:build` before
   `expo prebuild`.
 - Code, docs, and commit messages in English; conventional commits enforced

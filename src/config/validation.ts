@@ -1,7 +1,10 @@
-export function validateAccessKey(accessKey: string): void {
-  if (!accessKey || accessKey.trim().length === 0) {
-    throw new Error('initialize: accessKey must be a non-empty string (SDK 4.0.0 requirement)');
-  }
+/**
+ * Normalizes the access key for `initialize`: `null`/`undefined` and blank
+ * strings become `''` (playback-only mode — public videos need no key; the
+ * management API, uploads, and broadcasting do).
+ */
+export function normalizeAccessKey(accessKey: string | null | undefined): string {
+  return accessKey?.trim() ?? '';
 }
 
 export function validateLibraryId(libraryId: number): void {

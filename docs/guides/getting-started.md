@@ -10,7 +10,7 @@ For generated native projects, follow the [Expo guide](expo.md) instead of the m
   Use your React Native version's minimum deployment target; the native Bunny SDK requires iOS 15+.
 - Android: API 26+, `compileSdk` 36+, JDK 17, Kotlin 2.2.20+, and core library desugaring.
 - Expo, if used: SDK 52+ and a development build, not Expo Go or web.
-- A Bunny Stream video library and its library ID and API access key.
+- A Bunny Stream video library and its library ID. The API access key is optional — playback-only apps (public videos) do not need it; management, upload, and broadcast features do.
 - A physical device for validating camera capture, broadcasting, casting, and background behavior.
 
 The repository's React Native example uses React Native 0.86.2. The declared Expo minimum is
@@ -86,7 +86,10 @@ export function configureStream(accessKey: string, libraryId: number): boolean {
 ```
 
 Only mount SDK content after this function returns `true`; otherwise show a configuration error.
-`initialize` is synchronous and rejects blank access keys and non-positive or non-integer IDs.
+`initialize` is synchronous and rejects non-positive or non-integer IDs. A blank access key
+is valid: it selects playback-only mode (public videos play without credentials), while
+management, upload, and broadcast calls report not-initialized errors until a real key is
+provided.
 Do not initialize as a side effect of rendering a component. If initialization happens in an
 effect, keep the player unmounted until your own ready state has been set.
 
@@ -126,12 +129,10 @@ A library API key can manage content. Do not commit it or assume that environmen
 build-time secrets, or secure storage make a key used by a distributed app impossible to extract.
 Keep management operations and playback-token signing on your backend wherever possible.
 
-The current wrapper's documented initialization requires a non-empty API access key; it does
-not expose a token-only initializer or a configurable backend proxy for management calls.
-Passing a playback token does not remove that initialization requirement. Do not substitute
-an embed token or a made-up string for the API key. If your production app must never receive
-library credentials, resolve that architectural requirement before adopting this initialization
-flow. See [Secure playback](secure-playback.md).
+Playback-only apps do not need the key at all: initialize with an empty `accessKey` and public
+videos and live streams play without credentials. Do not substitute an embed token or a made-up
+string for the API key when you do use management features — a playback token authorizes
+viewing, not the management API. See [Secure playback](secure-playback.md).
 
 ## Next steps
 

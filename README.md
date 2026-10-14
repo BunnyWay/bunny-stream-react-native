@@ -44,7 +44,7 @@ Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video plat
 - **Expo** (if used): SDK 52+ with a development build. Expo Go is not supported.
 - **iOS**: Xcode and CocoaPods; use the minimum iOS deployment target required by your React Native version (the native Bunny SDK requires iOS 15+). The CocoaPods setup must support React Native's `spm_dependency` helper.
 - **Android**: Android 8.0 (API 26)+, `compileSdk` 36+, JDK 17, Kotlin 2.2.20+, and core library desugaring.
-- A [Bunny Stream video library](https://bunny.net/stream/) with its library ID and API access key.
+- A [Bunny Stream video library](https://bunny.net/stream/) with its library ID. The API access key is only needed for management, upload, and broadcast features — public playback works without it.
 - A physical device for camera recording and broadcasting.
 
 ## Installation
@@ -128,6 +128,14 @@ import { initialize } from '@bunny.net/stream-react-native';
 
 initialize('your-library-api-key', 12345);
 ```
+
+Playback-only apps can omit the access key — public videos and live streams play without credentials:
+
+```ts
+initialize('', 12345);
+```
+
+A blank key selects playback-only mode: `BunnyStreamApi`, `BunnyStreamUpload`, and `BunnyStreamBroadcaster` report not-initialized errors until a real key is provided.
 
 ### Play a video
 

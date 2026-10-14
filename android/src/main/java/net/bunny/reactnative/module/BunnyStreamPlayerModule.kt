@@ -51,9 +51,9 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
     DefaultPlaybackPositionManager(reactApplicationContext, ResumeConfig())
 
   override fun initialize(accessKey: String, libraryId: Double, integratorVersion: String?) {
-    require(accessKey.isNotBlank()) {
-      "accessKey must be a non-empty string (SDK 4.0.0 requirement)"
-    }
+    // TODO(sdk): a blank accessKey means playback-only mode (public videos need
+    // no key). The key is passed through unchanged — keyless playback unblocks
+    // once BunnyStreamConfig upstream drops its isNotBlank requirement.
     val libraryIdLong = validateLibraryId(libraryId)
     val integrator = integratorVersion
       ?.takeIf { it.isNotBlank() }

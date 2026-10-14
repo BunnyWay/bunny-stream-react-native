@@ -39,7 +39,7 @@ type surface.
 
 | Dir | Responsibility |
 | --- | --- |
-| `config/` | `initialize(accessKey, libraryId)` — validates inputs **before** calling native (SDK ≥4 rejects empty keys), stores the configured `libraryId` used as fallback. |
+| `config/` | `initialize(accessKey, libraryId)` — validates inputs **before** calling native (blank key = playback-only mode), stores the configured `libraryId` used as fallback. |
 | `player/` | `BunnyStreamPlayer` component (one component for VOD + live), `useBunnyStreamPlayer` hook, resume positions, source identity. |
 | `api/` | `BunnyStreamApi` — typed wrapper over the TurboModule; `result/` holds `BunnyResult` + helpers (`fold`, `getOrNull`, …); `models/` holds request/response types. |
 | `upload/` | `BunnyStreamUpload` — start/continue/pause/resume/cancel + event subscriptions. |

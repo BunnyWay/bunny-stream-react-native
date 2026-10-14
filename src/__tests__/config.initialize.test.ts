@@ -48,16 +48,15 @@ describe('initialized library configuration', () => {
     },
   );
 
-  it('does not replace configuration for an invalid access key', () => {
-    configuration.initialize('access-key', 123);
-    nativeInitialize.mockClear();
+  it.each(['', ' ', null, undefined])(
+    'treats a blank access key %s as playback-only mode',
+    (accessKey) => {
+      configuration.initialize(accessKey as string, 456);
 
-    expect(() => configuration.initialize(' ', 456)).toThrow(
-      'accessKey must be a non-empty string',
-    );
-    expect(nativeInitialize).not.toHaveBeenCalled();
-    expect(configuration.getConfiguredLibraryId()).toBe(123);
-  });
+      expect(nativeInitialize).toHaveBeenCalledWith('', 456, '0.1.1');
+      expect(configuration.getConfiguredLibraryId()).toBe(456);
+    },
+  );
 
   it('leaves configuration unset if native initialization fails', () => {
     nativeInitialize.mockImplementationOnce(() => {
