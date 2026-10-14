@@ -1,6 +1,7 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import Clipboard from '@react-native-clipboard/clipboard';
 import * as React from 'react';
 import {
   ActivityIndicator,
@@ -47,6 +48,13 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
 
   const [status, setStatus] = React.useState<{ message: string; ok: boolean } | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [copiedVideoId, setCopiedVideoId] = React.useState(false);
+
+  const handleCopyVideoId = async () => {
+    await Clipboard.setString(videoId);
+    setCopiedVideoId(true);
+    setTimeout(() => setCopiedVideoId(false), 1500);
+  };
 
   const runAction = async (
     label: string,
@@ -174,9 +182,14 @@ export function VideoManagementScreen({ navigation, route }: VideoManagementScre
       <Header title="Video Management" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content} contentContainerStyle={mgmtStyles.content}>
         <Text style={mgmtStyles.videoIdLabel}>Video ID</Text>
-        <Text style={mgmtStyles.videoIdValue} numberOfLines={1}>
-          {videoId}
-        </Text>
+        <View style={mgmtStyles.videoIdRow}>
+          <Text style={mgmtStyles.videoIdValue} numberOfLines={1}>
+            {videoId}
+          </Text>
+          <TouchableOpacity style={mgmtStyles.copyButton} onPress={handleCopyVideoId}>
+            <Text style={mgmtStyles.copyButtonText}>{copiedVideoId ? 'Copied!' : 'Copy'}</Text>
+          </TouchableOpacity>
+        </View>
 
         {status ? (
           <StatusBanner
@@ -350,11 +363,31 @@ const mgmtStyles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
+  videoIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
   videoIdValue: {
+    flex: 1,
     fontSize: 13,
     fontFamily: 'monospace',
     color: colors.onSurface,
-    marginBottom: 16,
+    marginRight: 8,
+  },
+  copyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+  },
+  copyButtonText: {
+    color: colors.onPrimary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   statusBox: {
     marginBottom: 12,

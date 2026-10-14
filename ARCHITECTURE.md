@@ -136,7 +136,6 @@ yarn lint                   # eslint 9 + prettier
 yarn test                   # jest, @react-native/jest-preset, src/__tests__
 yarn prepare                # bob build → lib/  +  plugin:build
 yarn native-baselines:check # podspec/gradle vs native-sdk-baselines.json
-yarn fallow                 # dead-code/duplication health report (.fallowrc.json)
 yarn codegen                # regenerate codegen into example/build/generated/codegen
 ```
 

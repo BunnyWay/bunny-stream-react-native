@@ -1567,7 +1567,6 @@ __metadata:
     eslint-import-resolver-typescript: "npm:^4.4.4"
     eslint-plugin-import-x: "npm:^4.16.2"
     eslint-plugin-perfectionist: "npm:^5.9.0"
-    fallow: "npm:^2.87.0"
     globals: "npm:^17.6.0"
     jest: "npm:^29.7.0"
     lefthook: "npm:^2.1.9"
@@ -2499,62 +2498,6 @@ __metadata:
   bin:
     excpretty: build/cli.js
   checksum: 10c0/d2f8e02fc665dca5460269b465debc354d57b241376115e504f583c7e42c59a30267c42b969a59b4f5079d2efef88433e0285f3f5d0b5c6760dee1c2daab032e
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/darwin-arm64@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/darwin-arm64@npm:2.104.0"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/darwin-x64@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/darwin-x64@npm:2.104.0"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/linux-arm64-gnu@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/linux-arm64-gnu@npm:2.104.0"
-  conditions: os=linux & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/linux-arm64-musl@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/linux-arm64-musl@npm:2.104.0"
-  conditions: os=linux & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/linux-x64-gnu@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/linux-x64-gnu@npm:2.104.0"
-  conditions: os=linux & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/linux-x64-musl@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/linux-x64-musl@npm:2.104.0"
-  conditions: os=linux & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/win32-arm64-msvc@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/win32-arm64-msvc@npm:2.104.0"
-  conditions: os=win32 & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@fallow-cli/win32-x64-msvc@npm:2.104.0":
-  version: 2.104.0
-  resolution: "@fallow-cli/win32-x64-msvc@npm:2.104.0"
-  conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
@@ -6596,7 +6539,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"detect-libc@npm:2.1.2, detect-libc@npm:^2.0.3":
+"detect-libc@npm:^2.0.3":
   version: 2.1.2
   resolution: "detect-libc@npm:2.1.2"
   checksum: 10c0/acc675c29a5649fa1fb6e255f993b8ee829e510b6b56b0910666949c80c364738833417d0edb5f90e4e46be17228b0f2b66a010513984e18b15deeeac49369c4
@@ -7387,44 +7330,6 @@ __metadata:
   version: 1.1.1
   resolution: "exsolve@npm:1.1.1"
   checksum: 10c0/0b157a7600408bd356ff78cff5ad9c8c0dd7ca5e7f246216c3c9b66196e76277d3130021122b9c5078a3462751fd7aa988fe3dc1e3b80c79cb873c1623f628e1
-  languageName: node
-  linkType: hard
-
-"fallow@npm:^2.87.0":
-  version: 2.104.0
-  resolution: "fallow@npm:2.104.0"
-  dependencies:
-    "@fallow-cli/darwin-arm64": "npm:2.104.0"
-    "@fallow-cli/darwin-x64": "npm:2.104.0"
-    "@fallow-cli/linux-arm64-gnu": "npm:2.104.0"
-    "@fallow-cli/linux-arm64-musl": "npm:2.104.0"
-    "@fallow-cli/linux-x64-gnu": "npm:2.104.0"
-    "@fallow-cli/linux-x64-musl": "npm:2.104.0"
-    "@fallow-cli/win32-arm64-msvc": "npm:2.104.0"
-    "@fallow-cli/win32-x64-msvc": "npm:2.104.0"
-    detect-libc: "npm:2.1.2"
-  dependenciesMeta:
-    "@fallow-cli/darwin-arm64":
-      optional: true
-    "@fallow-cli/darwin-x64":
-      optional: true
-    "@fallow-cli/linux-arm64-gnu":
-      optional: true
-    "@fallow-cli/linux-arm64-musl":
-      optional: true
-    "@fallow-cli/linux-x64-gnu":
-      optional: true
-    "@fallow-cli/linux-x64-musl":
-      optional: true
-    "@fallow-cli/win32-arm64-msvc":
-      optional: true
-    "@fallow-cli/win32-x64-msvc":
-      optional: true
-  bin:
-    fallow: bin/fallow
-    fallow-lsp: bin/fallow-lsp
-    fallow-mcp: bin/fallow-mcp
-  checksum: 10c0/a7e2a586404155e43ba7d891935cb33180a1c277f7031c8555782da3a11da05a7ab22d6d6cf8d294096c2710680b49acfebb73f11859f04a7aa75ec71d09519c
   languageName: node
   linkType: hard
 
