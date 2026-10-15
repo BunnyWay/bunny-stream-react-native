@@ -194,7 +194,7 @@ describe('React Native settings', () => {
     const view = await render(<SettingsScreen navigation={{ goBack }} />);
     await fireEvent.changeText(view.getByPlaceholderText('Enter your Library ID'), '0456');
     await fireEvent.changeText(
-      view.getByPlaceholderText('Enter your Library API Key'),
+      view.getByPlaceholderText('Optional — leave empty for playback only'),
       ' saved-key ',
     );
     await fireEvent.press(view.getByText('Save'));
@@ -208,7 +208,7 @@ describe('React Native settings', () => {
     const goBack = jest.fn();
     const view = await render(<SettingsScreen navigation={{ goBack }} />);
     await fireEvent.changeText(view.getByPlaceholderText('Enter your Library ID'), '456');
-    await fireEvent.changeText(view.getByPlaceholderText('Enter your Library API Key'), '');
+    await fireEvent.changeText(view.getByPlaceholderText('Optional — leave empty for playback only'), '');
     await fireEvent.press(view.getByText('Save'));
 
     expect(mockInitialize).toHaveBeenCalledWith('', 456);
