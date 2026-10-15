@@ -89,7 +89,13 @@ Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plug
 
 Try to keep changes scoped to the area they affect. Write code identifiers, file names, comments, API documentation, error messages, branch names, and commit messages in English.
 
-The Android SDK is consumed as public Maven Central artifacts (`net.bunny:player/api/recording/tv`) at the version pinned in `native-sdk-baselines.json` — no local Android checkout is required to build. The iOS SDK is consumed as a public SwiftPM package from `BunnyWay/bunny-stream-ios`, pinned to the commit in `native-sdk-baselines.json` (the public repo has no release tags yet). Set `BUNNY_STREAM_IOS_SDK_PATH` only to point the podspec at a local SDK checkout for native development, then verify it with:
+The Android SDK is consumed as Maven Central artifacts (`net.bunny:player/api/recording/tv`) at the `mavenVersion` pinned in `native-sdk-baselines.json`. When the pin is an unreleased upstream build (such as the current `4.2.0-pr83`, a local build of [PR #83](https://github.com/BunnyWay/bunny-stream-android/pull/83) which adds keyless playback), a checkout of that commit is required — stage its artifacts into `~/.m2/repository` with:
+
+```sh
+BUNNY_STREAM_ANDROID_SDK_PATH=../bunny-stream-android-pr83 yarn native-android:publish
+```
+
+The script verifies the checkout matches the pinned commit, then builds and stages unsigned artifacts locally. `mavenLocal()` is registered last in `android/build.gradle`, so versions that exist on Maven Central never resolve from `~/.m2`. The iOS SDK is consumed as a public SwiftPM package from `BunnyWay/bunny-stream-ios`, pinned to the commit in `native-sdk-baselines.json` (the public repo has no release tags yet). Set `BUNNY_STREAM_IOS_SDK_PATH` only to point the podspec at a local SDK checkout for native development, then verify it with:
 
 ```sh
 yarn native-baselines:check

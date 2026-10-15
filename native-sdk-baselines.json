@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "android": {
     "repository": "BunnyWay/bunny-stream-android",
-    "ref": "4.1.1",
-    "commit": "e1c0217a7dfba5e987064763644f3ec1b74b1dd0",
-    "mavenVersion": "4.1.1",
+    "ref": "pull/83/head",
+    "commit": "3bd37c9dac8353a22f08bfec6882715e0ab988ba",
+    "mavenVersion": "4.2.0-pr83",
     "defaultLocalPath": "../bunny-stream-android"
   },
   "ios": {

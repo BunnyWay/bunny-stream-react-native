@@ -111,7 +111,9 @@ dirs via CNG, so each prebuild is a plugin regression test.
 `native-sdk-baselines.json` is the single pin for both SDKs (repo, ref, commit;
 plus `mavenVersion` for Android). After bumping it — or when setting a local
 SDK path — run `yarn native-baselines:check` to verify podspec/gradle agree.
-`scripts/publish-android-sdk.mjs` publishes Android SDK artifacts (maintainers).
+`scripts/publish-android-sdk.mjs` stages unsigned Android SDK artifacts into
+`~/.m2/repository` so builds can consume unreleased upstream commits via
+`mavenLocal` (registered last in `android/build.gradle`).
 
 ## Repo map
 
