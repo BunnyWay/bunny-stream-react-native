@@ -18,6 +18,8 @@ codegen contract, platform invariants, and the checklist for spec changes.
 - Code, docs, and commit messages in English; conventional commits enforced
   by lefthook + commitlint.
 - Never commit Bunny access keys or secrets.
+- Never run `git commit` or `git push` on your own — only when the user
+  explicitly asks for a commit or push in the current request.
 
 ## Verify
 
