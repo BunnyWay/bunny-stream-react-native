@@ -5,9 +5,12 @@ import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BunnyStreamApi } from '@bunny.net/stream-react-native';
+
 import { Header } from '../../components/Header';
 import { loadLibraryConfig } from '../../storage/settings';
 import { styles } from '../../theme/styles';
+import { DirectLivePlayModal } from './DirectLivePlayModal';
 import { DirectVideoPlayModal } from './DirectVideoPlayModal';
 import { HomeOption } from './HomeOption';
 
@@ -17,6 +20,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const [hasLibrary, setHasLibrary] = React.useState(false);
   const [hasApiKey, setHasApiKey] = React.useState(false);
   const [directPlayVisible, setDirectPlayVisible] = React.useState(false);
+  const [directLiveVisible, setDirectLiveVisible] = React.useState(false);
   const insets = useSafeAreaInsets();
 
   // Re-check on focus so options unlock after saving in Settings.
@@ -48,6 +52,22 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const handleDirectPlay = (videoId: string, libraryId: number) => {
     setDirectPlayVisible(false);
     navigation.navigate('Player', { videoId, libraryId });
+  };
+
+  const handleDirectLive = (streamId: string, libraryId: number) => {
+    setDirectLiveVisible(false);
+    // Public streams play with no token; sign one anyway when a key is
+    // configured so token-authenticated libraries work too.
+    void (async () => {
+      const { accessKey } = await loadLibraryConfig();
+      const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, streamId);
+      navigation.navigate('LivePlayer', {
+        streamId,
+        libraryId,
+        token: token ?? undefined,
+        expires: expires ?? undefined,
+      });
+    })();
   };
 
   const openCameraUpload = () => {
@@ -96,6 +116,13 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
             subtitle={optionSubtitle(canPlay, 'Play by video ID')}
             disabled={!canPlay}
             onPress={optionAction(canPlay, () => setDirectPlayVisible(true))}
+          />
+          <View style={styles.divider} />
+          <HomeOption
+            title="Direct live play"
+            subtitle={optionSubtitle(canPlay, 'Watch a live stream by ID')}
+            disabled={!canPlay}
+            onPress={optionAction(canPlay, () => setDirectLiveVisible(true))}
           />
         </View>
 
@@ -153,6 +180,11 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
         visible={directPlayVisible}
         onClose={() => setDirectPlayVisible(false)}
         onPlay={handleDirectPlay}
+      />
+      <DirectLivePlayModal
+        visible={directLiveVisible}
+        onClose={() => setDirectLiveVisible(false)}
+        onPlay={handleDirectLive}
       />
     </>
   );

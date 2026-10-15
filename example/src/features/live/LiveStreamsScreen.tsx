@@ -2,7 +2,6 @@ import type { RootStackParamList } from '../../navigation/types';
 import type { LiveStream, LiveStreamStatus } from '@bunny.net/stream-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -30,6 +29,7 @@ type UiState =
 export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps) {
   const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
+  const [accessKey, setAccessKey] = React.useState('');
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editStream, setEditStream] = React.useState<LiveStream | null>(null);
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
@@ -54,6 +54,8 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       return;
     }
     setLibraryId(libId);
+    // The configured key doubles as the token-auth signing key in this demo.
+    setAccessKey(accessKey);
 
     setUiState((prev) => (prev.kind === 'loaded' ? prev : { kind: 'loading' }));
     const result = await BunnyStreamApi.listLiveStreams(libId);
@@ -75,7 +77,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
 
   const handleWatch = (stream: LiveStream) => {
     if (libraryId == null) return;
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(BUNNY_ACCESS_KEY, stream.id);
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, stream.id);
     navigation.navigate('LivePlayer', {
       streamId: stream.id,
       libraryId,

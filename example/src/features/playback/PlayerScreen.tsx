@@ -1,7 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import {
@@ -41,6 +40,7 @@ import {
   loadResumeSettings,
   toResumeConfig,
 } from '../../storage/resumeSettings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatBytes, formatDuration, formatTime } from '../../utils/format';
@@ -161,7 +161,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   // title, duration, status, size, views — shown in a properties card below
   // the player, identical to the Android demo's VideoPropertiesCard.
   const loadMetadata = React.useCallback(async () => {
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(BUNNY_ACCESS_KEY, videoId);
+    // The configured (stored or env) key doubles as the token-auth signing
+    // key in this demo; a blank key signs nothing and public libraries still
+    // resolve playback data via the public /play endpoint.
+    const { accessKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, videoId);
     const result = await BunnyStreamApi.fetchVideoPlayData(libraryId, videoId, token, expires);
     fold(
       result,

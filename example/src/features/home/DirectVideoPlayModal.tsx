@@ -1,4 +1,4 @@
-import { BUNNY_LIBRARY_ID, BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
+import { BUNNY_VIDEO_ID, BUNNY_VIDEO_IDS } from '@env';
 import * as React from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { Dialog } from '../../components/Dialog';
 import {
   loadDirectPlayValues,
   saveDirectPlayValues,
+  loadLibraryConfig,
   parseVideoIdsFromEnv,
 } from '../../storage/settings';
 import { colors } from '../../theme/colors';
@@ -29,8 +30,9 @@ export function DirectVideoPlayModal({ visible, onClose, onPlay }: DirectVideoPl
     (async () => {
       const stored = await loadDirectPlayValues();
       const envVideoIds = parseVideoIdsFromEnv({ BUNNY_VIDEO_IDS, BUNNY_VIDEO_ID });
+      const { libraryId: configuredLibId } = await loadLibraryConfig();
       setVideoId(stored?.videoId || envVideoIds[0] || '');
-      setLibraryId(stored?.libraryId || BUNNY_LIBRARY_ID || '');
+      setLibraryId(stored?.libraryId || String(configuredLibId ?? ''));
       setLoaded(true);
     })();
   }, [visible, loaded]);

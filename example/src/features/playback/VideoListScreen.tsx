@@ -1,7 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -40,6 +39,7 @@ type UiState =
 export function VideoListScreen({ navigation }: VideoListScreenProps) {
   const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
+  const [accessKey, setAccessKey] = React.useState('');
   // Thumbnail URLs keyed by video ID — enriched via fetchPlayerSettings,
   // like the Android demo's LibraryViewModel.enrichMissingThumbnails.
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
@@ -51,6 +51,8 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
       return;
     }
     setLibraryId(libId);
+    // The configured key doubles as the token-auth signing key in this demo.
+    setAccessKey(accessKey);
 
     setUiState((prev) => (prev.kind === 'loaded' ? prev : { kind: 'loading' }));
     const result = await BunnyStreamApi.listVideos(libId, { orderBy: 'date' });
@@ -88,7 +90,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
         // Sign a playback token when the library has token auth on — the
         // thumbnail URL returned by fetchPlayerSettings then carries the
         // token query params needed to load without 403.
-        const { token, expires } = BunnyStreamApi.signPlaybackToken(BUNNY_ACCESS_KEY, video.id);
+        const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, video.id);
         // Try fetchPlayerSettings first (like the Android demo), then fall
         // back to fetchVideoPlayData which also carries a thumbnailUrl.
         let url: string | undefined;
@@ -126,7 +128,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [uiState, libraryId, thumbnails]);
+  }, [uiState, libraryId, accessKey, thumbnails]);
 
   // Poll status while any video is transitional (processing/transcoding),
   // gated on the screen being mounted. Mirrors LibraryViewModel.onStatusPollTick.

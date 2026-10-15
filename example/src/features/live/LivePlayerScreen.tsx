@@ -27,6 +27,7 @@ import { PropertiesCard } from '../../components/PropertiesCard';
 import { StatusBanner } from '../../components/StatusBanner';
 import { StatusPill } from '../../components/StatusPill';
 import { loadPlaybackSettings } from '../../storage/playbackSettings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatTimestamp } from '../../utils/format';
@@ -81,6 +82,10 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      // getLiveStream is a management endpoint — skip it in playback-only
+      // mode instead of surfacing a MissingAccessKey-style error.
+      const { accessKey } = await loadLibraryConfig();
+      if (!accessKey) return;
       const result = await BunnyStreamApi.getLiveStream(libraryId, streamId);
       const data = getOrNull(result);
       if (!cancelled && data) {

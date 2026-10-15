@@ -58,6 +58,9 @@ jest.mock('../../example/src/storage/playbackSettings', () => ({
   loadPlaybackSettings: async () => ({ autoPlay: true }),
   savePlaybackSettings: async () => {},
 }));
+jest.mock('../../example/src/storage/settings', () => ({
+  loadLibraryConfig: async () => ({ accessKey: 'access-key', libraryId: 123 }),
+}));
 
 const { LivePlayerScreen } = jest.requireActual<{
   LivePlayerScreen: ReactTypes.ComponentType<{
