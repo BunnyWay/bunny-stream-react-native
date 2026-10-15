@@ -208,8 +208,8 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     <>
       <Text style={styles.speedTitle}>Playback Speed</Text>
       <View style={playerScreenStyles.speedRows}>
-        {speedRows.map((row) => (
-          <View key={row[0]} style={styles.speedRow}>
+        {speedRows.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.speedRow}>
             {row.map((speed) => {
               const isActive = speed === currentSpeed;
               return (
