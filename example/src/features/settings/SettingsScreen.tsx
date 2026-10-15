@@ -71,7 +71,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Text style={styles.sectionTitle}>Video Library API Key (optional)</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your Library API Key"
+          placeholder="Optional — leave empty for playback only"
           value={accessKey}
           onChangeText={setAccessKey}
           autoCapitalize="none"
@@ -79,8 +79,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           secureTextEntry
         />
         <Text style={styles.inputHint}>
-          Leave empty for playback-only mode — public videos play without a key. Required for
-          library management, uploads, and broadcasting.
+          {accessKey.trim().length > 0
+            ? 'Full access: playback, library management, uploads, and broadcasting.'
+            : 'Playback-only mode: public videos and live streams play without a key. Library ' +
+              'management, uploads, and broadcasting stay unavailable until a key is set.'}
         </Text>
         <View style={styles.saveButtonContainer}>
           <Button title="Save" onPress={handleSave} color={colors.primary} />
