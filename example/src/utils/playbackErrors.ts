@@ -9,11 +9,11 @@
 const ACCESS_DENIED_PATTERN = /403|forbidden|access denied|unauthori[sz]ed|not ?available/i;
 const NOT_FOUND_PATTERN = /\b404\b|not ?found/i;
 
-const ACCESS_DENIED_MESSAGE =
+export const ACCESS_DENIED_MESSAGE =
   'Playback refused (403). The video may be geo-restricted, blocked by ' +
   'referrer protection, or the token is expired/invalid.';
 
-const NOT_FOUND_MESSAGE =
+export const NOT_FOUND_MESSAGE =
   'Video not found (404). Check that the video ID and library ID are ' +
   'correct — or that the video is public / the configured access key can ' +
   'read it. The play endpoint returns 404 for protected videos fetched ' +
