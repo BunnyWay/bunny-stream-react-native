@@ -71,6 +71,34 @@ describe('useBunnyStreamPlayer reducer transitions', () => {
     await unmount();
   });
 
+  it('onPlaybackError alone sets error and clears isLoading (Android /play fetch failure)', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onPlaybackError, { message: 'Not Found' });
+    expect(result.current.state.error).toEqual({
+      code: 'PLAYBACK_ERROR',
+      message: 'Not Found',
+    });
+    expect(result.current.state.playbackState).toBe('error');
+    expect(result.current.state.isLoading).toBe(false);
+    await unmount();
+  });
+
+  it('onPlaybackError does not overwrite a structured onError payload', async () => {
+    const { result, unmount } = await renderPlayerHook();
+    await fire(result.current.eventHandlers.onError, {
+      code: 'PLAYBACK_FAILED',
+      message: 'boom',
+      nativeCode: '5001',
+    });
+    await fire(result.current.eventHandlers.onPlaybackError, { message: 'Video is not available' });
+    expect(result.current.state.error).toEqual({
+      code: 'PLAYBACK_FAILED',
+      message: 'boom',
+      nativeCode: '5001',
+    });
+    await unmount();
+  });
+
   it('VOLUME updates volume and isMuted', async () => {
     const { result, unmount } = await renderPlayerHook();
     await fire(result.current.eventHandlers.onVolumeChange, { volume: 0.5, isMuted: false });

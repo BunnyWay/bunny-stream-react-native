@@ -5,31 +5,32 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as React from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { BunnyStreamApi, LiveStreamStatusEnum, fold } from '@bunny.net/stream-react-native';
+import { BunnyStreamApi, LiveStreamStatusEnum } from '@bunny.net/stream-react-native';
 
 import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
 import { ListStateView } from '../../components/ListStateView';
-import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
+import { useLibraryList } from '../../utils/useLibraryList';
 import { LiveStreamCard } from './LiveStreamCard';
 import { LiveStreamEditorModal } from './LiveStreamEditorModal';
 import { RtmpIngestModal } from './RtmpIngestModal';
 
 type LiveStreamsScreenProps = NativeStackScreenProps<RootStackParamList, 'LiveStreams'>;
 
-type UiState =
-  | { kind: 'loading' }
-  | { kind: 'empty' }
-  | { kind: 'loaded'; streams: LiveStream[] }
-  | { kind: 'unconfigured' }
-  | { kind: 'error'; message: string };
-
 export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps) {
-  const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
-  const [libraryId, setLibraryId] = React.useState<number | null>(null);
-  const [accessKey, setAccessKey] = React.useState('');
+  const fetchStreams = React.useCallback(
+    (libId: number) => BunnyStreamApi.listLiveStreams(libId),
+    [],
+  );
+  const {
+    uiState,
+    setError,
+    libraryId,
+    accessKey,
+    reload: loadStreams,
+  } = useLibraryList<LiveStream>(fetchStreams);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editStream, setEditStream] = React.useState<LiveStream | null>(null);
   const [deleteStream, setDeleteStream] = React.useState<LiveStream | null>(null);
@@ -46,31 +47,6 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       navigation.setParams({ pickedThumbnailUrl: undefined });
     }
   }, [route.params, navigation]);
-
-  const loadStreams = React.useCallback(async () => {
-    const { libraryId: libId, accessKey } = await loadLibraryConfig();
-    if (libId == null || !accessKey.trim()) {
-      setUiState({ kind: 'unconfigured' });
-      return;
-    }
-    setLibraryId(libId);
-    // The configured key doubles as the token-auth signing key in this demo.
-    setAccessKey(accessKey);
-
-    setUiState((prev) => (prev.kind === 'loaded' ? prev : { kind: 'loading' }));
-    const result = await BunnyStreamApi.listLiveStreams(libId);
-    fold(
-      result,
-      (list) => {
-        if (list.items.length === 0) {
-          setUiState({ kind: 'empty' });
-        } else {
-          setUiState({ kind: 'loaded', streams: list.items });
-        }
-      },
-      (error) => setUiState({ kind: 'error', message: error.message }),
-    );
-  }, []);
 
   // Load on focus — fires on mount and again when returning from Settings.
   React.useEffect(() => navigation.addListener('focus', loadStreams), [navigation, loadStreams]);
@@ -104,7 +80,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     if (result.ok) {
       loadStreams();
     } else {
-      setUiState({ kind: 'error', message: result.error.message });
+      setError(result.error.message);
     }
   };
 
@@ -118,7 +94,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     if (result.ok) {
       loadStreams();
     } else {
-      setUiState({ kind: 'error', message: result.error.message });
+      setError(result.error.message);
     }
   };
 
@@ -151,7 +127,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
       <Header title="Live Streams" onBack={() => navigation.goBack()} />
       <FlatList
         style={styles.content}
-        data={uiState.kind === 'loaded' ? uiState.streams : []}
+        data={uiState.kind === 'loaded' ? uiState.items : []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

@@ -44,6 +44,11 @@ import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatBytes, formatDuration, formatTime } from '../../utils/format';
+import {
+  GEO_BLOCK_HINT,
+  isBlockedPlaybackError,
+  playbackErrorMessage,
+} from '../../utils/playbackErrors';
 
 const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
@@ -297,26 +302,34 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         ) : null}
 
         {state.error && !isTransitional ? (
-          <View style={styles.errorOverlay}>
-            <Text style={styles.errorIcon}>⚠</Text>
-            <Text style={styles.errorTitle}>Playback Error</Text>
-            <Text style={styles.errorMessage}>{state.error.message}</Text>
-            <Text style={styles.errorVideoId} numberOfLines={1}>
-              Video ID: {videoId}
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => setPlaybackAttempt((n) => n + 1)}
-            >
-              <Text style={styles.primaryButtonText}>Retry</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.primaryButton, playerScreenStyles.primaryButtonSecondary]}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.primaryButtonText}>Go Back</Text>
-            </TouchableOpacity>
-          </View>
+          isBlockedPlaybackError(state.error) ? (
+            // Terminal CDN refusal (geo-blocking, referrer protection, expired
+            // token) — mirrors the iOS SDK's "Video is not available" view:
+            // a retry cannot help, so none is offered. The header's back
+            // arrow remains the way out.
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorIcon}>⚠</Text>
+              <Text style={styles.errorTitle}>Video is not available</Text>
+              <Text style={styles.errorMessage}>{playbackErrorMessage(state.error)}</Text>
+            </View>
+          ) : (
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorTitle}>Playback Error</Text>
+              <Text style={styles.errorMessage}>{playbackErrorMessage(state.error)}</Text>
+              <Text style={styles.errorVideoId} numberOfLines={1}>
+                Video ID: {videoId}
+              </Text>
+              <Text style={styles.errorHint}>{GEO_BLOCK_HINT}</Text>
+              <TouchableOpacity
+                style={[styles.primaryButton, playerScreenStyles.retryButton]}
+                onPress={() => setPlaybackAttempt((n) => n + 1)}
+              >
+                <Text style={[styles.primaryButtonText, playerScreenStyles.retryButtonText]}>
+                  Retry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : null}
       </View>
 
@@ -425,6 +438,13 @@ const playerScreenStyles = StyleSheet.create({
   primaryButtonSecondary: {
     marginTop: 8,
     backgroundColor: colors.onPrimary15,
+  },
+  retryButton: {
+    paddingVertical: 7,
+    paddingHorizontal: 18,
+  },
+  retryButtonText: {
+    fontSize: 13,
   },
   speedRows: {
     // alignSelf:'stretch' overrides controlsSection's alignItems:'center' —

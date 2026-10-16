@@ -89,7 +89,7 @@ Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plug
 
 Try to keep changes scoped to the area they affect. Write code identifiers, file names, comments, API documentation, error messages, branch names, and commit messages in English.
 
-The Android SDK is consumed as Maven Central artifacts (`net.bunny:player/api/recording/tv`) at the `mavenVersion` pinned in `native-sdk-baselines.json`. When the pin is an unreleased upstream build (such as the current `4.2.0-pr83`, a local build of [PR #83](https://github.com/BunnyWay/bunny-stream-android/pull/83) which adds keyless playback), a checkout of that commit is required — stage its artifacts into `~/.m2/repository` with:
+The Android SDK is consumed as Maven Central artifacts (`net.bunny:player/api/recording/tv`) at the `mavenVersion` pinned in `native-sdk-baselines.json`. When the pin is an unreleased upstream build (such as the current `4.2.0-pr83`, a local build of `main` containing keyless playback from [PR #83](https://github.com/BunnyWay/bunny-stream-android/pull/83)), a checkout of that commit is required — stage its artifacts into `~/.m2/repository` with:
 
 ```sh
 BUNNY_STREAM_ANDROID_SDK_PATH=../bunny-stream-android-pr83 yarn native-android:publish

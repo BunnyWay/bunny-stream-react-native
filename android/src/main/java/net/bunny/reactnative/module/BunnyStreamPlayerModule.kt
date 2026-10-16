@@ -51,13 +51,9 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
     DefaultPlaybackPositionManager(reactApplicationContext, ResumeConfig())
 
   override fun initialize(accessKey: String, libraryId: Double, integratorVersion: String?) {
-    // A blank accessKey means playback-only mode (public videos need no key).
-    // Upstream treats null as the deliberate playback-only choice and still
-    // rejects blank strings, so empty keys are mapped to null here.
-    // The nullable `accessKey` param comes from BunnyWay/bunny-stream-android#83
-    // (unreleased): the pinned mavenVersion is a local build of that PR —
-    // publish the SDK modules to ~/.m2/repository to resolve it (mavenLocal is
-    // already registered last in this module's build.gradle).
+    // Blank key = playback-only mode. Upstream rejects blank strings and
+    // treats null as playback-only (merged in bunny-stream-android#83, still
+    // unreleased — pinned mavenVersion is a local build, see build.gradle).
     val libraryIdLong = validateLibraryId(libraryId)
     val integrator = integratorVersion
       ?.takeIf { it.isNotBlank() }

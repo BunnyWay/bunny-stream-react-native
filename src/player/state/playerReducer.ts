@@ -111,12 +111,23 @@ const handlers: HandlerMap = {
     }
     return { ...state, videoSize: next, isLoading: false };
   },
-  PLAYBACK_ERROR: (state) =>
-    // Surface the SDK's human-readable error message without overwriting the
-    // structured `error` from the state machine (onError still owns code/nativeCode).
-    // Consumers can read `state.error` for the structured payload and subscribe to
-    // `onPlaybackError` for the SDK message (e.g. live recovery signalling).
-    state,
+  PLAYBACK_ERROR: (state, action) => {
+    // Terminal failures that never reached the engine emit only this callback —
+    // Android's /play fetch failure (protected video, wrong ID, CDN refusal)
+    // produces no media3 onPlayerError, so without this the screen would stay
+    // on the loader forever. An existing structured error stays untouched:
+    // onError still owns code/nativeCode when the engine itself failed.
+    if (state.error != null) {
+      return state;
+    }
+    return {
+      ...state,
+      error: { code: 'PLAYBACK_ERROR', message: action.message },
+      playbackState: 'error',
+      isPlaying: false,
+      isLoading: false,
+    };
+  },
   LIVE_STATE: (state, action) => {
     // Clear isLoading when the live player reports a non-loading state
     // (live, vod, offline, countdown, trailer). On iOS, onVideoSizeChange

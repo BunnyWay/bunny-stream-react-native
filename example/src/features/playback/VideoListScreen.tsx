@@ -8,7 +8,6 @@ import {
   BunnyStreamApi,
   TRANSITIONAL_VIDEO_STATUSES,
   VideoStatusEnum,
-  fold,
   getOrNull,
   type Video,
   type VideoStatus,
@@ -19,55 +18,26 @@ import { Header } from '../../components/Header';
 import { ListStateView } from '../../components/ListStateView';
 import { OutlineButton } from '../../components/OutlineButton';
 import { StatusPill } from '../../components/StatusPill';
-import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatDuration } from '../../utils/format';
+import { useLibraryList } from '../../utils/useLibraryList';
 
 type VideoListScreenProps = NativeStackScreenProps<RootStackParamList, 'VideoList'>;
 
 /** Poll interval for refreshing the list while any video is still processing. */
 const STATUS_POLL_INTERVAL_MS = 5_000;
 
-type UiState =
-  | { kind: 'loading' }
-  | { kind: 'empty' }
-  | { kind: 'loaded'; videos: Video[] }
-  | { kind: 'unconfigured' }
-  | { kind: 'error'; message: string };
-
 export function VideoListScreen({ navigation }: VideoListScreenProps) {
-  const [uiState, setUiState] = React.useState<UiState>({ kind: 'loading' });
-  const [libraryId, setLibraryId] = React.useState<number | null>(null);
-  const [accessKey, setAccessKey] = React.useState('');
   // Thumbnail URLs keyed by video ID — enriched via fetchPlayerSettings,
   // like the Android demo's LibraryViewModel.enrichMissingThumbnails.
   const [thumbnails, setThumbnails] = React.useState<Record<string, string>>({});
 
-  const loadLibrary = React.useCallback(async () => {
-    const { libraryId: libId, accessKey } = await loadLibraryConfig();
-    if (libId == null || !accessKey.trim()) {
-      setUiState({ kind: 'unconfigured' });
-      return;
-    }
-    setLibraryId(libId);
-    // The configured key doubles as the token-auth signing key in this demo.
-    setAccessKey(accessKey);
-
-    setUiState((prev) => (prev.kind === 'loaded' ? prev : { kind: 'loading' }));
-    const result = await BunnyStreamApi.listVideos(libId, { orderBy: 'date' });
-    fold(
-      result,
-      (list) => {
-        if (list.items.length === 0) {
-          setUiState({ kind: 'empty' });
-        } else {
-          setUiState({ kind: 'loaded', videos: list.items });
-        }
-      },
-      (error) => setUiState({ kind: 'error', message: error.message }),
-    );
-  }, []);
+  const fetchVideos = React.useCallback(
+    (libId: number) => BunnyStreamApi.listVideos(libId, { orderBy: 'date' }),
+    [],
+  );
+  const { uiState, libraryId, accessKey, reload: loadLibrary } = useLibraryList<Video>(fetchVideos);
 
   // Load on focus — fires on mount and again when returning from Settings,
   // so configuring the app doesn't require a manual pull-to-refresh.
@@ -79,7 +49,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   // thumbnail URL that loads without 403.
   React.useEffect(() => {
     if (uiState.kind !== 'loaded' || libraryId == null) return;
-    const missing = uiState.videos.filter((v) => !thumbnails[v.id]);
+    const missing = uiState.items.filter((v) => !thumbnails[v.id]);
     if (missing.length === 0) return;
 
     let cancelled = false;
@@ -134,7 +104,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
   // gated on the screen being mounted. Mirrors LibraryViewModel.onStatusPollTick.
   React.useEffect(() => {
     if (uiState.kind !== 'loaded') return;
-    const hasTransitional = uiState.videos.some((v) =>
+    const hasTransitional = uiState.items.some((v) =>
       TRANSITIONAL_VIDEO_STATUSES.has(v.status as VideoStatus),
     );
     if (!hasTransitional) return;
@@ -155,7 +125,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     navigation.navigate('VideoManagement', { videoId, libraryId });
   };
 
-  const videos = uiState.kind === 'loaded' ? uiState.videos : [];
+  const videos = uiState.kind === 'loaded' ? uiState.items : [];
   const isEmpty =
     uiState.kind === 'empty' || uiState.kind === 'error' || uiState.kind === 'unconfigured';
 

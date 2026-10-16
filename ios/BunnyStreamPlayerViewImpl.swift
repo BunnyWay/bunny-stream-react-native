@@ -452,7 +452,16 @@ import BunnyStreamPlayer
         guard let self else { return }
         let nsError = error as NSError
         let message = error.localizedDescription
-        let nativeCode = "\(nsError.domain):\(nsError.code)"
+        // Swift enum errors (e.g. VideoPlayerError.notAvailable for a CDN 403)
+        // carry the case name in `String(describing:)` — append it so JS can
+        // recognise terminal "video is not available" failures. `VideoPlayerError`
+        // itself is internal to the SDK, so the enum check goes through Mirror.
+        let enumCase = Mirror(reflecting: error).displayStyle == .enum
+          ? String(describing: error)
+          : nil
+        let nativeCode = [ "\(nsError.domain):\(nsError.code)", enumCase ]
+          .compactMap { $0 }
+          .joined(separator: ":")
         let errorCode = nativeCode.isEmpty ? message : nativeCode
         guard self.lastPlaybackErrorCode != errorCode else { return }
         self.lastPlaybackErrorCode = errorCode
