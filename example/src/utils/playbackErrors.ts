@@ -3,7 +3,9 @@
  * `{ code, message, nativeCode }`; a CDN 403 can mean geo-blocking, referrer
  * protection, or an expired/invalid playback token — the player deliberately
  * does not distinguish them (same as the upstream iOS SDK), so the friendly
- * message names all three causes.
+ * message names all three causes. Media3's `ERROR_CODE_DRM*` family is
+ * terminal too — a device below the library's required Widevine level cannot
+ * fix that by retrying.
  */
 
 const ACCESS_DENIED_PATTERN = /403|forbidden|access denied|unauthori[sz]ed|not ?available/i;

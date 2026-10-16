@@ -884,7 +884,7 @@ class BunnyStreamPlayerView(
       WidevinePolicy.isSecurityLevelRefused(currentPlayerSettings(), WidevinePolicy.deviceLevel)
 
   /** The SDK's L3 resolution cap for the current source, or null when uncapped. */
-  private fun drmCapVideoSize(): Pair<Int, Int>? =
+  private fun drmMaxVideoSize(): Pair<Int, Int>? =
     WidevinePolicy.maxVideoSize(
       currentPlayerSettings(),
       WidevinePolicy.deviceLevel,
@@ -906,6 +906,10 @@ class BunnyStreamPlayerView(
    * `{"mode":"bitrate","bitrate":N}` | `{"mode":"size","width":W,"height":H}`.
    * While casting, [currentPlayer] is the cast player — the constraint is a
    * no-op there and reapplies when playback returns to the local engine.
+   *
+   * The request is intersected with [drmMaxVideoSize]: on "SD only for
+   * Widevine L3" libraries the SDK caps the track selector, and writing these
+   * parameters directly would overwrite that cap.
    */
   fun setVideoQuality(qualityJson: String) {
     val engine = DefaultBunnyPlayer.getInstance(context).currentPlayer ?: return
@@ -913,7 +917,7 @@ class BunnyStreamPlayerView(
     // libraries. Writing these parameters would overwrite that cap, so the
     // request is intersected with it — the license server cannot be talked
     // out of it by asking for a bigger rendition.
-    val cap = drmCapVideoSize()
+    val cap = drmMaxVideoSize()
     val capWidth = cap?.first ?: Int.MAX_VALUE
     val capHeight = cap?.second ?: Int.MAX_VALUE
     val params = try {

@@ -80,7 +80,10 @@ export function LivePlayerWithErrors({ streamId }: { streamId: string }) {
 ```
 
 For VOD, `onError` carries native error codes as well as JS configuration errors;
-`onPlaybackError` exposes an additional native playback message. Native live failures use
+`onPlaybackError` exposes an additional native playback message. On Android, media3 error codes
+arrive as `nativeCode` — an Enterprise DRM security-level refusal is reported as
+`ERROR_CODE_DRM_SYSTEM_ERROR` and is terminal (a retry cannot change the device's Widevine
+level). Native live failures use
 `onLiveError`, not `onPlaybackError`. Direct callbacks wrap payloads in `nativeEvent`.
 
 `useBunnyStreamPlayer` unwraps these payloads for its option callbacks and tracks `state.error`

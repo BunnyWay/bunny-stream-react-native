@@ -110,6 +110,13 @@ library/content. The wrapper does not expose a general-purpose DRM license-serve
 API. Test protected content on your target devices and casting receivers; DRM playback and
 embed-token authorization are separate concerns.
 
+Libraries with Enterprise DRM get the Android SDK's Widevine policy through the bridge: on
+Widevine L3 devices the quality selection is capped at the library's allowed resolution —
+including `setVideoQuality` overrides, which are intersected with the cap — and a library that
+requires a stronger level than the device has fails before playback starts. That refusal arrives
+as `onError`/`onPlaybackError` with `nativeCode` `ERROR_CODE_DRM_SYSTEM_ERROR` and is terminal:
+the device level is a hardware property, so a retry cannot help.
+
 For the native SDK security overviews, see the [Android SDK page](https://bunny.net/docs/stream/android-sdk)
 and [iOS SDK page](https://bunny.net/docs/stream/ios-sdk). For wrapper-specific limitations, use
 this guide and the guides for [VOD playback](play-a-video.md), [live playback](play-a-live-stream.md),

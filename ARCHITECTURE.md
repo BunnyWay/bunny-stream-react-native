@@ -94,6 +94,9 @@ Package `net.bunny.reactnative`, split by concern:
 - `commands/` — `CommandQueue` + `GenerationToken`: imperative commands are
   UI-thread-dispatched and stale generations are dropped (view remount safety).
 - `ownership/` — `BunnyPlayerLease` guards the singleton player.
+- `drm/` — `WidevinePolicy`: bridge-side mirror of the SDK's internal
+  Enterprise DRM decisions (L3 rendition cap, security-level refusal), needed
+  to classify pre-load refusals and clamp `setVideoQuality` overrides.
 - `events/FabricEventEmitter.kt` — event dispatch to JS.
 
 ## Expo config plugin (`plugin/`)
