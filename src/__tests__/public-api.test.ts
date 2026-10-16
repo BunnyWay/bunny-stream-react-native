@@ -99,9 +99,9 @@ describe('public package API', () => {
     nativePlayer.initialize.mockClear();
 
     publicApi.initialize('access-key', 123);
-    expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123, '0.1.1');
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123, '1.0.0');
     publicApi.initialize('', 123);
-    expect(nativePlayer.initialize).toHaveBeenCalledWith('', 123, '0.1.1');
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('', 123, '1.0.0');
     expect(() => publicApi.initialize('access-key', 0)).toThrow(
       'libraryId must be a positive integer',
     );
