@@ -36,6 +36,7 @@ import net.bunny.bunnystreamplayer.model.PlayerWatermark
 import net.bunny.bunnystreamplayer.model.RetentionGraphEntry
 import net.bunny.reactnative.R
 import net.bunny.reactnative.adapter.PlayerEventListener
+import net.bunny.reactnative.drm.WidevinePolicy
 import net.bunny.reactnative.commands.CommandQueue
 import net.bunny.reactnative.commands.GenerationToken
 import net.bunny.reactnative.commands.PlayerCommand
@@ -241,6 +242,8 @@ class BunnyStreamPlayerView(
         // swallowed requestLayout was meant to trigger; the SDK's own
         // resize_mode="fit" then letterboxes correctly (video and controls
         // keep their proper bounds inside the full-size player view).
+        lastVideoWidth = width
+        lastVideoHeight = height
         post { remeasureChild() }
         em.dispatch(
           net.bunny.reactnative.state.RnEvent("onVideoSizeChange") {
@@ -254,6 +257,20 @@ class BunnyStreamPlayerView(
         // The Media3 adapter already emits the structured onError/onPlaybackStateChange
         // pair from onPlayerErrorChanged; this hook surfaces the SDK's human-readable
         // message for the live recovery path and future custom-error UI.
+        // An Enterprise DRM security-level refusal happens before the engine
+        // starts, so Media3 never reports it — emit the structured onError
+        // alongside the message so JS can classify it by nativeCode.
+        if (isSecurityLevelRefusal()) {
+          em.dispatch(
+            net.bunny.reactnative.state.RnEvent("onError") {
+              mapOf(
+                "code" to "PLAYBACK_ERROR",
+                "message" to message,
+                "nativeCode" to "ERROR_CODE_DRM_SYSTEM_ERROR",
+              )
+            },
+          )
+        }
         em.dispatch(
           net.bunny.reactnative.state.RnEvent("onPlaybackError") {
             mapOf("message" to message)
@@ -297,6 +314,7 @@ class BunnyStreamPlayerView(
     // the local engine and a Chromecast CastPlayer (Android-only; iOS never
     // surfaces AirPlay/external-playback state).
     player.onPlayerTypeChanged = { playerType ->
+      isCasting = playerType == PlayerType.CAST_PLAYER
       if (generationToken.isActive(playbackGeneration)) {
         em.dispatch(
           net.bunny.reactnative.state.RnEvent("onPlayerTypeChange") {
@@ -341,6 +359,13 @@ class BunnyStreamPlayerView(
 
   /** Last committed props snapshot. */
   private var committedProps: BunnyStreamPlayerProps = BunnyStreamPlayerProps.EMPTY
+
+  /** Current source's video dimensions, for the DRM cap's cap-axis. */
+  private var lastVideoWidth = 0
+  private var lastVideoHeight = 0
+
+  /** True while playback is delegated to a cast receiver. */
+  private var isCasting = false
 
   /** Last watermark applied to the native player. */
   private var committedWatermark: PlayerWatermark? = null
@@ -456,6 +481,8 @@ class BunnyStreamPlayerView(
     playbackGeneration = generationToken.bump()
     controllerShownForGeneration = -1L
     commandQueue.reset()
+    lastVideoWidth = 0
+    lastVideoHeight = 0
     applyControls(props.controls)
     val previousPlayer = DefaultBunnyPlayer.getInstance(context).currentPlayer
     if (props.useNativeTvPlayer) {
@@ -834,6 +861,38 @@ class BunnyStreamPlayerView(
   }
 
   /**
+   * The `PlayerSettings` for the current source, or null when the singleton's
+   * copy belongs to a different video — `DefaultBunnyPlayer.playerSettings`
+   * lingers from the previously configured source, and the play URL embeds
+   * the video GUID, so a mismatch means stale settings rather than this
+   * source's configuration.
+   */
+  private fun currentPlayerSettings() =
+    DefaultBunnyPlayer.getInstance(context).playerSettings?.takeIf {
+      committedProps.videoId.isNotEmpty() && it.videoUrl.contains(committedProps.videoId)
+    }
+
+  /**
+   * True when the current source was refused by the SDK's Enterprise DRM
+   * check (bunny-stream-android #88): the library requires a stronger
+   * Widevine level than this device has, so playback is stopped before the
+   * engine starts and Media3 reports nothing. While casting the receiver
+   * licenses with its own level, so the device check does not apply.
+   */
+  private fun isSecurityLevelRefusal(): Boolean =
+    !isCasting &&
+      WidevinePolicy.isSecurityLevelRefused(currentPlayerSettings(), WidevinePolicy.deviceLevel)
+
+  /** The SDK's L3 resolution cap for the current source, or null when uncapped. */
+  private fun drmCapVideoSize(): Pair<Int, Int>? =
+    WidevinePolicy.maxVideoSize(
+      currentPlayerSettings(),
+      WidevinePolicy.deviceLevel,
+      lastVideoWidth,
+      lastVideoHeight,
+    )
+
+  /**
    * Applies a video-quality constraint on the engine (Android-only).
    *
    * The SDK exposes the media3 engine through the public
@@ -850,21 +909,32 @@ class BunnyStreamPlayerView(
    */
   fun setVideoQuality(qualityJson: String) {
     val engine = DefaultBunnyPlayer.getInstance(context).currentPlayer ?: return
+    // The SDK caps the track selector on L3 for "SD only" Enterprise DRM
+    // libraries. Writing these parameters would overwrite that cap, so the
+    // request is intersected with it — the license server cannot be talked
+    // out of it by asking for a bigger rendition.
+    val cap = drmCapVideoSize()
+    val capWidth = cap?.first ?: Int.MAX_VALUE
+    val capHeight = cap?.second ?: Int.MAX_VALUE
     val params = try {
       val obj = JSONObject(qualityJson)
       when (obj.optString("mode")) {
         "auto" -> engine.trackSelectionParameters.buildUpon()
-          .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
+          .setMaxVideoSize(capWidth, capHeight)
           .setMaxVideoBitrate(Int.MAX_VALUE)
           .build()
         "height" -> engine.trackSelectionParameters.buildUpon()
-          .setMaxVideoSize(Int.MAX_VALUE, obj.getInt("height"))
+          .setMaxVideoSize(capWidth, minOf(obj.getInt("height"), capHeight))
           .build()
         "bitrate" -> engine.trackSelectionParameters.buildUpon()
+          .setMaxVideoSize(capWidth, capHeight)
           .setMaxVideoBitrate(obj.getInt("bitrate"))
           .build()
         "size" -> engine.trackSelectionParameters.buildUpon()
-          .setMaxVideoSize(obj.getInt("width"), obj.getInt("height"))
+          .setMaxVideoSize(
+            minOf(obj.getInt("width"), capWidth),
+            minOf(obj.getInt("height"), capHeight),
+          )
           .build()
         else -> {
           Log.w(TAG, "setVideoQuality: unknown mode in $qualityJson")

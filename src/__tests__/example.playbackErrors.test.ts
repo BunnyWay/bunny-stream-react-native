@@ -8,12 +8,14 @@ const {
   isBlockedPlaybackError,
   ACCESS_DENIED_MESSAGE,
   NOT_FOUND_MESSAGE,
+  DRM_ERROR_MESSAGE,
 } = jest.requireActual<{
   playbackErrorMessage: (e: PlayerError) => string | null;
   liveErrorMessage: (m: string | null | undefined) => string | null;
   isBlockedPlaybackError: (e: PlayerError) => boolean;
   ACCESS_DENIED_MESSAGE: string;
   NOT_FOUND_MESSAGE: string;
+  DRM_ERROR_MESSAGE: string;
 }>('../../example/src/utils/playbackErrors');
 
 describe('playbackErrorMessage', () => {
@@ -36,6 +38,31 @@ describe('playbackErrorMessage', () => {
     { message: 'Response code: 404' },
   ])('maps not-found errors to actionable copy: %o', (error) => {
     expect(playbackErrorMessage(error)).toBe(NOT_FOUND_MESSAGE);
+  });
+
+  it.each([
+    // Android: the bridge reports the SDK's pre-load Widevine security-level
+    // refusal as this media3 code; the engine uses the same family for real
+    // DRM failures.
+    {
+      code: 'PLAYBACK_ERROR',
+      message: "This video can't be played on this device",
+      nativeCode: 'ERROR_CODE_DRM_SYSTEM_ERROR',
+    },
+    { message: 'DRM error', nativeCode: 'ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED' },
+  ])('maps DRM failures to DRM copy: %o', (error) => {
+    expect(playbackErrorMessage(error)).toBe(DRM_ERROR_MESSAGE);
+  });
+
+  it('keeps a 403 license denial in the access-denied bucket', () => {
+    // A refused DRM license carrying an HTTP status still reads as a CDN
+    // refusal — access-denied copy is the more accurate one there.
+    expect(
+      playbackErrorMessage({
+        message: 'Response code: 403',
+        nativeCode: 'ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED',
+      }),
+    ).toBe(ACCESS_DENIED_MESSAGE);
   });
 
   it('keeps not-found errors retryable', () => {
@@ -63,6 +90,15 @@ describe('isBlockedPlaybackError', () => {
     { message: 'error', nativeCode: 'BunnyStreamPlayer.VideoPlayerError:2:notAvailable' },
     { message: 'Access denied by CDN' },
   ])('recognises terminal CDN refusals: %o', (error) => {
+    expect(isBlockedPlaybackError(error)).toBe(true);
+  });
+
+  it.each([
+    // Device-level DRM failures are terminal: the security level is a
+    // property of the hardware and a retry changes nothing.
+    { message: 'refused', nativeCode: 'ERROR_CODE_DRM_SYSTEM_ERROR' },
+    { message: 'refused', nativeCode: 'ERROR_CODE_DRM_DISALLOWED_OPERATION' },
+  ])('recognises terminal DRM refusals: %o', (error) => {
     expect(isBlockedPlaybackError(error)).toBe(true);
   });
 
