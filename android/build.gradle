@@ -79,10 +79,12 @@ dependencies {
   implementation "net.bunny:recording:${bunnyStreamSdkVersion}"
   // media3 is a runtime-scoped transitive dep of player; declare explicitly
   // so Player.Listener and PlaybackException are on the compile classpath.
-  implementation "androidx.media3:media3-common:1.11.1"
+  // Must match the media3 version the native SDK ships (4.1.1 → 1.10.1):
+  // mixed media3 versions break the player. Bump only together with the SDK.
+  implementation "androidx.media3:media3-common:1.10.1"
   // media3-ui provides PlayerView (controlsEnabled) which the native SDK's
   // BunnyPlayerView extends.
-  implementation "androidx.media3:media3-ui:1.11.1"
+  implementation "androidx.media3:media3-ui:1.10.1"
   // lifecycle is needed for setViewTreeLifecycleOwner — the native SDK uses
   // findViewTreeLifecycleOwner() to register its lifecycle observer, and the
   // live host uses LocalLifecycleOwner/ViewModelStoreOwner from lifecycle 2.10.

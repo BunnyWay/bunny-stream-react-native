@@ -6,16 +6,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/BunnyWay/bunny-stream-ios",
       "state" : {
-        "revision" : "ae9a58fae41d29e327697c50dc1159091874a8ec"
-      }
-    },
-    {
-      "identity" : "bytesparser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/dagronf/BytesParser",
-      "state" : {
-        "revision" : "a091513c4059d336c8cbf0b9485fcba63bcba83a",
-        "version" : "3.2.1"
+        "revision" : "b0dac2990baf2da0794728f7e2b11c0fb31a9093"
       }
     },
     {
@@ -23,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/dagronf/DSFRegex",
       "state" : {
-        "revision" : "c576aab25f88bcb4b549862e6269b6f90b917e0c",
-        "version" : "4.0.0"
+        "revision" : "e0e64805519b23b08dcca9c83ca2d4a2b3de4c33",
+        "version" : "3.4.0"
       }
     },
     {
@@ -41,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/onevcat/Kingfisher.git",
       "state" : {
-        "branch" : "master",
-        "revision" : "be0d257b9bd47a4e6e1265fc8c237411825f107a"
+        "revision" : "8648fe649c5d62be38721110f835821906e9242a",
+        "version" : "8.13.0"
       }
     },
     {
@@ -122,8 +113,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-openapi-runtime",
       "state" : {
-        "revision" : "23146bc8710ac5e57abb693113f02dc274cf39b6",
-        "version" : "1.8.0"
+        "revision" : "3d3a8457661daf7fb260ceeb9f0e24e5204ba5fb",
+        "version" : "1.12.0"
       }
     },
     {
@@ -149,8 +140,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/dagronf/SwiftSubtitles.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "485c6f1fc71235041198a8bb893fa22f807451a6"
+        "revision" : "2c3d282cda97ce49adb196700404d8e46df9778c",
+        "version" : "1.9.0"
       }
     },
     {
@@ -167,8 +158,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tus/TUSKit.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "a968c6af193fbff03ba1c0a4e359e1b7b615b029"
+        "revision" : "167938293923b5c31ba1255da5aada8e67533984",
+        "version" : "3.7.1"
       }
     },
     {

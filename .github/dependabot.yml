@@ -101,6 +101,9 @@ updates:
       # Update manually together with the Bunny Stream Android SDK baseline.
       # Calendar-version minor bumps can also change Android build requirements.
       - dependency-name: "androidx.compose:compose-bom"
+      # media3 is the playback engine — must stay in lockstep with the version
+      # the Bunny Stream Android SDK ships; mixed media3 versions break playback.
+      - dependency-name: "androidx.media3:*"
     groups:
       androidx-minor-patch:
         patterns:
