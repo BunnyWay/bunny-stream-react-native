@@ -11,12 +11,15 @@ codegen contract, platform invariants, and the checklist for spec changes.
 - All native access goes through `src/specs/` (codegen). A spec change requires
   matching iOS (`.mm` + `*Impl.swift`) **and** Kotlin updates in one change.
 - API/upload methods return `Promise<BunnyResult<T>>` — never reject.
-- `initialize(accessKey, libraryId)` must run before players/API use.
+- `initialize(accessKey, libraryId)` must run before players/API use; a blank
+  `accessKey` selects playback-only mode (management/upload/broadcast need a real key).
 - Expo plugin sources live in `plugin/src`; run `yarn plugin:build` before
   `expo prebuild`.
 - Code, docs, and commit messages in English; conventional commits enforced
   by lefthook + commitlint.
 - Never commit Bunny access keys or secrets.
+- Never run `git commit` or `git push` on your own — only when the user
+  explicitly asks for a commit or push in the current request.
 
 ## Verify
 

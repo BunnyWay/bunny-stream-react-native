@@ -39,7 +39,7 @@ type surface.
 
 | Dir | Responsibility |
 | --- | --- |
-| `config/` | `initialize(accessKey, libraryId)` — validates inputs **before** calling native (SDK ≥4 rejects empty keys), stores the configured `libraryId` used as fallback. |
+| `config/` | `initialize(accessKey, libraryId)` — validates inputs **before** calling native (blank key = playback-only mode), stores the configured `libraryId` used as fallback. |
 | `player/` | `BunnyStreamPlayer` component (one component for VOD + live), `useBunnyStreamPlayer` hook, resume positions, source identity. |
 | `api/` | `BunnyStreamApi` — typed wrapper over the TurboModule; `result/` holds `BunnyResult` + helpers (`fold`, `getOrNull`, …); `models/` holds request/response types. |
 | `upload/` | `BunnyStreamUpload` — start/continue/pause/resume/cancel + event subscriptions. |
@@ -94,6 +94,9 @@ Package `net.bunny.reactnative`, split by concern:
 - `commands/` — `CommandQueue` + `GenerationToken`: imperative commands are
   UI-thread-dispatched and stale generations are dropped (view remount safety).
 - `ownership/` — `BunnyPlayerLease` guards the singleton player.
+- `drm/` — `WidevinePolicy`: bridge-side mirror of the SDK's internal
+  Enterprise DRM decisions (L3 rendition cap, security-level refusal), needed
+  to classify pre-load refusals and clamp `setVideoQuality` overrides.
 - `events/FabricEventEmitter.kt` — event dispatch to JS.
 
 ## Expo config plugin (`plugin/`)
@@ -111,7 +114,9 @@ dirs via CNG, so each prebuild is a plugin regression test.
 `native-sdk-baselines.json` is the single pin for both SDKs (repo, ref, commit;
 plus `mavenVersion` for Android). After bumping it — or when setting a local
 SDK path — run `yarn native-baselines:check` to verify podspec/gradle agree.
-`scripts/publish-android-sdk.mjs` publishes Android SDK artifacts (maintainers).
+`scripts/publish-android-sdk.mjs` stages unsigned Android SDK artifacts into
+`~/.m2/repository` so builds can consume unreleased upstream commits via
+`mavenLocal` (registered last in `android/build.gradle`).
 
 ## Repo map
 

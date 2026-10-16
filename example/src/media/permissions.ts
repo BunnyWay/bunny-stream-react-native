@@ -1,26 +1,4 @@
-import { Platform } from 'react-native';
-
-// Minimal shape of PermissionsAndroid we use. Avoids `import()` type
-// annotations (forbidden by lint) and keeps PermissionsAndroid out of the
-// iOS bundle via a lazy runtime import.
-interface PermissionResult {
-  [key: string]: string;
-}
-interface PermissionsAndroidLike {
-  PERMISSIONS: { CAMERA: string; RECORD_AUDIO: string };
-  RESULTS: { GRANTED: string };
-  requestMultiple(permissions: string[]): Promise<PermissionResult>;
-  check(permission: string): Promise<boolean>;
-}
-
-// Lazy import to avoid pulling PermissionsAndroid into the iOS bundle.
-async function getPermissionsAndroid(): Promise<PermissionsAndroidLike | undefined> {
-  if (Platform.OS !== 'android') {
-    return undefined;
-  }
-  const RN = await import('react-native');
-  return RN.PermissionsAndroid as unknown as PermissionsAndroidLike;
-}
+import { PermissionsAndroid, Platform } from 'react-native';
 
 /**
  * Requests camera and microphone permissions required for broadcasting.
@@ -37,11 +15,6 @@ async function getPermissionsAndroid(): Promise<PermissionsAndroidLike | undefin
 export async function requestBroadcastPermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return true;
-  }
-
-  const PermissionsAndroid = await getPermissionsAndroid();
-  if (!PermissionsAndroid) {
-    return false;
   }
 
   try {

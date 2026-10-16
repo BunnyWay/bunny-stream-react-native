@@ -1,7 +1,6 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import {
@@ -41,9 +40,15 @@ import {
   loadResumeSettings,
   toResumeConfig,
 } from '../../storage/resumeSettings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatBytes, formatDuration, formatTime } from '../../utils/format';
+import {
+  GEO_BLOCK_HINT,
+  isBlockedPlaybackError,
+  playbackErrorMessage,
+} from '../../utils/playbackErrors';
 
 const FALLBACK_SPEEDS = [0.5, 1.0, 1.5, 2.0];
 const SEEK_MS = 10_000;
@@ -161,7 +166,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   // title, duration, status, size, views — shown in a properties card below
   // the player, identical to the Android demo's VideoPropertiesCard.
   const loadMetadata = React.useCallback(async () => {
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(BUNNY_ACCESS_KEY, videoId);
+    // The configured (stored or env) key doubles as the token-auth signing
+    // key in this demo; a blank key signs nothing and public libraries still
+    // resolve playback data via the public /play endpoint.
+    const { accessKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, videoId);
     const result = await BunnyStreamApi.fetchVideoPlayData(libraryId, videoId, token, expires);
     fold(
       result,
@@ -204,8 +213,8 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
     <>
       <Text style={styles.speedTitle}>Playback Speed</Text>
       <View style={playerScreenStyles.speedRows}>
-        {speedRows.map((row) => (
-          <View key={row[0]} style={styles.speedRow}>
+        {speedRows.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.speedRow}>
             {row.map((speed) => {
               const isActive = speed === currentSpeed;
               return (
@@ -293,26 +302,34 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         ) : null}
 
         {state.error && !isTransitional ? (
-          <View style={styles.errorOverlay}>
-            <Text style={styles.errorIcon}>⚠</Text>
-            <Text style={styles.errorTitle}>Playback Error</Text>
-            <Text style={styles.errorMessage}>{state.error.message}</Text>
-            <Text style={styles.errorVideoId} numberOfLines={1}>
-              Video ID: {videoId}
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => setPlaybackAttempt((n) => n + 1)}
-            >
-              <Text style={styles.primaryButtonText}>Retry</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.primaryButton, playerScreenStyles.primaryButtonSecondary]}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.primaryButtonText}>Go Back</Text>
-            </TouchableOpacity>
-          </View>
+          isBlockedPlaybackError(state.error) ? (
+            // Terminal CDN refusal (geo-blocking, referrer protection, expired
+            // token) — mirrors the iOS SDK's "Video is not available" view:
+            // a retry cannot help, so none is offered. The header's back
+            // arrow remains the way out.
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorIcon}>⚠</Text>
+              <Text style={styles.errorTitle}>Video is not available</Text>
+              <Text style={styles.errorMessage}>{playbackErrorMessage(state.error)}</Text>
+            </View>
+          ) : (
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorTitle}>Playback Error</Text>
+              <Text style={styles.errorMessage}>{playbackErrorMessage(state.error)}</Text>
+              <Text style={styles.errorVideoId} numberOfLines={1}>
+                Video ID: {videoId}
+              </Text>
+              <Text style={styles.errorHint}>{GEO_BLOCK_HINT}</Text>
+              <TouchableOpacity
+                style={[styles.primaryButton, playerScreenStyles.retryButton]}
+                onPress={() => setPlaybackAttempt((n) => n + 1)}
+              >
+                <Text style={[styles.primaryButtonText, playerScreenStyles.retryButtonText]}>
+                  Retry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : null}
       </View>
 
@@ -421,6 +438,13 @@ const playerScreenStyles = StyleSheet.create({
   primaryButtonSecondary: {
     marginTop: 8,
     backgroundColor: colors.onPrimary15,
+  },
+  retryButton: {
+    paddingVertical: 7,
+    paddingHorizontal: 18,
+  },
+  retryButtonText: {
+    fontSize: 13,
   },
   speedRows: {
     // alignSelf:'stretch' overrides controlsSection's alignItems:'center' —

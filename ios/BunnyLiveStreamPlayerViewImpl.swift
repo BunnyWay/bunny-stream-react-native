@@ -118,6 +118,9 @@ import BunnyStreamPlayer
   private func reloadPlayer() {
     removeHostingController()
 
+    // Blank key (playback-only mode) becomes "": the upstream live player takes
+    // a non-optional key, and authenticated calls (e.g. the dvrEnabled fetch
+    // below) simply degrade to their defaults for public streams.
     let accessKey = BunnyStreamConfiguration.shared.accessKey ?? ""
 
     let host = UIHostingController(rootView: makeLivePlayerView(accessKey: accessKey))

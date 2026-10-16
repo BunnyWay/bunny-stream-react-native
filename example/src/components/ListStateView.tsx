@@ -28,7 +28,9 @@ export function ListStateView({
   if (state.kind === 'unconfigured') {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.listErrorMessage}>Set the access key and library ID in Settings</Text>
+        <Text style={styles.listErrorMessage}>
+          Listing library content requires an API access key — add it in Settings
+        </Text>
         <TouchableOpacity style={styles.primaryButton} onPress={onOpenSettings}>
           <Text style={styles.primaryButtonText}>Settings</Text>
         </TouchableOpacity>

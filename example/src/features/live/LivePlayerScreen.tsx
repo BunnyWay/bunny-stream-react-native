@@ -27,9 +27,11 @@ import { PropertiesCard } from '../../components/PropertiesCard';
 import { StatusBanner } from '../../components/StatusBanner';
 import { StatusPill } from '../../components/StatusPill';
 import { loadPlaybackSettings } from '../../storage/playbackSettings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 import { formatTimestamp } from '../../utils/format';
+import { liveErrorMessage, playbackErrorMessage } from '../../utils/playbackErrors';
 import { LIVE_STATUS_COLORS } from './constants';
 
 type LivePlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'LivePlayer'>;
@@ -81,6 +83,10 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      // getLiveStream is a management endpoint — skip it in playback-only
+      // mode instead of surfacing a MissingAccessKey-style error.
+      const { accessKey } = await loadLibraryConfig();
+      if (!accessKey) return;
       const result = await BunnyStreamApi.getLiveStream(libraryId, streamId);
       const data = getOrNull(result);
       if (!cancelled && data) {
@@ -150,7 +156,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
 
         {state.error ? (
           <StatusBanner
-            message={`Player error: ${state.error.message}`}
+            message={`Player error: ${playbackErrorMessage(state.error)}`}
             style={playerStyles.errorSpacing}
           />
         ) : null}
@@ -158,7 +164,7 @@ export function LivePlayerScreen({ navigation, route }: LivePlayerScreenProps) {
         {/* Terminal live error */}
         {state.liveError ? (
           <StatusBanner
-            message={`Live error: ${state.liveError}`}
+            message={`Live error: ${liveErrorMessage(state.liveError)}`}
             style={playerStyles.errorSpacing}
           />
         ) : null}

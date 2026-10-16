@@ -17,10 +17,10 @@ export default function App() {
     (async () => {
       try {
         const { accessKey, libraryId } = await loadLibraryConfig();
-        // SDK 4.0.0 requires a non-empty access key. Skip initialization when
-        // none is configured rather than throwing — the user can set it in
-        // Settings, and the player screens surface a clear message.
-        if (libraryId != null && accessKey.trim().length > 0) {
+        // An empty access key is valid — it selects playback-only mode
+        // (public videos need no credentials). Skip initialization only when
+        // no library ID is configured.
+        if (libraryId != null) {
           initialize(accessKey, libraryId);
         }
       } catch (error) {

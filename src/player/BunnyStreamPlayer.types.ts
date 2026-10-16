@@ -181,6 +181,10 @@ export type BunnyStreamSource =
  * exposed by the SDK's public `BunnyPlayer.currentPlayer`. No-op on iOS
  * (programmatic quality control is not bridged there yet). List a video's
  * available renditions with `BunnyStreamApi.fetchVideoResolutions`.
+ *
+ * On libraries with "SD only for Widevine L3" Enterprise DRM, the requested
+ * size is intersected with the license cap — a bigger rendition cannot be
+ * selected on L3 devices.
  */
 export type VideoQualityPreference =
   'auto' | { maxHeight: number } | { maxBitrate: number } | { maxWidth: number; maxHeight: number };

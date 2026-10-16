@@ -43,10 +43,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       Alert.alert('Invalid input', 'Please enter a positive integer Library ID.');
       return;
     }
-    if (!accessKey.trim()) {
-      Alert.alert('Invalid input', 'Please enter a non-empty Access Key (SDK 4.0.0 requirement).');
-      return;
-    }
     try {
       const normalizedAccessKey = accessKey.trim();
       initialize(normalizedAccessKey, libId);
@@ -72,16 +68,22 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
           onChangeText={setLibraryId}
           keyboardType="numeric"
         />
-        <Text style={styles.sectionTitle}>Video Library API Key</Text>
+        <Text style={styles.sectionTitle}>Video Library API Key (optional)</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your Library API Key"
+          placeholder="Optional — leave empty for playback only"
           value={accessKey}
           onChangeText={setAccessKey}
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry
         />
+        <Text style={styles.inputHint}>
+          {accessKey.trim().length > 0
+            ? 'Full access: playback, library management, uploads, and broadcasting.'
+            : 'Playback-only mode: public videos and live streams play without a key. Library ' +
+              'management, uploads, and broadcasting stay unavailable until a key is set.'}
+        </Text>
         <View style={styles.saveButtonContainer}>
           <Button title="Save" onPress={handleSave} color={colors.primary} />
         </View>

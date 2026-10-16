@@ -15,8 +15,11 @@ buildscript {
 
   // The Bunny Stream Android SDK version is pinned in native-sdk-baselines.json
   // and resolved from Maven Central (net.bunny:player/api/recording).
+  // -PbunnyStreamSdkVersion=<v> (or ORG_GRADLE_PROJECT_bunnyStreamSdkVersion)
+  // overrides the pin for testing locally-published SDK builds (mavenLocal).
   def nativeSdkBaselines = new groovy.json.JsonSlurper().parse(file("../native-sdk-baselines.json"))
-  ext.bunnyStreamSdkVersion = nativeSdkBaselines.android.mavenVersion
+  ext.bunnyStreamSdkVersion = project.findProperty("bunnyStreamSdkVersion")
+    ?: nativeSdkBaselines.android.mavenVersion
 
   repositories {
     google()
@@ -34,6 +37,17 @@ buildscript {
 }
 
 apply plugin: "com.android.library"
+
+// mavenLocal is appended LAST to every project: published SDK versions still
+// resolve from Maven Central/Google, and only versions absent from public
+// repos (unreleased upstream builds published via publishToMavenLocal, e.g.
+// PR builds) fall through to ~/.m2/repository. Repositories are resolved on
+// the app project, so the entry must be registered at the root.
+rootProject.allprojects {
+  repositories {
+    mavenLocal()
+  }
+}
 apply plugin: "kotlin-android"
 apply plugin: "org.jetbrains.kotlin.plugin.compose"
 apply plugin: "com.facebook.react"

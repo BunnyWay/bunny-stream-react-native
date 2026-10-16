@@ -1,19 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 const mockGetItem = jest.fn<(key: string) => Promise<string | null>>();
+const mockSetItem = jest.fn<(key: string, value: string) => Promise<void>>();
 
 jest.mock('@env', () => ({ BUNNY_ACCESS_KEY: ' environment-key ', BUNNY_LIBRARY_ID: '123' }), {
   virtual: true,
 });
 jest.mock(
   '@react-native-async-storage/async-storage',
-  () => ({ __esModule: true, default: { getItem: mockGetItem } }),
+  () => ({ __esModule: true, default: { getItem: mockGetItem, setItem: mockSetItem } }),
   { virtual: true },
 );
 
-const { loadLibraryConfig } = jest.requireActual<{
-  loadLibraryConfig: () => Promise<{ accessKey: string; libraryId: number | null }>;
-}>('../../example/src/storage/settings');
+const { loadLibraryConfig, loadDirectLiveValues, saveDirectLiveValues, parseStreamIdsFromEnv } =
+  jest.requireActual<{
+    loadLibraryConfig: () => Promise<{ accessKey: string; libraryId: number | null }>;
+    loadDirectLiveValues: () => Promise<{ streamId: string; libraryId: string } | null>;
+    saveDirectLiveValues: (values: { streamId: string; libraryId: string }) => Promise<void>;
+    parseStreamIdsFromEnv: (env: {
+      BUNNY_STREAM_IDS?: string;
+      BUNNY_STREAM_ID?: string;
+    }) => string[];
+  }>('../../example/src/storage/settings');
 
 const originalAccessKey = process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY;
 const originalLibraryId = process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID;
@@ -77,6 +85,32 @@ describe('React Native example configuration', () => {
       expect((await loadLibraryConfig()).libraryId).toBeNull();
     },
   );
+});
+
+describe('Direct live play values', () => {
+  it('parses comma-separated stream IDs, trimming and deduplicating', () => {
+    expect(parseStreamIdsFromEnv({ BUNNY_STREAM_IDS: ' a , b,,a ' })).toEqual(['a', 'b']);
+    expect(parseStreamIdsFromEnv({ BUNNY_STREAM_ID: 'solo' })).toEqual(['solo']);
+    expect(parseStreamIdsFromEnv({})).toEqual([]);
+  });
+
+  it('round-trips last-used stream values through storage', async () => {
+    await saveDirectLiveValues({ streamId: 'stream-1', libraryId: '123' });
+    expect(mockSetItem).toHaveBeenCalledWith('@bunny_demo/direct_live_stream_id', 'stream-1');
+    expect(mockSetItem).toHaveBeenCalledWith('@bunny_demo/direct_live_library_id', '123');
+
+    mockGetItem.mockImplementation(async (key) =>
+      key === '@bunny_demo/direct_live_stream_id' ? 'stream-1' : '123',
+    );
+    await expect(loadDirectLiveValues()).resolves.toEqual({
+      streamId: 'stream-1',
+      libraryId: '123',
+    });
+  });
+
+  it('returns null when nothing was stored', async () => {
+    await expect(loadDirectLiveValues()).resolves.toBeNull();
+  });
 });
 
 describe('Expo example configuration', () => {

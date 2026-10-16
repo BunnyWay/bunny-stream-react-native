@@ -51,9 +51,9 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
     DefaultPlaybackPositionManager(reactApplicationContext, ResumeConfig())
 
   override fun initialize(accessKey: String, libraryId: Double, integratorVersion: String?) {
-    require(accessKey.isNotBlank()) {
-      "accessKey must be a non-empty string (SDK 4.0.0 requirement)"
-    }
+    // Blank key = playback-only mode. Upstream rejects blank strings and
+    // treats null as playback-only (merged in bunny-stream-android#83, still
+    // unreleased — pinned mavenVersion is a local build, see build.gradle).
     val libraryIdLong = validateLibraryId(libraryId)
     val integrator = integratorVersion
       ?.takeIf { it.isNotBlank() }
@@ -66,7 +66,7 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
     BunnyStreamApi.initialize(
       context = reactApplicationContext.applicationContext,
       config = BunnyStreamConfig(
-        accessKey = accessKey,
+        accessKey = accessKey.takeIf { it.isNotBlank() },
         libraryId = libraryIdLong,
         integrator = integrator,
       ),

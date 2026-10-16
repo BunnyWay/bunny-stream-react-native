@@ -7,16 +7,17 @@ settings, and provide an authenticated backend that decides who can watch each v
 
 There are separate responsibilities:
 
-- The library API access key authorizes management operations and is required by the current
-  wrapper's `initialize(accessKey, libraryId)` contract.
+- The library API access key authorizes management operations. It is optional in
+  `initialize(accessKey, libraryId)` — pass a blank key for playback-only apps, and management
+  calls report not-initialized errors until a real key is provided.
 - An embed view token and expiry authorize playback when token authentication is enabled.
 - CDN delivery protection is handled by the native player using the playback configuration.
 
-An embed token is not a replacement for the initialization key. The current wrapper has no
-token-only initialization or custom management-backend endpoint. Backend token signing protects
-the signing secret, but does not by itself solve the wrapper's API-credential requirement.
-Review that limitation before distributing a consumer app; do not ship a privileged library key
-under the assumption that it becomes secret when supplied through an environment variable.
+An embed token is not a replacement for the API key: a token authorizes viewing, not management
+operations. For playback-only apps, prefer a blank `accessKey` over shipping a privileged
+library key. If you do need management calls, do not ship the key under the assumption that it
+becomes secret when supplied through an environment variable — keep those calls on a backend
+wherever possible.
 
 ## Request tokens from your backend
 
@@ -108,6 +109,13 @@ The native players support FairPlay on iOS and Widevine on Android when configur
 library/content. The wrapper does not expose a general-purpose DRM license-server configuration
 API. Test protected content on your target devices and casting receivers; DRM playback and
 embed-token authorization are separate concerns.
+
+Libraries with Enterprise DRM get the Android SDK's Widevine policy through the bridge: on
+Widevine L3 devices the quality selection is capped at the library's allowed resolution —
+including `setVideoQuality` overrides, which are intersected with the cap — and a library that
+requires a stronger level than the device has fails before playback starts. That refusal arrives
+as `onError`/`onPlaybackError` with `nativeCode` `ERROR_CODE_DRM_SYSTEM_ERROR` and is terminal:
+the device level is a hardware property, so a retry cannot help.
 
 For the native SDK security overviews, see the [Android SDK page](https://bunny.net/docs/stream/android-sdk)
 and [iOS SDK page](https://bunny.net/docs/stream/ios-sdk). For wrapper-specific limitations, use

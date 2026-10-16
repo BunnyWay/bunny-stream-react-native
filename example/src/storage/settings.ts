@@ -5,6 +5,8 @@ const ACCESS_KEY = '@bunny_demo/access_key';
 const LIBRARY_KEY = '@bunny_demo/library_id';
 const DIRECT_PLAY_VIDEO_ID_KEY = '@bunny_demo/direct_play_video_id';
 const DIRECT_PLAY_LIBRARY_ID_KEY = '@bunny_demo/direct_play_library_id';
+const DIRECT_LIVE_STREAM_ID_KEY = '@bunny_demo/direct_live_stream_id';
+const DIRECT_LIVE_LIBRARY_ID_KEY = '@bunny_demo/direct_live_library_id';
 
 export type Settings = {
   accessKey: string | null;
@@ -32,7 +34,21 @@ export function parseVideoIdsFromEnv(env: {
   BUNNY_VIDEO_IDS?: string;
   BUNNY_VIDEO_ID?: string;
 }): string[] {
-  const raw = env.BUNNY_VIDEO_IDS ?? env.BUNNY_VIDEO_ID ?? '';
+  return parseIdList(env.BUNNY_VIDEO_IDS ?? env.BUNNY_VIDEO_ID);
+}
+
+/**
+ * Same comma-separated parsing as {@link parseVideoIdsFromEnv}, for live
+ * stream IDs (`BUNNY_STREAM_IDS`, legacy `BUNNY_STREAM_ID`).
+ */
+export function parseStreamIdsFromEnv(env: {
+  BUNNY_STREAM_IDS?: string;
+  BUNNY_STREAM_ID?: string;
+}): string[] {
+  return parseIdList(env.BUNNY_STREAM_IDS ?? env.BUNNY_STREAM_ID);
+}
+
+function parseIdList(raw: string | undefined): string[] {
   if (!raw) {
     return [];
   }
@@ -120,6 +136,39 @@ export async function saveDirectPlayValues(values: DirectPlayValues): Promise<vo
     await Promise.all([
       AsyncStorage.setItem(DIRECT_PLAY_VIDEO_ID_KEY, values.videoId),
       AsyncStorage.setItem(DIRECT_PLAY_LIBRARY_ID_KEY, values.libraryId),
+    ]);
+  } catch {
+    // ignore — best-effort
+  }
+}
+
+// --- Direct live play last-used values ---
+
+export type DirectLiveValues = {
+  streamId: string;
+  libraryId: string;
+};
+
+export async function loadDirectLiveValues(): Promise<DirectLiveValues | null> {
+  try {
+    const [streamId, libraryId] = await Promise.all([
+      AsyncStorage.getItem(DIRECT_LIVE_STREAM_ID_KEY),
+      AsyncStorage.getItem(DIRECT_LIVE_LIBRARY_ID_KEY),
+    ]);
+    if (streamId === null && libraryId === null) {
+      return null;
+    }
+    return { streamId: streamId ?? '', libraryId: libraryId ?? '' };
+  } catch {
+    return null;
+  }
+}
+
+export async function saveDirectLiveValues(values: DirectLiveValues): Promise<void> {
+  try {
+    await Promise.all([
+      AsyncStorage.setItem(DIRECT_LIVE_STREAM_ID_KEY, values.streamId),
+      AsyncStorage.setItem(DIRECT_LIVE_LIBRARY_ID_KEY, values.libraryId),
     ]);
   } catch {
     // ignore — best-effort

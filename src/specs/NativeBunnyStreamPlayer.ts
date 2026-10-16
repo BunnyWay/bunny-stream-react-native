@@ -5,8 +5,9 @@ import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
   // SDK 4.0.0 requires a non-null access key (BunnyStreamApi.initialize no
-  // longer accepts null). The public `initialize` wrapper validates and rejects
-  // empty strings before calling native, so the bridge never receives null.
+  // longer accepts null). The public `initialize` wrapper normalizes
+  // null/undefined to '' (playback-only mode), so the bridge never receives
+  // null — but may receive an empty string.
   initialize(accessKey: string, libraryId: Double, integratorVersion?: string): void;
   // Android TV detection (leanback system feature). Always returns
   // false on iOS — the iOS SDK does not support tvOS.

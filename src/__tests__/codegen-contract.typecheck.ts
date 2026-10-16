@@ -105,11 +105,16 @@ export type PlayerCommandContract = Assert<
   [NativeCommandMethods] extends [PublicCommandMethods] ? true : false
 >;
 
+// The public initializer accepts a wider input domain than the codegen spec
+// (blank/nullable access key = playback-only mode), so the contract only needs
+// every spec-valid call to be a valid public call.
 export type InitializationContract = Assert<
-  Compatible<
-    Parameters<typeof initialize>,
-    [Parameters<PlayerSpec['initialize']>[0], Parameters<PlayerSpec['initialize']>[1]]
-  >
+  [
+    Parameters<PlayerSpec['initialize']>[0],
+    Parameters<PlayerSpec['initialize']>[1],
+  ] extends Parameters<typeof initialize>
+    ? true
+    : false
 >;
 export type ApiMethodContract = Assert<
   Exclude<NativeApiMethods, PublicApiMethods> extends never ? true : false

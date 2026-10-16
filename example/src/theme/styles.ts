@@ -108,6 +108,13 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.onSurface15,
   },
+  // Small explanatory caption under a settings input.
+  inputHint: {
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    marginTop: -4,
+    marginBottom: 8,
+  },
   saveButtonContainer: {
     marginTop: 16,
   },
@@ -172,7 +179,7 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorMessage: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.onPrimary80,
     textAlign: 'center',
     marginBottom: 20,
@@ -186,11 +193,17 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorVideoId: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.onPrimary60,
     textAlign: 'center',
     marginBottom: 20,
     fontFamily: 'monospace',
+  },
+  errorHint: {
+    fontSize: 11,
+    color: colors.onPrimary60,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   primaryButton: {
     backgroundColor: colors.primary,
