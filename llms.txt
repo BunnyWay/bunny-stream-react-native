@@ -1,6 +1,6 @@
 # @bunny.net/stream-react-native
 
-> React Native SDK for Bunny's video platform — one TypeScript API over the official Bunny Stream iOS/Android SDKs for VOD playback, live streaming, camera broadcasting, resumable uploads, and library management. React Native **New Architecture only** (TurboModules + Fabric).
+> React Native SDK for [bunny.net](https://bunny.net)'s video platform — one TypeScript API over the official Bunny Stream iOS/Android SDKs for VOD playback, live streaming, camera broadcasting, resumable uploads, and library management. React Native **New Architecture only** (TurboModules + Fabric).
 
 The public API is fully typed — every signature below ships in the package's `.d.ts` files with JSDoc. When a signature and this file disagree, the shipped types win.
 
