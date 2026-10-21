@@ -3,7 +3,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/img/Horizontal-full-color-white.svg" />
-    <img src="resources/bunnynet.svg" width="70%" alt="BunnyNet" />
+    <img src="docs/img/Horizontal-full-color-blue.svg" width="70%" alt="BunnyNet" />
   </picture>
 </p>
 <p align="center">
