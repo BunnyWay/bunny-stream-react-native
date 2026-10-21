@@ -18,7 +18,7 @@
 
 ## What is Bunny Stream?
 
-Bunny Stream is the React Native SDK for [Bunny's](https://bunny.net) video platform. It wraps the official [iOS](https://github.com/BunnyWay/bunny-stream-ios) and [Android](https://github.com/BunnyWay/bunny-stream-android) SDKs with one TypeScript API for video management, uploads, playback, and live broadcasting.
+Bunny Stream is the React Native SDK for [bunny.net](https://bunny.net)'s video platform. It wraps the official [iOS](https://github.com/BunnyWay/bunny-stream-ios) and [Android](https://github.com/BunnyWay/bunny-stream-android) SDKs with one TypeScript API for video management, uploads, playback, and live broadcasting.
 
 ### Key features
 
