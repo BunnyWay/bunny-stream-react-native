@@ -1,8 +1,10 @@
 # Bunny Stream React Native
 
 <p align="center">
-  <img src="docs/img/Horizontal-full-color-blue.svg#gh-light-mode-only" width="70%" alt="BunnyNet" />
-  <img src="docs/img/Horizontal-full-color-white.svg#gh-dark-mode-only" width="70%" alt="BunnyNet" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/Horizontal-full-color-white.svg" />
+    <img src="resources/bunnynet.svg" width="70%" alt="BunnyNet" />
+  </picture>
 </p>
 <p align="center">
     <a href="https://www.npmjs.com/package/@bunny.net/stream-react-native">
