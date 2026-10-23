@@ -6,7 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/BunnyWay/bunny-stream-ios",
       "state" : {
-        "revision" : "b0dac2990baf2da0794728f7e2b11c0fb31a9093"
+        "revision" : "05e40257cb940f62db293c3aed318c18574cd6f6",
+        "version" : "1.0.3"
       }
     },
     {

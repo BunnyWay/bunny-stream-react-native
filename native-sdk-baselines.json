@@ -9,8 +9,8 @@
   },
   "ios": {
     "repository": "BunnyWay/bunny-stream-ios",
-    "ref": "1.0.2",
-    "commit": "b0dac2990baf2da0794728f7e2b11c0fb31a9093",
+    "ref": "1.0.3",
+    "commit": "05e40257cb940f62db293c3aed318c18574cd6f6",
     "defaultLocalPath": "../bunny-stream-ios"
   }
 }

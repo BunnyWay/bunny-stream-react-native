@@ -2,7 +2,7 @@
 
 `@bunny.net/stream-react-native` is a React Native library that wraps the
 official Bunny Stream native SDKs — [iOS](https://github.com/BunnyWay/bunny-stream-ios)
-(SwiftPM, pinned by commit) and [Android](https://github.com/BunnyWay/bunny-stream-android)
+(SwiftPM, pinned to an exact release version) and [Android](https://github.com/BunnyWay/bunny-stream-android)
 (Maven Central `net.bunny:*` artifacts) — behind one TypeScript API.
 
 **New Architecture only**: TurboModules + Fabric codegen. No Old Arch
