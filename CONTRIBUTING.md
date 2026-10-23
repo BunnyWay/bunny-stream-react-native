@@ -95,7 +95,7 @@ The Android SDK is consumed as Maven Central artifacts (`net.bunny:player/api/re
 BUNNY_STREAM_ANDROID_SDK_PATH=../bunny-stream-android-pr83 yarn native-android:publish
 ```
 
-The script verifies the checkout matches the pinned commit, then builds and stages unsigned artifacts locally. `mavenLocal()` is registered last in `android/build.gradle`, so versions that exist on Maven Central never resolve from `~/.m2`. The iOS SDK is consumed as a public SwiftPM package from `BunnyWay/bunny-stream-ios`, pinned to the commit in `native-sdk-baselines.json`. Set `BUNNY_STREAM_IOS_SDK_PATH` only to point the podspec at a local SDK checkout for native development, then verify it with:
+The script verifies the checkout matches the pinned commit, then builds and stages unsigned artifacts locally. `mavenLocal()` is registered last in `android/build.gradle`, so versions that exist on Maven Central never resolve from `~/.m2`. The iOS SDK is consumed as a public SwiftPM package from `BunnyWay/bunny-stream-ios`, pinned to the exact release version in the iOS `ref` field of `native-sdk-baselines.json`. The `commit` field records the matching revision for local checkout verification. Set `BUNNY_STREAM_IOS_SDK_PATH` only to point the podspec at a local SDK checkout for native development, then verify it with:
 
 ```sh
 yarn native-baselines:check
