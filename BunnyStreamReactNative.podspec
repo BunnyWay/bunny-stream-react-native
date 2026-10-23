@@ -4,7 +4,7 @@ package = JSON.parse(File.read(File.join(__dir__, "package.json")))
 native_sdk_baselines = JSON.parse(File.read(File.join(__dir__, "native-sdk-baselines.json")))
 ios_sdk_baseline = native_sdk_baselines.fetch("ios")
 # Consumers resolve the public SwiftPM package from GitHub, pinned to the
-# baseline commit (the public repo has no release tags yet). Setting
+# baseline commit in native-sdk-baselines.json. Setting
 # BUNNY_STREAM_IOS_SDK_PATH switches to a local checkout for SDK development.
 ios_sdk_path = ENV["BUNNY_STREAM_IOS_SDK_PATH"]
 if ios_sdk_path
