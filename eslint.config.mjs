@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import { importX } from 'eslint-plugin-import-x';
 import perfectionist from 'eslint-plugin-perfectionist';
 import { defineConfig } from 'eslint/config';
@@ -55,9 +56,7 @@ export default defineConfig([
     },
     settings: {
       'import-x/internal-regex': '^@/',
-      'import-x/resolver': {
-        typescript: true,
-      },
+      'import-x/resolver-next': [createTypeScriptImportResolver()],
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': [

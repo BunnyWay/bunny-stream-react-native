@@ -17,6 +17,8 @@ codegen contract, platform invariants, and the checklist for spec changes.
   `expo prebuild`.
 - Code, docs, and commit messages in English; conventional commits enforced
   by lefthook + commitlint.
+- User-facing changes add an entry to `CHANGELOG.md` under `[Unreleased]`.
+  `yarn release` dates those entries and uses them as GitHub release notes.
 - Never commit Bunny access keys or secrets.
 - Never run `git commit` or `git push` on your own — only when the user
   explicitly asks for a commit or push in the current request.
@@ -25,6 +27,7 @@ codegen contract, platform invariants, and the checklist for spec changes.
 
 ```bash
 yarn typecheck && yarn lint && yarn test
+yarn test:release             # changelog preparation and release notes
 yarn native-baselines:check   # if native SDK versions/paths changed
 yarn prepare                  # full library + plugin build
 ```

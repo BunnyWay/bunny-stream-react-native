@@ -31,6 +31,7 @@ Bunny Stream is the React Native SDK for [bunny.net](https://bunny.net)'s video 
 
 ## Documentation
 
+- [Changelog](CHANGELOG.md) — user-facing changes and release notes.
 - [Integration guides](docs/guides/README.md) — setup, Expo, playback, uploads, broadcasting, and content management.
 - [Troubleshooting](docs/guides/troubleshooting.md) — common integration issues and platform-specific behavior.
 - [Platform notes](#platform-differences) — platform-specific options and limitations.

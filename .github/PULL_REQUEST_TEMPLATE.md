@@ -50,5 +50,6 @@
 - [ ] The PR is focused on one clear change.
 - [ ] `native-sdk-baselines.json` points to a public, merged native SDK commit or tag when native APIs are required.
 - [ ] Public API or behavior changes are documented (README / docs).
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]`, or this change is invisible to SDK users (CI, tests, internal refactors without behavior changes).
 - [ ] Tests or manual verification are included where appropriate.
 - [ ] No secrets, access keys, private URLs, certificates, or provisioning profiles are included.
