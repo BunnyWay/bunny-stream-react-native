@@ -32,7 +32,13 @@ sealed class PlaybackState {
   object Ended : PlaybackState()
 
   /** A playback error occurred. */
-  data class Error(val code: String, val message: String, val nativeCode: String? = null) : PlaybackState()
+  data class Error(
+    val code: String,
+    val message: String,
+    val nativeCode: String? = null,
+    val category: String = PlayerErrorCategory.UNKNOWN,
+    val httpStatus: Int? = null,
+  ) : PlaybackState()
 
   /**
    * String identifier used in `onPlaybackStateChange` payloads, matching the
@@ -64,6 +70,18 @@ data class RnEvent(
 )
 
 /**
+ * Stable `category` values for the `onError` payload, shared with iOS and
+ * documented in `PlayerErrorEvent` in the Codegen spec.
+ */
+object PlayerErrorCategory {
+  /** Terminal stream refusal: CDN 403 or DNS-sinkholed host. No retry. */
+  const val UNAVAILABLE = "unavailable"
+  /** The device lost connectivity. Retryable. */
+  const val NETWORK = "network"
+  const val UNKNOWN = "unknown"
+}
+
+/**
  * Computes the next state and the list of RN events to emit, given the current
  * state and a Media3 event.
  *
@@ -75,22 +93,7 @@ fun transition(state: PlaybackState, event: Media3Event): Pair<PlaybackState, Li
   when (event) {
     is Media3Event.PlaybackStateChanged -> handlePlaybackState(state, event, event.positionMs, event.durationMs)
     is Media3Event.IsPlayingChanged -> handleIsPlayingChanged(state, event.isPlaying, event.positionMs, event.durationMs)
-    is Media3Event.PlayerError -> PlaybackState.Error(
-      code = "PLAYBACK_ERROR",
-      message = event.message,
-      nativeCode = event.nativeCode,
-    ) to listOf(
-      RnEvent("onError") {
-        mapOf(
-          "code" to "PLAYBACK_ERROR",
-          "message" to event.message,
-          "nativeCode" to event.nativeCode,
-        )
-      },
-      RnEvent("onPlaybackStateChange") {
-        mapOf("state" to "error", "positionMs" to event.positionMs)
-      },
-    )
+    is Media3Event.PlayerError -> handlePlayerError(state, event)
     is Media3Event.VolumeChanged -> state to listOf(
       RnEvent("onVolumeChange") {
         mapOf("volume" to event.volume, "isMuted" to event.isMuted)
@@ -104,6 +107,34 @@ fun transition(state: PlaybackState, event: Media3Event): Pair<PlaybackState, Li
     is Media3Event.Progress -> handleProgress(state, event)
   }
 
+private fun handlePlayerError(
+  state: PlaybackState,
+  event: Media3Event.PlayerError,
+): Pair<PlaybackState, List<RnEvent>> {
+  val next = PlaybackState.Error(
+    code = "PLAYBACK_ERROR",
+    message = event.message,
+    nativeCode = event.nativeCode,
+    category = event.category,
+    httpStatus = event.httpStatus,
+  )
+  if (state == next) return state to emptyList()
+  return next to listOf(
+    RnEvent("onError") {
+      buildMap {
+        put("code", "PLAYBACK_ERROR")
+        put("message", event.message)
+        put("nativeCode", event.nativeCode)
+        put("category", event.category)
+        event.httpStatus?.let { put("httpStatus", it) }
+      }
+    },
+    RnEvent("onPlaybackStateChange") {
+      mapOf("state" to "error", "positionMs" to event.positionMs)
+    },
+  )
+}
+
 private fun handlePlaybackState(
   state: PlaybackState,
   event: Media3Event.PlaybackStateChanged,
@@ -111,7 +142,8 @@ private fun handlePlaybackState(
   durationMs: Long,
 ): Pair<PlaybackState, List<RnEvent>> = when (event.state) {
   Media3PlaybackState.IDLE -> {
-    if (state is PlaybackState.Idle) state to emptyList()
+    // Media3 moves to IDLE after a failure; retain the failure until retry.
+    if (state is PlaybackState.Idle || state is PlaybackState.Error) state to emptyList()
     else PlaybackState.Idle to listOf(
       RnEvent("onPlaybackStateChange") { mapOf("state" to "idle", "positionMs" to positionMs) },
     )
@@ -167,6 +199,7 @@ private fun handleIsPlayingChanged(
   // Only emit play/pause when we are at least Ready — ignore spurious
   // isPlaying=false during initial Loading.
   return when {
+    !isPlaying && state is PlaybackState.Error -> state to emptyList()
     isPlaying && state is PlaybackState.Playing -> state to emptyList()
     isPlaying -> PlaybackState.Playing to listOf(
       RnEvent("onPlay") {
@@ -234,6 +267,8 @@ sealed class Media3Event {
     val message: String,
     val nativeCode: String?,
     val positionMs: Long,
+    val category: String = PlayerErrorCategory.UNKNOWN,
+    val httpStatus: Int? = null,
   ) : Media3Event()
 
   data class VolumeChanged(val volume: Float, val isMuted: Boolean) : Media3Event()

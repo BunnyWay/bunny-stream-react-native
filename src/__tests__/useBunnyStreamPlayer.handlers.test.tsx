@@ -1,10 +1,49 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { renderHook } from '@testing-library/react-native';
 
+import { useBunnyStreamPlayer } from '../player/hooks/useBunnyStreamPlayer';
 import { fire, renderPlayerHook } from './helpers';
 
 // --- User handlers ---
 
 describe('useBunnyStreamPlayer user handlers', () => {
+  it.each(['structured-first', 'message-first'] as const)(
+    'preserves classification and stops buffering with %s callbacks, then resets on source change',
+    async (order) => {
+      const onError = jest.fn();
+      const { result, rerender, unmount } = await renderHook(
+        (key: string) => useBunnyStreamPlayer({ onError }, key),
+        { initialProps: 'video-1' },
+      );
+      await fire(result.current.eventHandlers.onBuffering, { isBuffering: true });
+      const error = {
+        code: 'PLAYBACK_ERROR',
+        message: 'Source error',
+        nativeCode: 'ERROR_CODE_IO_BAD_HTTP_STATUS',
+        category: 'unavailable' as const,
+        httpStatus: 403,
+      };
+      const message = { message: 'Video is not available' };
+      if (order === 'message-first') {
+        await fire(result.current.eventHandlers.onPlaybackError, message);
+        expect(result.current.state.isBuffering).toBe(false);
+      }
+      await fire(result.current.eventHandlers.onError, error);
+      await fire(result.current.eventHandlers.onPlaybackError, message);
+
+      expect(result.current.state.error).toStrictEqual(error);
+      expect(result.current.state.isBuffering).toBe(false);
+      expect(result.current.state.isLoading).toBe(false);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(error);
+
+      await rerender('video-2');
+      expect(result.current.state.error).toBeNull();
+      expect(result.current.state.isLoading).toBe(true);
+      await unmount();
+    },
+  );
+
   it('invokes user handlers with the unwrapped nativeEvent payload', async () => {
     const onReady = jest.fn();
     const onProgress = jest.fn();

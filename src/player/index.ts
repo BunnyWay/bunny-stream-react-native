@@ -15,6 +15,7 @@ export type {
   PlaybackPosition,
   PlayerBufferingEvent,
   PlayerErrorEvent,
+  PlayerErrorCategory,
   PlayerPlaybackErrorEvent,
   PlayerPlaybackRateChangeEvent,
   PlayerPlaybackState,

@@ -77,7 +77,7 @@ export function createPlayerEventHandlers(
     },
     onError: bindHandler(dispatch, optionsRef, 'onError', (e) => ({
       type: 'ERROR' as const,
-      error: { code: e.code, message: e.message, nativeCode: e.nativeCode },
+      error: e,
     })),
     onBuffering: bindHandler(dispatch, optionsRef, 'onBuffering', (e) => ({
       type: 'BUFFERING' as const,

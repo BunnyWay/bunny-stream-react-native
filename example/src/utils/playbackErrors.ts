@@ -20,6 +20,8 @@ export const ACCESS_DENIED_MESSAGE =
   'Playback refused (403). The video may be geo-restricted, blocked by ' +
   'referrer protection, or the token is expired/invalid.';
 
+export const UNAVAILABLE_MESSAGE = 'Video is not available.';
+
 export const NOT_FOUND_MESSAGE =
   'Video not found (404). Check that the video ID and library ID are ' +
   'correct — or that the video is public / the configured access key can ' +
@@ -31,6 +33,8 @@ export const DRM_ERROR_MESSAGE =
   'requires a higher device security level (e.g. Widevine L1) than ' +
   'available here, or the license server refused playback.';
 
+export const NETWORK_ERROR_MESSAGE = 'No internet connection. Check the network and try again.';
+
 export const GEO_BLOCK_HINT =
   'If this error persists, the video may be geo-blocked in your region.';
 
@@ -38,6 +42,15 @@ type PlayerErrorLike = {
   code?: string;
   message?: string;
   nativeCode?: string;
+  /**
+   * Stable cross-platform failure class from the bridge: 'unavailable'
+   * (terminal CDN refusal — geo-block, referrer or token), 'network'
+   * (lost connectivity, retryable), 'unknown' (anything else). Present on
+   * current native builds; older payloads only carry the string fields,
+   * which the pattern fallbacks below cover.
+   */
+  category?: string;
+  httpStatus?: number;
 } | null;
 
 /**
@@ -47,6 +60,8 @@ type PlayerErrorLike = {
  */
 export function isBlockedPlaybackError(error: PlayerErrorLike): boolean {
   if (!error) return false;
+  if (error.category === 'unavailable') return true;
+  if (error.category === 'network') return false;
   return (
     ACCESS_DENIED_PATTERN.test(`${error.nativeCode ?? ''} ${error.message ?? ''}`) ||
     DRM_ERROR_PATTERN.test(error.nativeCode ?? '')
@@ -59,6 +74,9 @@ export function isBlockedPlaybackError(error: PlayerErrorLike): boolean {
  */
 export function playbackErrorMessage(error: PlayerErrorLike): string | null {
   if (!error) return null;
+  // The structured category wins when the bridge reported one.
+  if (error.category === 'unavailable') return UNAVAILABLE_MESSAGE;
+  if (error.category === 'network') return NETWORK_ERROR_MESSAGE;
   const haystack = `${error.nativeCode ?? ''} ${error.message ?? ''}`;
   // Order matters: a refused DRM license carrying an HTTP 403 is still a CDN
   // refusal, so access-denied wins over the generic DRM copy.

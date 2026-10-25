@@ -41,6 +41,25 @@ seconds, authorization for the correct ID, and the library's security settings. 
 request alone does not prove CDN playback is authorized. Test unprotected content separately to
 isolate configuration from DRM/device failures.
 
+## Video does not play and the spinner never stops
+
+`onError` (and `useBunnyStreamPlayer`'s `state.error`) carries a stable `category` on both
+platforms:
+
+- `unavailable` — the stream is refused for this viewer and retrying cannot help: the CDN
+  answered HTTP 403 or the CDN host was rejected at DNS level. A 403 can mean geo-blocking
+  (the library's "Blocked countries"), referrer/hotlink protection, or an expired/invalid
+  playback token — the players deliberately do not distinguish them. Show "Video is not
+  available" and do not auto-retry the unchanged request.
+- `network` — the device lost connectivity. Retryable once the connection is back.
+- `unknown` — anything else (decoder, DRM, parser failures).
+
+`httpStatus` (Android only) holds the CDN's status code when there was one; a DNS-level
+geo-block produces no HTTP response, so it stays absent there.
+
+For local iOS classification tests without installing pods or launching the app,
+run `yarn test:ios-errors` on macOS with Xcode command-line tools.
+
 ## Live loading indicator never disappears
 
 Live playback does not emit VOD `onReady` or `onProgress`. Read `onLiveStateChange` or the hook's

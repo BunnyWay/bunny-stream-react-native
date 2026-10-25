@@ -11,7 +11,10 @@ export type PlayerAction =
   | { type: 'PAUSE' }
   | { type: 'END' }
   | { type: 'BUFFERING'; isBuffering: boolean }
-  | { type: 'ERROR'; error: { code: string; message: string; nativeCode?: string } }
+  | {
+      type: 'ERROR';
+      error: NonNullable<PlayerState['error']>;
+    }
   | { type: 'VOLUME'; volume: number; isMuted: boolean }
   | { type: 'PLAYBACK_RATE'; rate: number }
   | { type: 'VIDEO_SIZE'; width: number; height: number }
@@ -91,6 +94,7 @@ const handlers: HandlerMap = {
     playbackState: 'error',
     isPlaying: false,
     isLoading: false,
+    isBuffering: false,
   }),
   VOLUME: (state, action) => {
     if (state.volume === action.volume && state.isMuted === action.isMuted) {
@@ -126,6 +130,7 @@ const handlers: HandlerMap = {
       playbackState: 'error',
       isPlaying: false,
       isLoading: false,
+      isBuffering: false,
     };
   },
   LIVE_STATE: (state, action) => {

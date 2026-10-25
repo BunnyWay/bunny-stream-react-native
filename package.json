@@ -55,6 +55,7 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
     "test:release": "node --test scripts/release-changelog.test.mjs",
+    "test:ios-errors": "bash scripts/test-ios-playback-errors.sh",
     "release": "release-it --only-version",
     "release:notes": "node scripts/release-changelog.mjs unreleased",
     "native-baselines:check": "node scripts/verify-native-sdk-baselines.mjs",

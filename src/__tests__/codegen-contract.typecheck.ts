@@ -157,7 +157,14 @@ export type StateEventContract = Assert<
 export type ProgressEventContract = Assert<
   Compatible<EventPayload<'onProgress'>, PlayerProgressEvent>
 >;
-export type ErrorEventContract = Assert<Compatible<EventPayload<'onError'>, PlayerErrorEvent>>;
+// The wrapper narrows the native category string to the public union and
+// removes Fabric's missing-status sentinel (0).
+export type ErrorEventContract = Assert<
+  Compatible<Omit<EventPayload<'onError'>, 'category'>, Omit<PlayerErrorEvent, 'category'>>
+>;
+export type ErrorEventNativeCompatibility = Assert<
+  [EventPayload<'onError'>] extends [PlayerErrorEvent] ? true : false
+>;
 export type BufferingEventContract = Assert<
   Compatible<EventPayload<'onBuffering'>, PlayerBufferingEvent>
 >;

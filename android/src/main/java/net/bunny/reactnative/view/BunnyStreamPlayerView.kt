@@ -267,6 +267,7 @@ class BunnyStreamPlayerView(
                 "code" to "PLAYBACK_ERROR",
                 "message" to message,
                 "nativeCode" to "ERROR_CODE_DRM_SYSTEM_ERROR",
+                "category" to net.bunny.reactnative.state.PlayerErrorCategory.UNKNOWN,
               )
             },
           )

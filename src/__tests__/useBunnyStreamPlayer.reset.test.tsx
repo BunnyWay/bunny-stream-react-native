@@ -40,7 +40,7 @@ describe('useBunnyStreamPlayer auto-reset on videoId change', () => {
     await fire(result.current.eventHandlers.onError, { code: 'X', message: 'err' });
     expect(result.current.state.isPlaying).toBe(false); // error cleared isPlaying
     expect(result.current.state.error).not.toBeNull();
-    expect(result.current.state.isBuffering).toBe(true);
+    expect(result.current.state.isBuffering).toBe(false);
 
     // Second source — auto-reset.
     await fire(result.current.eventHandlers.onReady, { videoId: 'vid-2', durationMs: 120_000 });

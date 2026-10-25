@@ -13,6 +13,36 @@ import kotlin.test.assertTrue
  * transitions, progress normalisation, and error handling.
  */
 class PlaybackStateTest {
+  @Test
+  fun `duplicate failure and following idle or pause do not overwrite error`() {
+    val event = Media3Event.PlayerError(
+      message = "Source error",
+      nativeCode = "ERROR_CODE_IO_BAD_HTTP_STATUS",
+      positionMs = 0,
+      category = PlayerErrorCategory.UNAVAILABLE,
+      httpStatus = 403,
+    )
+    val (failed, firstEvents) = transition(PlaybackState.Loading, event)
+    assertEquals(1, firstEvents.count { it.eventName == "onError" })
+    val followups = listOf(
+      event,
+      Media3Event.IsPlayingChanged(false, 0, 0),
+      Media3Event.PlaybackStateChanged(Media3PlaybackState.IDLE, "v1", 0, 0),
+    )
+    followups.forEach {
+      val (next, events) = transition(failed, it)
+      assertEquals(failed, next)
+      assertTrue(events.isEmpty())
+    }
+    // Retrying (or attaching to another source) must allow the same error again.
+    val (loading, _) = transition(
+      failed,
+      Media3Event.PlaybackStateChanged(Media3PlaybackState.BUFFERING, "v1", 0, 0),
+    )
+    assertEquals(1, transition(loading, event).second.count { it.eventName == "onError" })
+    assertEquals(1, transition(PlaybackState.Idle, event).second.count { it.eventName == "onError" })
+  }
+
 
   @Test
   fun `Idle + BUFFERING emits onBuffering and onPlaybackStateChange loading`() {
@@ -216,10 +246,50 @@ class PlaybackStateTest {
     assertEquals("PLAYBACK_ERROR", error.code)
     assertEquals("Network timeout", error.message)
     assertEquals("404", error.nativeCode)
+    assertEquals(PlayerErrorCategory.UNKNOWN, error.category)
     assertEquals(2, events.size)
     assertEquals("onError", events[0].eventName)
     assertEquals("PLAYBACK_ERROR", events[0].payloadBuilder()["code"])
+    assertEquals(PlayerErrorCategory.UNKNOWN, events[0].payloadBuilder()["category"])
     assertEquals("error", events[1].payloadBuilder()["state"])
+  }
+
+  @Test
+  fun `PlayerError carries the failure classification into the payload`() {
+    val (next, events) = transition(
+      PlaybackState.Playing,
+      Media3Event.PlayerError(
+        message = "Video is not available",
+        nativeCode = "ERROR_CODE_IO_BAD_HTTP_STATUS",
+        positionMs = 0,
+        category = PlayerErrorCategory.UNAVAILABLE,
+        httpStatus = 403,
+      ),
+    )
+
+    val error = assertIs<PlaybackState.Error>(next)
+    assertEquals(PlayerErrorCategory.UNAVAILABLE, error.category)
+    assertEquals(403, error.httpStatus)
+
+    val payload = events[0].payloadBuilder()
+    assertEquals("unavailable", payload["category"])
+    assertEquals(403, payload["httpStatus"])
+  }
+
+  @Test
+  fun `PlayerError omits httpStatus when the platform reports none`() {
+    val (_, events) = transition(
+      PlaybackState.Playing,
+      Media3Event.PlayerError(
+        message = "DNS sinkhole",
+        nativeCode = "ERROR_CODE_IO_NETWORK_CONNECTION_FAILED",
+        positionMs = 0,
+        category = PlayerErrorCategory.UNAVAILABLE,
+        httpStatus = null,
+      ),
+    )
+
+    assertTrue("httpStatus" !in events[0].payloadBuilder())
   }
 
   @Test
