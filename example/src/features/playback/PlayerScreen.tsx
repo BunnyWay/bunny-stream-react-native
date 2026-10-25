@@ -260,8 +260,10 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 
   return (
     <View style={styles.playerContainer}>
-      <Header title="Player" onBack={() => navigation.goBack()} />
-      <View style={styles.playerWrapper}>
+      <View style={playerScreenStyles.header}>
+        <Header title="Player" onBack={() => navigation.goBack()} />
+      </View>
+      <View style={[styles.playerWrapper, playerScreenStyles.playerViewport]}>
         {isTransitional ? (
           <View style={styles.transitionalOverlay}>
             <ActivityIndicator size="large" color={colors.onPrimary} />
@@ -290,7 +292,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
         )}
 
         {loading && !isTransitional ? (
-          <View style={styles.loadingOverlay}>
+          <View
+            pointerEvents="none"
+            accessibilityLabel="Loading video"
+            style={styles.loadingOverlay}
+          >
             <ActivityIndicator size="large" color={colors.onPrimary} />
           </View>
         ) : null}
@@ -421,6 +427,14 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
 }
 
 const playerScreenStyles = StyleSheet.create({
+  header: {
+    // Keep navigation above the native player's hosted views while loading.
+    zIndex: 1,
+    flexShrink: 0,
+  },
+  playerViewport: {
+    overflow: 'hidden',
+  },
   castChip: {
     position: 'absolute',
     top: 8,
