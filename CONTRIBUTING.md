@@ -179,6 +179,9 @@ The tag triggers `.github/workflows/publish.yml`, which publishes
 `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token).
 Prerelease versions go to the `next` dist-tag and get their own changelog section,
 just like stable releases. Add the next release's entries under Unreleased.
+When a prerelease is promoted to stable (for example `1.1.0-rc.1` → `1.1.0`), its
+sections are folded into the stable release's notes — the stable release carries
+everything documented in the prereleases plus any newer Unreleased entries.
 
 To print notes for an existing version (for example, when recovering a failed
 GitHub Release creation):

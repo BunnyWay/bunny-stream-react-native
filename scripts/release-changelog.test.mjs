@@ -55,6 +55,39 @@ test('missing and duplicate sections fail rather than using the wrong notes', ()
   assert.throws(() => prepareRelease(changelog, '1.0.0'), /already has a section/);
 });
 
+test('duplicate historical sections stop release preparation', () => {
+  const text = `${changelog}\n## [1.0.0] - 2026-10-17\n\n- Duplicated release.\n`;
+  assert.throws(() => prepareRelease(text, '1.0.1'), /duplicate sections: 1\.0\.0/);
+  assert.throws(() => prepareRelease(`${changelog}\n## [Unreleased]\n`, '1.0.1'), /duplicate/);
+});
+
+test('promoting a prerelease folds its notes into the stable release', () => {
+  const rc = '## [1.1.0-rc.1] - 2026-10-20\n\n### Added\n\n- Prerelease feature.\n';
+  const text = `# Changelog\n\n## [Unreleased]\n\n${entries}\n\n${rc}\n${previous}`;
+
+  const updated = prepareRelease(text, '1.1.0', '2026-10-23');
+  const notes = releaseNotes(updated, '1.1.0');
+  assert.equal(
+    notes,
+    '### Fixed\n\n- Fix Android playback.\n- Fix iOS quality selection.\n\n### Added\n\n- Prerelease feature.',
+  );
+  assert.match(updated, /## \[Unreleased\]\n\n## \[1\.1\.0\] - 2026-10-23/);
+  assert.doesNotMatch(updated, /1\.1\.0-rc\.1/);
+});
+
+test('a prerelease can be promoted with an empty Unreleased section', () => {
+  const text = `# Changelog\n\n## [Unreleased]\n\n## [1.1.0-rc.1] - 2026-10-20\n\n### Added\n\n- Prerelease feature.\n`;
+  const updated = prepareRelease(text, '1.1.0', '2026-10-23');
+  assert.equal(releaseNotes(updated, '1.1.0'), '### Added\n\n- Prerelease feature.');
+});
+
+test('unrelated prerelease sections are kept when promoting to stable', () => {
+  const rc = '## [2.0.0-beta.1] - 2026-10-20\n\n### Changed\n\n- Next major work.\n';
+  const text = `${changelog}\n${rc}`;
+  const updated = prepareRelease(text, '1.0.1', '2026-10-23');
+  assert.equal(releaseNotes(updated, '2.0.0-beta.1'), '### Changed\n\n- Next major work.');
+});
+
 test('versions match exactly rather than matching a prerelease or version prefix', () => {
   const text = `${changelog}\n## [1.0.10] - 2026-10-17\n\n- Another release.\n`;
   assert.throws(() => releaseNotes(text, '1.0.1'), /Expected exactly one/);
@@ -62,8 +95,20 @@ test('versions match exactly rather than matching a prerelease or version prefix
 });
 
 test('invalid versions and dates are rejected', () => {
-  for (const version of ['v1.0.1', '1.0', '01.0.1', '1.0.1-beta_1', '1.0.1-']) {
+  for (const version of [
+    'v1.0.1',
+    '1.0',
+    '01.0.1',
+    '1.0.1-beta_1',
+    '1.0.1-',
+    '1.0.1-01',
+    '1.0.1-alpha.02',
+  ]) {
     assert.throws(() => prepareRelease(changelog, version), /Invalid release version/);
+  }
+  // Leading zeroes are legal in alphanumeric identifiers and build metadata.
+  for (const version of ['1.0.1-0', '1.0.1-01a', '1.0.1-beta+build.01']) {
+    assert.equal(releaseNotes(prepareRelease(changelog, version), version), entries);
   }
   for (const date of ['2026-02-30', '2026-13-01', '2026-1-01', 'not-a-date']) {
     assert.throws(() => prepareRelease(changelog, '1.0.1', date), /Invalid release date/);

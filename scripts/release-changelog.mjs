@@ -3,25 +3,56 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-function section(text, version) {
+function sections(text) {
   const headings = [...text.matchAll(/^## \[([^\]\r\n]+)\][^\r\n]*$/gm)];
-  const matches = headings.filter((heading) => heading[1] === version);
+  return headings.map((heading, index) => ({
+    name: heading[1],
+    start: heading.index,
+    bodyStart: heading.index + heading[0].length,
+    end: headings[index + 1]?.index ?? text.length,
+  }));
+}
+
+function section(text, version) {
+  const matches = sections(text).filter((s) => s.name === version);
   if (matches.length !== 1) {
     throw new Error(`Expected exactly one '## [${version}]' section in CHANGELOG.md`);
   }
-  const heading = matches[0];
-  const next = headings[headings.indexOf(heading) + 1];
-  return {
-    start: heading.index,
-    bodyStart: heading.index + heading[0].length,
-    end: next?.index ?? text.length,
-  };
+  return matches[0];
+}
+
+function hasEntries(body) {
+  return /^- \S/m.test(body.replace(/<!--[\s\S]*?-->/g, ''));
+}
+
+// Merges section bodies, folding entries under same-named `###` groups so the
+// aggregated release notes read as one coherent section.
+function mergeBodies(bodies) {
+  const groups = new Map();
+  for (const body of bodies.filter(Boolean)) {
+    const parts = body.split(/^### /m);
+    const add = (title, content) =>
+      groups.set(title, [...(groups.get(title) ?? []), ...(content ? [content] : [])]);
+    if (parts[0].trim()) add('', parts[0].trim());
+    for (const part of parts.slice(1)) {
+      const newline = part.indexOf('\n');
+      add(
+        (newline === -1 ? part : part.slice(0, newline)).trim(),
+        newline === -1 ? '' : part.slice(newline).trim(),
+      );
+    }
+  }
+  return [...groups]
+    .map(([title, content]) =>
+      title ? `### ${title}\n\n${content.join('\n')}` : content.join('\n'),
+    )
+    .join('\n\n');
 }
 
 export function releaseNotes(text, version = 'Unreleased') {
   const { bodyStart, end } = section(text, version);
   const body = text.slice(bodyStart, end).trim();
-  if (!/^- \S/m.test(body.replace(/<!--[\s\S]*?-->/g, ''))) {
+  if (!hasEntries(body)) {
     throw new Error(`No changelog entries under '## [${version}]'`);
   }
   return body;
@@ -35,6 +66,12 @@ export function prepareRelease(text, version, date = new Date().toISOString().sl
   ) {
     throw new Error(`Invalid release version: ${version}`);
   }
+  // SemVer: numeric prerelease identifiers must not have leading zeroes
+  // (`1.0.0-01` is invalid; `1.0.0-01a` is a valid alphanumeric identifier).
+  const prerelease = version.slice(version.indexOf('-') + 1).split('+')[0];
+  if (version.includes('-') && prerelease.split('.').some((id) => /^0\d+$/.test(id))) {
+    throw new Error(`Invalid release version: ${version}`);
+  }
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
     !Number.isFinite(Date.parse(date)) ||
@@ -42,15 +79,46 @@ export function prepareRelease(text, version, date = new Date().toISOString().sl
   ) {
     throw new Error(`Invalid release date: ${date}`);
   }
-  if ([...text.matchAll(/^## \[([^\]\r\n]+)\]/gm)].some((heading) => heading[1] === version)) {
+
+  const all = sections(text);
+  const counts = new Map();
+  for (const { name } of all) counts.set(name, (counts.get(name) ?? 0) + 1);
+  const duplicates = [...counts].filter(([, count]) => count > 1).map(([name]) => name);
+  if (duplicates.length > 0) {
+    throw new Error(`CHANGELOG.md has duplicate sections: ${duplicates.join(', ')}`);
+  }
+  if (counts.has(version)) {
     throw new Error(`CHANGELOG.md already has a section for ${version}`);
   }
-  const body = releaseNotes(text);
-  const { start, end } = section(text, 'Unreleased');
+
+  const unreleased = section(text, 'Unreleased');
+  // Promoting a prerelease to stable (1.1.0-rc.1 → 1.1.0) folds its sections
+  // into the release so the stable notes contain everything documented in the
+  // prereleases plus any newer Unreleased entries.
+  const folded = all.filter((s) => s.name.startsWith(`${version}-`));
+  if (folded.some((s) => s.start < unreleased.end)) {
+    throw new Error(`CHANGELOG.md has a section for a ${version} prerelease before Unreleased`);
+  }
+
+  const bodies = [unreleased, ...folded].map((s) => text.slice(s.bodyStart, s.end).trim());
+  const body = mergeBodies(bodies);
+  if (!hasEntries(body)) {
+    throw new Error("No changelog entries under '## [Unreleased]'");
+  }
+
+  // Rebuild the tail without the folded prerelease sections.
+  let tail = '';
+  let position = unreleased.end;
+  for (const { start, end } of folded.sort((a, b) => a.start - b.start)) {
+    tail += text.slice(position, start);
+    position = end;
+  }
+  tail += text.slice(position);
+
   return (
-    text.slice(0, start) +
+    text.slice(0, unreleased.start) +
     `## [Unreleased]\n\n## [${version}] - ${date}\n\n${body}\n` +
-    (end < text.length ? `\n${text.slice(end)}` : '')
+    (tail ? `\n${tail}` : '')
   );
 }
 
