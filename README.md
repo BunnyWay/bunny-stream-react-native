@@ -159,7 +159,8 @@ For both VOD and live sources, `source.libraryId` is optional and falls back to 
 Set `controls={false}` to hide the player's built-in controls. See the [player types](src/player/BunnyStreamPlayer.types.ts) for props, events, and commands.
 
 VOD `onError` includes an optional `category`: `unavailable` for refused content
-(HTTP 403 or a DNS sinkhole), `network` for connectivity failures, or `unknown`.
+(a CDN HTTP 403, a DNS sinkhole, or an Android `/play`/settings response with
+status 401/403/404/410), `network` for connectivity failures, or `unknown`.
 `unavailable` is not proof of geo-blocking: token and referrer restrictions can
 also cause a refusal. Android includes `httpStatus` when available.
 The hook preserves these fields in `state.error` and clears loading/buffering

@@ -55,8 +55,9 @@ platforms:
 - `network` — the device lost connectivity. Retryable once the connection is back.
 - `unknown` — anything else (decoder, DRM, parser failures).
 
-`httpStatus` (Android only) holds the CDN's status code when there was one; a DNS-level
-geo-block produces no HTTP response, so it stays absent there.
+`httpStatus` (Android only) holds the HTTP status reported for a CDN or `/play`/settings
+failure. A DNS-level refusal produces no HTTP response, so it stays absent there;
+iOS also leaves it absent.
 
 For local iOS classification tests without installing pods or launching the app,
 run `yarn test:ios-errors` on macOS with Xcode command-line tools.
