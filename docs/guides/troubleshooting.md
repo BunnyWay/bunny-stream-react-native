@@ -47,10 +47,11 @@ isolate configuration from DRM/device failures.
 platforms:
 
 - `unavailable` — the stream is refused for this viewer and retrying cannot help: the CDN
-  answered HTTP 403 or the CDN host was rejected at DNS level. A 403 can mean geo-blocking
-  (the library's "Blocked countries"), referrer/hotlink protection, or an expired/invalid
-  playback token — the players deliberately do not distinguish them. Show "Video is not
-  available" and do not auto-retry the unchanged request.
+  answered HTTP 403, the CDN host was rejected at DNS level, or (Android) the `/play`/settings
+  call itself was answered with a terminal status such as 401/404/410. A 403 can mean
+  geo-blocking (the library's "Blocked countries"), referrer/hotlink protection, or an
+  expired/invalid playback token — the players deliberately do not distinguish them. Show
+  "Video is not available" and do not auto-retry the unchanged request.
 - `network` — the device lost connectivity. Retryable once the connection is back.
 - `unknown` — anything else (decoder, DRM, parser failures).
 

@@ -139,6 +139,64 @@ class PlaybackErrorClassifierTest {
     assertNull(result.httpStatus)
   }
 
+  // --- Pre-engine failures (`/play` + settings fetch), message-only ---
+
+  @Test
+  fun `a pre-engine Forbidden is unavailable with status 403`() {
+    val result = classifyPrePlaybackError("Forbidden")
+    assertEquals(PlayerErrorCategory.UNAVAILABLE, result.category)
+    assertEquals(403, result.httpStatus)
+  }
+
+  @Test
+  fun `a pre-engine auth refusal is unavailable with status 401`() {
+    val result = classifyPrePlaybackError("Authorization required Unauthorized")
+    assertEquals(PlayerErrorCategory.UNAVAILABLE, result.category)
+    assertEquals(401, result.httpStatus)
+  }
+
+  @Test
+  fun `a pre-engine Not Found is unavailable with status 404`() {
+    val result = classifyPrePlaybackError("Not Found")
+    assertEquals(PlayerErrorCategory.UNAVAILABLE, result.category)
+    assertEquals(404, result.httpStatus)
+  }
+
+  @Test
+  fun `a pre-engine 410 Gone is unavailable`() {
+    val result = classifyPrePlaybackError("Error: 410")
+    assertEquals(PlayerErrorCategory.UNAVAILABLE, result.category)
+    assertEquals(410, result.httpStatus)
+  }
+
+  @Test
+  fun `a pre-engine 5xx keeps its status but is unknown`() {
+    val result = classifyPrePlaybackError("Error: 500")
+    assertEquals(PlayerErrorCategory.UNKNOWN, result.category)
+    assertEquals(500, result.httpStatus)
+  }
+
+  @Test
+  fun `a pre-engine transport failure is network`() {
+    val result =
+      classifyPrePlaybackError("Network error: Unable to resolve host vz-test.b-cdn.net")
+    assertEquals(PlayerErrorCategory.NETWORK, result.category)
+    assertNull(result.httpStatus)
+  }
+
+  @Test
+  fun `the SDK's not-available fallback and free text stay unknown`() {
+    for (message in listOf(
+      "Video abc is not available in library 1",
+      "Unexpected error: boom",
+      "",
+    )) {
+      val result = classifyPrePlaybackError(message)
+      assertEquals(PlayerErrorCategory.UNKNOWN, result.category)
+      assertNull(result.httpStatus)
+    }
+  }
+
   private fun httpError(status: Int) = HttpDataSource.InvalidResponseCodeException(
     status,
     "status $status",

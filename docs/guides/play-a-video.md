@@ -82,10 +82,11 @@ Keep `onProgress` wired when using skip commands so the wrapper knows the curren
 
 The VOD `onError` payload and the hook's `state.error` preserve `code`, `message`,
 and `nativeCode`, and add optional `category` and `httpStatus` fields.
-`category` is `unavailable`, `network`, or `unknown`. HTTP 403 and DNS sinkholes
+`category` is `unavailable`, `network`, or `unknown`. HTTP 403, DNS sinkholes,
+and terminal `/play`/settings responses (Android reports 401/403/404/410 there)
 are `unavailable`; this does not distinguish geo-blocking from token or referrer
 restrictions. `httpStatus` is only present when Android reports a real HTTP
-response. iOS and DNS-only refusals leave it absent.
+status. iOS and DNS-only refusals leave it absent.
 
 Using `player` from the hook example, render your own loading and error UI even
 with `controls={false}`:

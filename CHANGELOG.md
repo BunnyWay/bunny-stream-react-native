@@ -17,11 +17,12 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 ### Added
 
 - `onError` on the VOD player now reports a stable cross-platform `category`:
-  `unavailable` for terminal stream refusals (a CDN 403 — geo-blocking,
-  referrer protection or token auth are deliberately not told apart — or a
-  DNS-sinkholed CDN host), `network` for lost connectivity (retryable), and
-  `unknown` for anything else. Android also reports `httpStatus` when the CDN
-  answered one. `useBunnyStreamPlayer`'s `state.error` carries the same
+  `unavailable` for terminal refusals (a CDN 403 — geo-blocking, referrer
+  protection or token auth are deliberately not told apart — a DNS-sinkholed
+  CDN host, or a terminal `/play`/settings response such as 401/404/410 on
+  Android), `network` for lost connectivity (retryable), and `unknown` for
+  anything else. Android also reports `httpStatus` when the failure carried a
+  real HTTP status. `useBunnyStreamPlayer`'s `state.error` carries the same
   fields, so apps can show "Video is not available" for geo-blocked content
   instead of an endless spinner.
 

@@ -111,6 +111,15 @@ class PlayerEventListener(
   private var generation: Long = 0L
 
   /**
+   * True once the state machine has recorded a Media3 playback error for the
+   * current generation. Lets `BunnyStreamPlayerView` tell engine-reported
+   * `onPlaybackError` messages (which already produced a structured `onError`
+   * through here) apart from pre-engine failures it must classify itself.
+   */
+  val inErrorState: Boolean
+    get() = state is PlaybackState.Error
+
+  /**
    * Attaches the listener to [DefaultBunnyPlayer.currentPlayer].
    * Captures the current generation token so that callbacks from this attach
    * cycle can be invalidated by a later [generationToken.bump].
