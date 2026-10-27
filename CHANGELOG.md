@@ -14,6 +14,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-27
+
 ### Added
 
 - `onError` on the VOD player now reports a stable cross-platform `category`:
