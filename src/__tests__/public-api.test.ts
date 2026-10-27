@@ -2,6 +2,8 @@ import type * as PublicApi from '../index';
 
 import { describe, expect, it, jest } from '@jest/globals';
 
+import packageJson from '../../package.json';
+
 jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
   __esModule: true,
   default: {
@@ -99,9 +101,9 @@ describe('public package API', () => {
     nativePlayer.initialize.mockClear();
 
     publicApi.initialize('access-key', 123);
-    expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123, '1.0.0');
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('access-key', 123, packageJson.version);
     publicApi.initialize('', 123);
-    expect(nativePlayer.initialize).toHaveBeenCalledWith('', 123, '1.0.0');
+    expect(nativePlayer.initialize).toHaveBeenCalledWith('', 123, packageJson.version);
     expect(() => publicApi.initialize('access-key', 0)).toThrow(
       'libraryId must be a positive integer',
     );

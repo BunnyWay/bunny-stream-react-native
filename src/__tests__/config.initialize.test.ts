@@ -2,6 +2,8 @@ import type * as Initialization from '../config/initialize';
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+import packageJson from '../../package.json';
+
 jest.mock('../specs/NativeBunnyStreamPlayer', () => ({
   __esModule: true,
   default: { initialize: jest.fn() },
@@ -28,7 +30,7 @@ describe('initialized library configuration', () => {
   it('stores a successfully initialized library and updates it on reinitialization', () => {
     configuration.initialize('access-key', 123);
     expect(configuration.getConfiguredLibraryId()).toBe(123);
-    expect(nativeInitialize).toHaveBeenCalledWith('access-key', 123, '1.0.0');
+    expect(nativeInitialize).toHaveBeenCalledWith('access-key', 123, packageJson.version);
 
     configuration.initialize('other-key', 456);
     expect(configuration.getConfiguredLibraryId()).toBe(456);
@@ -53,7 +55,7 @@ describe('initialized library configuration', () => {
     (accessKey) => {
       configuration.initialize(accessKey as string, 456);
 
-      expect(nativeInitialize).toHaveBeenCalledWith('', 456, '1.0.0');
+      expect(nativeInitialize).toHaveBeenCalledWith('', 456, packageJson.version);
       expect(configuration.getConfiguredLibraryId()).toBe(456);
     },
   );
