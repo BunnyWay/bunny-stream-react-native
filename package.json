@@ -31,6 +31,7 @@
     "plugin/build",
     "react-native.config.js",
     "native-sdk-baselines.json",
+    "CHANGELOG.md",
     "llms.txt",
     "docs/CAPABILITIES.md",
     "!ios/build",
@@ -53,7 +54,9 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
+    "test:release": "node --test scripts/release-changelog.test.mjs",
     "release": "release-it --only-version",
+    "release:notes": "node scripts/release-changelog.mjs unreleased",
     "native-baselines:check": "node scripts/verify-native-sdk-baselines.mjs",
     "native-android:publish": "node scripts/publish-android-sdk.mjs",
     "codegen": "react-native codegen --source library --path . --platform all --outputPath example/build/generated/codegen",
@@ -224,6 +227,9 @@
     }
   },
   "release-it": {
+    "hooks": {
+      "before:bump": "node scripts/release-changelog.mjs release ${version}"
+    },
     "git": {
       "commitMessage": "chore: release ${version}",
       "tagName": "v${version}"
@@ -232,10 +238,12 @@
       "publish": false
     },
     "github": {
-      "release": true
+      "release": true,
+      "releaseNotes": "node scripts/release-changelog.mjs notes ${version}"
     },
     "plugins": {
       "@release-it/conventional-changelog": {
+        "infile": false,
         "preset": {
           "name": "angular"
         }

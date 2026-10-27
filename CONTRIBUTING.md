@@ -132,13 +132,63 @@ If a change may be breaking, call it out clearly in the PR description.
 
 ## Releasing
 
+### Changelog
+
+`CHANGELOG.md` is the source of truth for release notes, as in the native Bunny
+Stream SDKs. Add an entry under `## [Unreleased]` in the PR that changes behavior,
+public APIs, dependencies, or platform requirements. Use `Added`, `Changed`,
+`Deprecated`, `Removed`, `Fixed`, or `Security` groups as needed.
+
+Write for developers integrating the SDK: explain what changes for their app,
+which platforms are affected, and any migration steps. Mark breaking changes
+explicitly. CI, tests, and internal refactors without user-visible effects do not
+need entries. Do not reconstruct release notes from commit titles at release time.
+
+For native SDK bumps, record both the old and new versions and summarize relevant
+upstream changes that affect React Native users. Do not list upstream features
+that this bridge does not expose.
+
+Preview the pending notes without changing files or contacting GitHub:
+
+```sh
+yarn release:notes
+```
+
+### Publishing
+
 Maintainers only. From an up-to-date `main`:
 
 ```sh
+yarn typecheck && yarn lint && yarn test && yarn test:release
+yarn prepare
 yarn release
 ```
 
-`release-it` bumps the version, pushes the `v<version>` tag, and creates the GitHub Release with generated notes. The tag triggers `.github/workflows/publish.yml`, which publishes `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token). Prerelease versions go to the `next` dist-tag.
+Choose the version according to the public React Native API: major for breaking
+changes, minor for backward-compatible additions, patch for fixes and maintenance.
+The Conventional Commits plugin still suggests a version, but commit-derived text
+is not the published release notes.
+
+`release-it` moves the Unreleased entries into `## [X.Y.Z] - YYYY-MM-DD`, leaves a
+fresh empty Unreleased section, and bumps the package version. It commits those
+changes together, pushes the `v<version>` tag, and creates the GitHub Release using
+that version's changelog section verbatim. Empty notes, duplicate version sections,
+and missing Unreleased sections stop release preparation.
+
+The tag triggers `.github/workflows/publish.yml`, which publishes
+`@bunny.net/stream-react-native` to npm through trusted publishing (no npm token).
+Prerelease versions go to the `next` dist-tag and get their own changelog section,
+just like stable releases. Add the next release's entries under Unreleased.
+When a prerelease is promoted to stable (for example `1.1.0-rc.1` → `1.1.0`), its
+sections are folded into the stable release's notes — the stable release carries
+everything documented in the prereleases plus any newer Unreleased entries.
+
+To print notes for an existing version (for example, when recovering a failed
+GitHub Release creation):
+
+```sh
+node scripts/release-changelog.mjs notes 1.0.1
+```
 
 ## Using AI Tools
 

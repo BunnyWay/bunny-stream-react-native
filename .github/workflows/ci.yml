@@ -44,6 +44,9 @@ jobs:
       - name: Run unit tests
         run: yarn test --maxWorkers=2 --coverage
 
+      - name: Test release changelog
+        run: yarn test:release
+
   build-library:
     runs-on: ubuntu-latest
 
