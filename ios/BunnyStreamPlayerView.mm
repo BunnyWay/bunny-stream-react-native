@@ -62,13 +62,16 @@ using namespace facebook::react;
       });
     };
 
-    _impl.onError = ^(NSString *code, NSString *message, NSString *nativeCode) {
+    _impl.onError = ^(NSString *code, NSString *message, NSString *nativeCode, NSString *category) {
       __strong __typeof__(weakSelf) strongSelf = weakSelf;
       if (!strongSelf || !strongSelf->_eventEmitter) return;
       strongSelf->_eventEmitter->onError({
         .code = std::string([code UTF8String]),
         .message = std::string([message UTF8String]),
-        .nativeCode = nativeCode ? std::string([nativeCode UTF8String]) : ""
+        .nativeCode = nativeCode ? std::string([nativeCode UTF8String]) : "",
+        .category = category ? std::string([category UTF8String]) : "",
+        // The JS wrapper removes this sentinel; the SDK exposes no status.
+        .httpStatus = 0
       });
     };
 

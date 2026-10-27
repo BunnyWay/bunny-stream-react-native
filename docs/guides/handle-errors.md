@@ -86,9 +86,23 @@ arrive as `nativeCode` — an Enterprise DRM security-level refusal is reported 
 level). Native live failures use
 `onLiveError`, not `onPlaybackError`. Direct callbacks wrap payloads in `nativeEvent`.
 
+VOD playback errors also include an optional `category`:
+
+- `unavailable`: a terminal refusal, such as a CDN HTTP 403 or DNS sinkhole, or an Android
+  `/play`/settings response with status 401/403/404/410. Do not automatically retry the
+  unchanged request. This category does not identify geo-blocking specifically.
+- `network`: a connectivity failure; retrying after connectivity returns can help.
+- `unknown`: other failures, including decoder and DRM errors. This does not imply retryability.
+
+Optional `httpStatus` is available on Android when an HTTP status is reported; it is absent
+on iOS and for DNS-only failures. JS configuration errors can omit both fields.
+These playback fields are separate from the API's `BunnyError` envelope described above.
+
 `useBunnyStreamPlayer` unwraps these payloads for its option callbacks and tracks `state.error`
 and `state.liveError`. Spread its handlers onto the player or those states will not update.
-See [Play a live stream](play-a-live-stream.md).
+VOD errors clear loading and buffering; pass `sourceIdentityKey(source)` to the hook to clear
+stale state when changing videos. See [Handling unavailable videos](play-a-video.md#handling-unavailable-videos)
+and [Play a live stream](play-a-live-stream.md).
 
 ## Upload and broadcaster events
 

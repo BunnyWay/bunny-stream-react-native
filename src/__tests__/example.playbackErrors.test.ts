@@ -1,6 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-type PlayerError = { code?: string; message?: string; nativeCode?: string } | null;
+type PlayerError = {
+  code?: string;
+  message?: string;
+  nativeCode?: string;
+  category?: string;
+  httpStatus?: number;
+} | null;
 
 const {
   playbackErrorMessage,
@@ -9,6 +15,8 @@ const {
   ACCESS_DENIED_MESSAGE,
   NOT_FOUND_MESSAGE,
   DRM_ERROR_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
+  UNAVAILABLE_MESSAGE,
 } = jest.requireActual<{
   playbackErrorMessage: (e: PlayerError) => string | null;
   liveErrorMessage: (m: string | null | undefined) => string | null;
@@ -16,6 +24,8 @@ const {
   ACCESS_DENIED_MESSAGE: string;
   NOT_FOUND_MESSAGE: string;
   DRM_ERROR_MESSAGE: string;
+  NETWORK_ERROR_MESSAGE: string;
+  UNAVAILABLE_MESSAGE: string;
 }>('../../example/src/utils/playbackErrors');
 
 describe('playbackErrorMessage', () => {
@@ -65,6 +75,23 @@ describe('playbackErrorMessage', () => {
     ).toBe(ACCESS_DENIED_MESSAGE);
   });
 
+  it.each([
+    // Structured classification from the bridge wins over string matching:
+    // Android reports the CDN status, a DNS-sinkholed host arrives with no
+    // HTTP status at all, and iOS reports the class only.
+    { category: 'unavailable', httpStatus: 403, message: 'error' },
+    { category: 'unavailable', message: 'Failed to connect to vz-abc.b-cdn.net/127.0.0.1:443' },
+    { category: 'unavailable', message: 'Video is not available' },
+  ])('maps the structured unavailable category without inventing an HTTP status: %o', (error) => {
+    expect(playbackErrorMessage(error)).toBe(UNAVAILABLE_MESSAGE);
+  });
+
+  it('maps the structured network category to the retryable copy', () => {
+    expect(playbackErrorMessage({ category: 'network', message: 'ERROR_CODE_IO_NETWORK' })).toBe(
+      NETWORK_ERROR_MESSAGE,
+    );
+  });
+
   it('keeps not-found errors retryable', () => {
     expect(
       isBlockedPlaybackError({
@@ -89,6 +116,8 @@ describe('isBlockedPlaybackError', () => {
     { message: 'Forbidden' },
     { message: 'error', nativeCode: 'BunnyStreamPlayer.VideoPlayerError:2:notAvailable' },
     { message: 'Access denied by CDN' },
+    { category: 'unavailable', httpStatus: 403 },
+    { category: 'unavailable', message: 'Connection refused' },
   ])('recognises terminal CDN refusals: %o', (error) => {
     expect(isBlockedPlaybackError(error)).toBe(true);
   });
@@ -102,12 +131,15 @@ describe('isBlockedPlaybackError', () => {
     expect(isBlockedPlaybackError(error)).toBe(true);
   });
 
-  it.each([{ message: 'Network timeout' }, { message: 'Decoder init failed' }, null])(
-    'leaves retryable errors retryable: %o',
-    (error) => {
-      expect(isBlockedPlaybackError(error)).toBe(false);
-    },
-  );
+  it.each([
+    { message: 'Network timeout' },
+    { message: 'Decoder init failed' },
+    { category: 'network', message: 'ERROR_CODE_IO_NETWORK_CONNECTION_FAILED' },
+    { category: 'unknown', message: 'Decoder init failed' },
+    null,
+  ])('leaves retryable errors retryable: %o', (error) => {
+    expect(isBlockedPlaybackError(error)).toBe(false);
+  });
 });
 
 describe('liveErrorMessage', () => {

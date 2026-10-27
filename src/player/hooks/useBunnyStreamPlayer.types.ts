@@ -1,4 +1,8 @@
-import type { BunnyVodPlayerRef, PlayerPlaybackState } from '../BunnyStreamPlayer.types';
+import type {
+  BunnyVodPlayerRef,
+  PlayerErrorEvent,
+  PlayerPlaybackState,
+} from '../BunnyStreamPlayer.types';
 import type { RefObject } from 'react';
 
 // --- Public state shapes ---
@@ -17,7 +21,7 @@ export interface PlayerState {
   /** Total duration in ms, set by `onReady` and stable thereafter. */
   durationMs: number;
   /** Last error, or `null` when no error is present. */
-  error: { code: string; message: string; nativeCode?: string } | null;
+  error: PlayerErrorEvent | null;
   /** Current volume (0.0–1.0). */
   volume: number;
   /** `true` when the player is muted. */
@@ -82,7 +86,7 @@ export interface UseBunnyStreamPlayerOptions {
   onReady?: (e: { videoId: string; durationMs: number }) => void;
   onPlaybackStateChange?: (e: { state: string; positionMs: number }) => void;
   onProgress?: (e: { positionMs: number; durationMs: number; progress: number }) => void;
-  onError?: (e: { code: string; message: string; nativeCode?: string }) => void;
+  onError?: (e: PlayerErrorEvent) => void;
   onBuffering?: (e: { isBuffering: boolean }) => void;
   onPlay?: (e: { positionMs: number; durationMs: number }) => void;
   onPause?: (e: { positionMs: number; durationMs: number }) => void;
@@ -114,7 +118,7 @@ export type PlayerEventHandlers = {
   onProgress: (event: {
     nativeEvent: { positionMs: number; durationMs: number; progress: number };
   }) => void;
-  onError: (event: { nativeEvent: { code: string; message: string; nativeCode?: string } }) => void;
+  onError: (event: { nativeEvent: PlayerErrorEvent }) => void;
   onBuffering: (event: { nativeEvent: { isBuffering: boolean } }) => void;
   onPlay: (event: { nativeEvent: { positionMs: number; durationMs: number } }) => void;
   onPause: (event: { nativeEvent: { positionMs: number; durationMs: number } }) => void;

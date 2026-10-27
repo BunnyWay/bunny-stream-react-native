@@ -77,6 +77,8 @@ android {
   testOptions {
     unitTests {
       includeAndroidResources = false
+      // FakeUri's framework base constructor must not throw "not mocked".
+      returnDefaultValues = true
     }
   }
 }
@@ -96,6 +98,10 @@ dependencies {
   // Must match the media3 version the native SDK ships (4.1.1 → 1.10.1):
   // mixed media3 versions break the player. Bump only together with the SDK.
   implementation "androidx.media3:media3-common:1.10.1"
+  // media3-datasource exposes HttpDataSource.InvalidResponseCodeException —
+  // the only Media3 class carrying the CDN's HTTP status — used by
+  // PlaybackErrorClassifier. Same version rule as media3-common.
+  implementation "androidx.media3:media3-datasource:1.10.1"
   // media3-ui provides PlayerView (controlsEnabled) which the native SDK's
   // BunnyPlayerView extends.
   implementation "androidx.media3:media3-ui:1.10.1"

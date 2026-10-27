@@ -254,20 +254,42 @@ class BunnyStreamPlayerView(
     }
     player.onPlaybackError = { message ->
       if (generationToken.isActive(playbackGeneration)) {
-        // The Media3 adapter already emits the structured onError/onPlaybackStateChange
-        // pair from onPlayerErrorChanged; this hook surfaces the SDK's human-readable
-        // message for the live recovery path and future custom-error UI.
-        // An Enterprise DRM security-level refusal happens before the engine
-        // starts, so Media3 never reports it — emit the structured onError
-        // alongside the message so JS can classify it by nativeCode.
-        if (isSecurityLevelRefusal()) {
+        // This callback fires for both engine failures (already reported as a
+        // structured onError by the Media3 adapter in PlayerEventListener) and
+        // pre-engine failures — the /play and player-settings fetches, plus the
+        // Enterprise DRM refusal — that Media3 never sees. Synthesize the same
+        // onError/onPlaybackStateChange pair for the latter so JS always gets a
+        // classified error; the inErrorState guard keeps an engine-path message
+        // from downgrading the category the Media3 listener already emitted.
+        if (eventListener?.inErrorState != true) {
+          if (isSecurityLevelRefusal()) {
+            em.dispatch(
+              net.bunny.reactnative.state.RnEvent("onError") {
+                mapOf(
+                  "code" to "PLAYBACK_ERROR",
+                  "message" to message,
+                  "nativeCode" to "ERROR_CODE_DRM_SYSTEM_ERROR",
+                  "category" to net.bunny.reactnative.state.PlayerErrorCategory.UNKNOWN,
+                )
+              },
+            )
+          } else {
+            val classification =
+              net.bunny.reactnative.adapter.classifyPrePlaybackError(message)
+            em.dispatch(
+              net.bunny.reactnative.state.RnEvent("onError") {
+                buildMap {
+                  put("code", "PLAYBACK_ERROR")
+                  put("message", message)
+                  put("category", classification.category)
+                  classification.httpStatus?.let { put("httpStatus", it) }
+                }
+              },
+            )
+          }
           em.dispatch(
-            net.bunny.reactnative.state.RnEvent("onError") {
-              mapOf(
-                "code" to "PLAYBACK_ERROR",
-                "message" to message,
-                "nativeCode" to "ERROR_CODE_DRM_SYSTEM_ERROR",
-              )
+            net.bunny.reactnative.state.RnEvent("onPlaybackStateChange") {
+              mapOf("state" to "error", "positionMs" to 0L)
             },
           )
         }

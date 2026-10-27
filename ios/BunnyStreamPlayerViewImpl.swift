@@ -58,8 +58,9 @@ import BunnyStreamPlayer
   @objc public var onPlaybackStateChange: ((String, Double) -> Void)?
   /// (positionMs, durationMs, progress 0–1)
   @objc public var onProgress: ((Double, Double, Double) -> Void)?
-  /// (code, message, nativeCode)
-  @objc public var onError: ((String, String, String?) -> Void)?
+  /// (code, message, nativeCode, category)
+  /// category: 'unavailable' | 'network' | 'unknown' — see the Codegen spec.
+  @objc public var onError: ((String, String, String?, String) -> Void)?
   /// (isBuffering)
   @objc public var onBuffering: ((Bool) -> Void)?
   /// (positionMs, durationMs)
@@ -462,10 +463,11 @@ import BunnyStreamPlayer
         let nativeCode = [ "\(nsError.domain):\(nsError.code)", enumCase ]
           .compactMap { $0 }
           .joined(separator: ":")
+        let category = PlaybackErrorClassifier.category(for: error)
         let errorCode = nativeCode.isEmpty ? message : nativeCode
         guard self.lastPlaybackErrorCode != errorCode else { return }
         self.lastPlaybackErrorCode = errorCode
-        self.onError?("PLAYBACK_ERROR", message, nativeCode)
+        self.onError?("PLAYBACK_ERROR", message, nativeCode, category)
         self.onPlaybackError?(message)
       }
     }

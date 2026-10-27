@@ -47,6 +47,16 @@ jobs:
       - name: Test release changelog
         run: yarn test:release
 
+  ios-error-classification:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test iOS playback error classification
+        run: bash scripts/test-ios-playback-errors.sh
+
   build-library:
     runs-on: ubuntu-latest
 

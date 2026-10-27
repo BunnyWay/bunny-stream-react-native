@@ -78,6 +78,41 @@ effective library ID in that key, as the example does.
 Keep `onProgress` wired when using skip commands so the wrapper knows the current position.
 `setVideoQuality` and imperative `enterPiP` are Android-only. Commands do nothing for live sources.
 
+## Handling unavailable videos
+
+The VOD `onError` payload and the hook's `state.error` preserve `code`, `message`,
+and `nativeCode`, and add optional `category` and `httpStatus` fields.
+`category` is `unavailable`, `network`, or `unknown`. HTTP 403, DNS sinkholes,
+and terminal `/play`/settings responses (Android reports 401/403/404/410 there)
+are `unavailable`; this does not distinguish geo-blocking from token or referrer
+restrictions. `httpStatus` is only present when Android reports a real HTTP
+status. iOS and DNS-only refusals leave it absent.
+
+Using `player` from the hook example, render your own loading and error UI even
+with `controls={false}`:
+
+```tsx
+{!player.state.error && (player.state.isLoading || player.state.isBuffering) && (
+  <Text>Loading...</Text>
+)}
+{player.state.error && (
+  <Text>
+    {player.state.error.category === 'unavailable'
+      ? 'Video is not available'
+      : player.state.error.category === 'network'
+        ? 'No internet connection. Check your connection and try again.'
+        : player.state.error.message}
+  </Text>
+)}
+```
+
+The hook clears loading and buffering when an error arrives. Do not automatically
+retry `unavailable`. An explicit user retry may remount the player after the
+restriction or token has been corrected; replaying the same refused request in a
+loop will not fix it. Pass `sourceIdentityKey(source)` to the hook so a new video
+clears the old error. Live failures still use `onLiveError` and are outside this
+VOD classification contract.
+
 ## Resume positions
 
 On Android, pass `resumeConfig` to opt into native persistence. On iOS, use `useResumePosition`

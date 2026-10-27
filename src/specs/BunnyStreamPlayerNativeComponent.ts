@@ -9,13 +9,7 @@ import type {
 import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 
 export type PlayerPlaybackState =
-  | 'idle'
-  | 'loading'
-  | 'ready'
-  | 'playing'
-  | 'paused'
-  | 'ended'
-  | 'error';
+  'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'ended' | 'error';
 
 export type PlayerReadyEvent = Readonly<{
   videoId: string;
@@ -37,6 +31,23 @@ export type PlayerErrorEvent = Readonly<{
   code: string;
   message: string;
   nativeCode?: string;
+  /**
+   * Stable, cross-platform failure class:
+   * - 'unavailable' — the stream is refused for this viewer and retrying
+   *   cannot help: the CDN answered HTTP 403 (geo-blocking, referrer
+   *   protection or token auth are deliberately not told apart) or the CDN
+   *   host was rejected at DNS level (Bunny "Blocked countries" resolves
+   *   the host to a sinkhole like 127.0.0.1).
+   * - 'network' — the device has no usable connection; retryable.
+   * - 'unknown' — anything else.
+   */
+  category?: string;
+  /**
+   * HTTP status the CDN answered with, when the platform reports one.
+   * Android only — the iOS SDK does not expose the status.
+   * Fabric uses 0 for a missing scalar on iOS; the public wrapper omits it.
+   */
+  httpStatus?: Int32;
 }>;
 
 export type PlayerBufferingEvent = Readonly<{

@@ -14,6 +14,7 @@ import type { HostComponent } from 'react-native';
 import * as React from 'react';
 
 import { normalizeLiveStateEvent } from '../internal/liveStateEvent';
+import { normalizePlayerErrorEvent } from '../internal/playerErrorEvent';
 import BunnyLiveStreamPlayerNativeComponent, {
   type NativeProps as LiveNativeProps,
 } from '../specs/BunnyLiveStreamPlayerNativeComponent';
@@ -259,7 +260,14 @@ export const BunnyStreamPlayer = React.forwardRef<BunnyVodPlayerRef, BunnyStream
         onReady={onReady}
         onPlaybackStateChange={onPlaybackStateChange}
         onProgress={trackedOnProgress}
-        onError={onError}
+        onError={
+          onError
+            ? (event) =>
+                onError({
+                  nativeEvent: normalizePlayerErrorEvent(event.nativeEvent),
+                })
+            : undefined
+        }
         onBuffering={onBuffering}
         onPlay={onPlay}
         onPause={onPause}

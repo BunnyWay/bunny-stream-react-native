@@ -27,10 +27,24 @@ export type PlayerProgressEvent = Readonly<{
   progress: number;
 }>;
 
+/**
+ * Stable failure classes reported in {@link PlayerErrorEvent.category}.
+ * 'unavailable' covers terminal refusals — a CDN 403 (geo-blocking,
+ * referrer protection or token auth are deliberately not told apart) or a
+ * DNS-sinkholed CDN host, or an Android /play/settings response with status
+ * 401/403/404/410; do not auto-retry it. 'network' means the device
+ * lost connectivity and retrying can help. 'unknown' is everything else.
+ */
+export type PlayerErrorCategory = 'unavailable' | 'network' | 'unknown';
+
 export type PlayerErrorEvent = Readonly<{
   code: string;
   message: string;
   nativeCode?: string;
+  /** See {@link PlayerErrorCategory}. */
+  category?: PlayerErrorCategory;
+  /** HTTP status from a CDN or /play/settings failure, when reported (Android only). */
+  httpStatus?: number;
 }>;
 
 export type PlayerBufferingEvent = Readonly<{

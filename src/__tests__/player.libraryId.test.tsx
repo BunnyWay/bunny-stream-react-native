@@ -1,4 +1,5 @@
-import type { BunnyStreamSource } from '../player/BunnyStreamPlayer.types';
+import type { BunnyStreamPlayerProps, BunnyStreamSource } from '../player/BunnyStreamPlayer.types';
+import type { NativeProps as VodNativeProps } from '../specs/BunnyStreamPlayerNativeComponent';
 import type * as ReactTypes from 'react';
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -76,6 +77,37 @@ function sourceFor(type: 'vod' | 'live', libraryId?: number): BunnyStreamSource 
 beforeEach(() => {
   jest.clearAllMocks();
   jest.mocked(getConfiguredLibraryId).mockReturnValue(undefined);
+});
+
+describe('VOD error payloads', () => {
+  it.each([
+    { category: 'unavailable', httpStatus: 403 },
+    { category: 'unavailable', httpStatus: 0 },
+    { category: 'network', httpStatus: 0 },
+    {},
+  ])('normalizes the Fabric payload without duplicating callbacks: %o', async (fields) => {
+    const onError = jest.fn<NonNullable<BunnyStreamPlayerProps['onError']>>();
+    await render(
+      <BunnyStreamPlayer source={sourceFor('vod', 123)} onError={onError} controls={false} />,
+    );
+    const props = mockVodHost.mock.calls.at(-1)?.[0] as VodNativeProps;
+    props.onError?.({
+      nativeEvent: { code: 'PLAYBACK_ERROR', message: 'failed', nativeCode: 'native', ...fields },
+    } as Parameters<NonNullable<VodNativeProps['onError']>>[0]);
+    expect(onError).toHaveBeenCalledTimes(1);
+    const error = onError.mock.calls[0]![0].nativeEvent;
+    expect(error).toMatchObject({
+      code: 'PLAYBACK_ERROR',
+      message: 'failed',
+      nativeCode: 'native',
+    });
+    if (fields.httpStatus === 403) {
+      expect(error.httpStatus).toBe(403);
+    } else {
+      expect(error).not.toHaveProperty('httpStatus');
+    }
+    expect(error.category).toBe(fields.category);
+  });
 });
 
 describe.each(['vod', 'live'] as const)('%s library resolution', (sourceType) => {

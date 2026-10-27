@@ -1,0 +1,4 @@
+{
+  // Virtual module provided by react-native-dotenv in example/babel.config.js.
+  "ignoreDependencies": ["@env"]
+}
