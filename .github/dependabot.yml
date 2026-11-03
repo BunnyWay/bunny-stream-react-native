@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "08:00"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 5
@@ -24,8 +23,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "tuesday"
+      interval: "monthly"
       time: "08:00"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 5
@@ -86,8 +84,7 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/android"
     schedule:
-      interval: "weekly"
-      day: "tuesday"
+      interval: "monthly"
       time: "08:00"
       timezone: "Etc/UTC"
     open-pull-requests-limit: 5
