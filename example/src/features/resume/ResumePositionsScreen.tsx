@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import {
+  BunnyStreamApi,
   cleanupExpiredResumePositions,
   clearAllResumePositions,
   clearResumePosition,
@@ -28,6 +29,7 @@ import { Dialog } from '../../components/Dialog';
 import { Header } from '../../components/Header';
 import { OutlineButton } from '../../components/OutlineButton';
 import { loadResumeSettings } from '../../storage/resumeSettings';
+import { loadLibraryConfig } from '../../storage/settings';
 import { Black, colors } from '../../theme/colors';
 import { formatTime, formatTimestamp } from '../../utils/format';
 
@@ -77,8 +79,15 @@ export function ResumePositionsScreen({ navigation, route }: ResumePositionsScre
     [navigation, refreshAllPositions],
   );
 
-  const handlePositionPress = (pos: PlaybackPosition) => {
-    navigation.navigate('Player', { videoId: pos.videoId, libraryId });
+  const handlePositionPress = async (pos: PlaybackPosition) => {
+    const { tokenAuthKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, pos.videoId);
+    navigation.navigate('Player', {
+      videoId: pos.videoId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
   };
 
   const handleDelete = async (pos: PlaybackPosition) => {

@@ -14,6 +14,12 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Added
+
+- Example app: configure a separate token authentication key in Settings or
+  `BUNNY_TOKEN_AUTH_KEY`. Saved settings override environment defaults; the
+  library API key remains dedicated to management operations.
+
 ### Changed
 
 - Update the native Bunny Stream iOS SDK from 1.0.3 to 1.0.4. The exact versions
@@ -21,6 +27,9 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ### Fixed
 
+- Example app: pass playback tokens and expiry to the VOD player from direct
+  play, the video list, saved resume positions, and completed uploads. Live
+  playback and thumbnail requests also use the configured token signing key.
 - iOS: opening the player's settings menu while in fullscreen no longer
   dismisses fullscreen.
 - The README logo no longer renders twice on npm; the light/dark variants now

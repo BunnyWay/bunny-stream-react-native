@@ -10,7 +10,13 @@ const mockNavigatorRender = jest.fn();
 const mockLoadLibraryConfig =
   jest.fn<() => Promise<{ accessKey: string; libraryId: number | null }>>();
 const mockLoadSettings =
-  jest.fn<() => Promise<{ accessKey: string | null; libraryId: string } | null>>();
+  jest.fn<
+    () => Promise<{
+      accessKey: string | null;
+      tokenAuthKey?: string | null;
+      libraryId: string;
+    } | null>
+  >();
 const mockSaveSettings =
   jest.fn<(settings: { accessKey: string | null; libraryId: string }) => Promise<void>>();
 
@@ -197,10 +203,18 @@ describe('React Native settings', () => {
       view.getByPlaceholderText('Optional — leave empty for playback only'),
       ' saved-key ',
     );
+    await fireEvent.changeText(
+      view.getByPlaceholderText('Optional — falls back to the API key'),
+      ' saved-token-key ',
+    );
     await fireEvent.press(view.getByText('Save'));
 
     expect(mockInitialize).toHaveBeenCalledWith('saved-key', 456);
-    expect(mockSaveSettings).toHaveBeenCalledWith({ accessKey: 'saved-key', libraryId: '456' });
+    expect(mockSaveSettings).toHaveBeenCalledWith({
+      accessKey: 'saved-key',
+      tokenAuthKey: 'saved-token-key',
+      libraryId: '456',
+    });
     expect(goBack).toHaveBeenCalled();
   });
 
@@ -208,12 +222,31 @@ describe('React Native settings', () => {
     const goBack = jest.fn();
     const view = await render(<SettingsScreen navigation={{ goBack }} />);
     await fireEvent.changeText(view.getByPlaceholderText('Enter your Library ID'), '456');
-    await fireEvent.changeText(view.getByPlaceholderText('Optional — leave empty for playback only'), '');
+    await fireEvent.changeText(
+      view.getByPlaceholderText('Optional — leave empty for playback only'),
+      '',
+    );
     await fireEvent.press(view.getByText('Save'));
 
     expect(mockInitialize).toHaveBeenCalledWith('', 456);
-    expect(mockSaveSettings).toHaveBeenCalledWith({ accessKey: '', libraryId: '456' });
+    expect(mockSaveSettings).toHaveBeenCalledWith({
+      accessKey: '',
+      tokenAuthKey: '',
+      libraryId: '456',
+    });
     expect(goBack).toHaveBeenCalled();
+  });
+
+  it('prefills the token key from saved settings and masks it', async () => {
+    mockLoadSettings.mockResolvedValueOnce({
+      accessKey: 'saved-api-key',
+      tokenAuthKey: 'saved-token-key',
+      libraryId: '456',
+    });
+    const view = await render(<SettingsScreen navigation={{ goBack: jest.fn() }} />);
+    const input = view.getByPlaceholderText('Optional — falls back to the API key');
+    expect(input.props.value).toBe('saved-token-key');
+    expect(input.props.secureTextEntry).toBe(true);
   });
 
   it('does not save configuration or leave settings when initialization fails', async () => {

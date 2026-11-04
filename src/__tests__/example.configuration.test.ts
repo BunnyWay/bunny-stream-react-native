@@ -3,31 +3,57 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 const mockGetItem = jest.fn<(key: string) => Promise<string | null>>();
 const mockSetItem = jest.fn<(key: string, value: string) => Promise<void>>();
 
-jest.mock('@env', () => ({ BUNNY_ACCESS_KEY: ' environment-key ', BUNNY_LIBRARY_ID: '123' }), {
-  virtual: true,
-});
+jest.mock(
+  '@env',
+  () => ({
+    BUNNY_ACCESS_KEY: ' environment-key ',
+    BUNNY_TOKEN_AUTH_KEY: ' environment-token-key ',
+    BUNNY_LIBRARY_ID: '123',
+  }),
+  {
+    virtual: true,
+  },
+);
 jest.mock(
   '@react-native-async-storage/async-storage',
   () => ({ __esModule: true, default: { getItem: mockGetItem, setItem: mockSetItem } }),
   { virtual: true },
 );
 
-const { loadLibraryConfig, loadDirectLiveValues, saveDirectLiveValues, parseStreamIdsFromEnv } =
-  jest.requireActual<{
-    loadLibraryConfig: () => Promise<{ accessKey: string; libraryId: number | null }>;
-    loadDirectLiveValues: () => Promise<{ streamId: string; libraryId: string } | null>;
-    saveDirectLiveValues: (values: { streamId: string; libraryId: string }) => Promise<void>;
-    parseStreamIdsFromEnv: (env: {
-      BUNNY_STREAM_IDS?: string;
-      BUNNY_STREAM_ID?: string;
-    }) => string[];
-  }>('../../example/src/storage/settings');
+const {
+  loadLibraryConfig,
+  loadSettings,
+  saveSettings,
+  loadDirectLiveValues,
+  saveDirectLiveValues,
+  parseStreamIdsFromEnv,
+} = jest.requireActual<{
+  loadLibraryConfig: () => Promise<{
+    accessKey: string;
+    tokenAuthKey: string;
+    libraryId: number | null;
+  }>;
+  loadSettings: () => Promise<{
+    accessKey: string | null;
+    tokenAuthKey: string | null;
+    libraryId: string;
+  } | null>;
+  saveSettings: (settings: {
+    accessKey: string | null;
+    tokenAuthKey: string | null;
+    libraryId: string;
+  }) => Promise<void>;
+  loadDirectLiveValues: () => Promise<{ streamId: string; libraryId: string } | null>;
+  saveDirectLiveValues: (values: { streamId: string; libraryId: string }) => Promise<void>;
+  parseStreamIdsFromEnv: (env: { BUNNY_STREAM_IDS?: string; BUNNY_STREAM_ID?: string }) => string[];
+}>('../../example/src/storage/settings');
 
 const originalAccessKey = process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY;
 const originalLibraryId = process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID;
 
 beforeEach(() => {
   mockGetItem.mockReset().mockResolvedValue(null);
+  mockSetItem.mockReset().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -60,17 +86,54 @@ describe('React Native example configuration', () => {
   it('uses environment defaults and trims the key', async () => {
     await expect(loadLibraryConfig()).resolves.toEqual({
       accessKey: 'environment-key',
+      tokenAuthKey: 'environment-token-key',
       libraryId: 123,
     });
   });
 
   it('prefers saved configuration and trims the key', async () => {
-    mockGetItem.mockImplementation(async (key) =>
-      key === '@bunny_demo/access_key' ? ' saved-key ' : '456',
+    mockGetItem.mockImplementation(
+      async (key) =>
+        ({
+          '@bunny_demo/access_key': ' saved-key ',
+          '@bunny_demo/token_auth_key': ' saved-token-key ',
+          '@bunny_demo/library_id': '456',
+        })[key] ?? null,
     );
 
     await expect(loadLibraryConfig()).resolves.toEqual({
       accessKey: 'saved-key',
+      tokenAuthKey: 'saved-token-key',
+      libraryId: 456,
+    });
+  });
+
+  it('uses the environment token key for settings saved before this field existed', async () => {
+    mockGetItem.mockImplementation(async (key) =>
+      key === '@bunny_demo/access_key' ? 'saved-api-key' : null,
+    );
+    expect((await loadLibraryConfig()).tokenAuthKey).toBe('environment-token-key');
+  });
+
+  it('does not restore the environment token key when a blank value was saved', async () => {
+    mockGetItem.mockImplementation(async (key) =>
+      key === '@bunny_demo/token_auth_key' ? ' ' : null,
+    );
+    expect((await loadLibraryConfig()).tokenAuthKey).toBe('environment-key');
+  });
+
+  it('persists and reloads a separate token key without changing the API key', async () => {
+    const values = new Map<string, string>();
+    mockSetItem.mockImplementation(async (key, value) => {
+      values.set(key, value);
+    });
+    mockGetItem.mockImplementation(async (key) => values.get(key) ?? null);
+    const settings = { accessKey: 'api-key', tokenAuthKey: 'token-key', libraryId: '456' };
+    await saveSettings(settings);
+    await expect(loadSettings()).resolves.toEqual(settings);
+    await expect(loadLibraryConfig()).resolves.toEqual({
+      accessKey: 'api-key',
+      tokenAuthKey: 'token-key',
       libraryId: 456,
     });
   });
