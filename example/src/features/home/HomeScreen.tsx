@@ -49,25 +49,32 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     enabled ? text : hasLibrary ? 'API key required' : 'Not configured';
   const optionAction = (enabled: boolean, action: () => void) => (enabled ? action : goToSettings);
 
-  const handleDirectPlay = (videoId: string, libraryId: number) => {
+  const handleDirectPlay = async (videoId: string, libraryId: number) => {
     setDirectPlayVisible(false);
-    navigation.navigate('Player', { videoId, libraryId });
+    // Sign a playback token when a key is configured — token-authenticated
+    // libraries reject unsigned /play requests, public ones ignore it.
+    const { tokenAuthKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, videoId);
+    navigation.navigate('Player', {
+      videoId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
   };
 
-  const handleDirectLive = (streamId: string, libraryId: number) => {
+  const handleDirectLive = async (streamId: string, libraryId: number) => {
     setDirectLiveVisible(false);
     // Public streams play with no token; sign one anyway when a key is
     // configured so token-authenticated libraries work too.
-    void (async () => {
-      const { accessKey } = await loadLibraryConfig();
-      const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, streamId);
-      navigation.navigate('LivePlayer', {
-        streamId,
-        libraryId,
-        token: token ?? undefined,
-        expires: expires ?? undefined,
-      });
-    })();
+    const { tokenAuthKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, streamId);
+    navigation.navigate('LivePlayer', {
+      streamId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
   };
 
   const openCameraUpload = () => {

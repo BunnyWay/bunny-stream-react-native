@@ -1,7 +1,7 @@
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_TOKEN_AUTH_KEY } from '@env';
 import * as React from 'react';
 import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -22,6 +22,7 @@ type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [accessKey, setAccessKey] = React.useState('');
+  const [tokenAuthKey, setTokenAuthKey] = React.useState('');
   const [libraryId, setLibraryId] = React.useState('');
   const [autoPlay, setAutoPlay] = React.useState(DEFAULT_PLAYBACK_SETTINGS.autoPlay);
 
@@ -31,6 +32,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
       // Fall back to .env defaults when no stored value exists so the user
       // sees pre-filled fields instead of empty inputs.
       setAccessKey(stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '');
+      setTokenAuthKey(stored?.tokenAuthKey ?? BUNNY_TOKEN_AUTH_KEY ?? '');
       setLibraryId(String(stored?.libraryId ?? BUNNY_LIBRARY_ID ?? ''));
       const playback = await loadPlaybackSettings();
       setAutoPlay(playback.autoPlay);
@@ -46,7 +48,11 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
     try {
       const normalizedAccessKey = accessKey.trim();
       initialize(normalizedAccessKey, libId);
-      await saveSettings({ accessKey: normalizedAccessKey, libraryId: String(libId) });
+      await saveSettings({
+        accessKey: normalizedAccessKey,
+        tokenAuthKey: tokenAuthKey.trim(),
+        libraryId: String(libId),
+      });
       navigation.goBack();
     } catch (error) {
       Alert.alert(
@@ -83,6 +89,21 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             ? 'Full access: playback, library management, uploads, and broadcasting.'
             : 'Playback-only mode: public videos and live streams play without a key. Library ' +
               'management, uploads, and broadcasting stay unavailable until a key is set.'}
+        </Text>
+        <Text style={styles.sectionTitle}>Token Authentication Key (optional)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Optional — falls back to the API key"
+          value={tokenAuthKey}
+          onChangeText={setTokenAuthKey}
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+        />
+        <Text style={styles.inputHint}>
+          {'The "Token authentication key" from the library Security page — a different value ' +
+            'from the API key. Signs embed-view/playback tokens when embed view or CDN token ' +
+            'authentication is enabled.'}
         </Text>
         <View style={styles.saveButtonContainer}>
           <Button title="Save" onPress={handleSave} color={colors.primary} />

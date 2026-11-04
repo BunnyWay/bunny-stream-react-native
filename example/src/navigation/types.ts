@@ -7,7 +7,7 @@ export type RootStackParamList = {
     pickedThumbnailUrl?: string;
   };
   Settings: undefined;
-  Player: { videoId: string; libraryId: number };
+  Player: { videoId: string; libraryId: number; token?: string; expires?: number };
   LivePlayer: {
     streamId: string;
     libraryId: number;
