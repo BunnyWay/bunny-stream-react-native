@@ -84,9 +84,9 @@ General > Token authentication key**. This is different from the library API key
 used for management calls.
 
 You can also set `BUNNY_TOKEN_AUTH_KEY` in `example/.env`. Saved settings take
-precedence over environment defaults. For compatibility, a blank token key falls
-back to the configured library API key; this does not make the two keys
-interchangeable. Use the actual token authentication key for protected playback.
+precedence over environment defaults. The two keys are not interchangeable —
+the library API key cannot sign playback tokens, so set the actual token
+authentication key for protected playback.
 
 These settings are for local testing only. The example stores keys in AsyncStorage
 and development builds may embed `.env` values. Never distribute those builds or

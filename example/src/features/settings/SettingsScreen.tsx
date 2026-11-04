@@ -93,7 +93,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
         <Text style={styles.sectionTitle}>Token Authentication Key (optional)</Text>
         <TextInput
           style={styles.input}
-          placeholder="Optional — falls back to the API key"
+          placeholder="Optional — required for token-authenticated libraries"
           value={tokenAuthKey}
           onChangeText={setTokenAuthKey}
           autoCapitalize="none"

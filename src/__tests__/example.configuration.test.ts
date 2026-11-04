@@ -115,11 +115,11 @@ describe('React Native example configuration', () => {
     expect((await loadLibraryConfig()).tokenAuthKey).toBe('environment-token-key');
   });
 
-  it('does not restore the environment token key when a blank value was saved', async () => {
+  it('leaves the token key empty when it is not configured', async () => {
     mockGetItem.mockImplementation(async (key) =>
       key === '@bunny_demo/token_auth_key' ? ' ' : null,
     );
-    expect((await loadLibraryConfig()).tokenAuthKey).toBe('environment-key');
+    expect((await loadLibraryConfig()).tokenAuthKey).toBe('');
   });
 
   it('persists and reloads a separate token key without changing the API key', async () => {

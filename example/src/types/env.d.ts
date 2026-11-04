@@ -10,7 +10,6 @@ declare module '@env' {
   // Legacy single live stream ID
   export const BUNNY_STREAM_ID: string;
   // Token authentication key (optional — only for token-authenticated libraries).
-  // Distinct from BUNNY_ACCESS_KEY: it signs embed-view/playback tokens.
-  // Falls back to BUNNY_ACCESS_KEY when unset.
+  // A different value from BUNNY_ACCESS_KEY: it signs embed-view/playback tokens.
   export const BUNNY_TOKEN_AUTH_KEY: string;
 }

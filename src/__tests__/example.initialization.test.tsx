@@ -204,7 +204,7 @@ describe('React Native settings', () => {
       ' saved-key ',
     );
     await fireEvent.changeText(
-      view.getByPlaceholderText('Optional — falls back to the API key'),
+      view.getByPlaceholderText('Optional — required for token-authenticated libraries'),
       ' saved-token-key ',
     );
     await fireEvent.press(view.getByText('Save'));
@@ -244,7 +244,7 @@ describe('React Native settings', () => {
       libraryId: '456',
     });
     const view = await render(<SettingsScreen navigation={{ goBack: jest.fn() }} />);
-    const input = view.getByPlaceholderText('Optional — falls back to the API key');
+    const input = view.getByPlaceholderText('Optional — required for token-authenticated libraries');
     expect(input.props.value).toBe('saved-token-key');
     expect(input.props.secureTextEntry).toBe(true);
   });

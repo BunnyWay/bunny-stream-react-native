@@ -105,16 +105,16 @@ export type LibraryConfig = {
 /**
  * Resolves the effective library config: stored settings win, falling back to
  * `.env` defaults. `libraryId` is null when no positive integer ID is configured.
- * `tokenAuthKey` follows the same stored → `.env` chain and finally falls back
- * to the access key — the dashboard's token authentication key is a different
- * value from the library API key.
+ * `tokenAuthKey` follows the same stored → `.env` chain; it stays empty when
+ * unset — the dashboard's token authentication key is a different value from
+ * the library API key and cannot be derived from it.
  */
 export async function loadLibraryConfig(): Promise<LibraryConfig> {
   const stored = await loadSettings();
   const accessKey = (stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '').trim();
   const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
   const libId = Number(libIdStr);
-  const tokenAuthKey = (stored?.tokenAuthKey ?? BUNNY_TOKEN_AUTH_KEY ?? '').trim() || accessKey;
+  const tokenAuthKey = (stored?.tokenAuthKey ?? BUNNY_TOKEN_AUTH_KEY ?? '').trim();
   return { accessKey, tokenAuthKey, libraryId: Number.isInteger(libId) && libId > 0 ? libId : null };
 }
 
