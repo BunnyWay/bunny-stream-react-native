@@ -14,6 +14,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-05
+
 ### Added
 
 - Example app: configure a separate token authentication key in Settings or
