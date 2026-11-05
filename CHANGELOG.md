@@ -22,7 +22,7 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ### Changed
 
-- Update the native Bunny Stream iOS SDK from 1.0.3 to 1.0.4. The exact versions
+- Update the native Bunny Stream iOS SDK from 1.0.3 to 1.0.5. The exact versions
   and revisions are recorded in `native-sdk-baselines.json`.
 
 ### Fixed
@@ -32,6 +32,9 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
   playback and thumbnail requests also use the configured token signing key.
 - iOS: opening the player's settings menu while in fullscreen no longer
   dismisses fullscreen.
+- iOS: ended live streams now authorize their recording and fallback playback
+  with the provided token and `Referer` header instead of showing
+  "not available" on token-authenticated libraries.
 - The README logo no longer renders twice on npm; the light/dark variants now
   use a `<picture>` element instead of GitHub-only `#gh-*-mode-only` anchors.
 
