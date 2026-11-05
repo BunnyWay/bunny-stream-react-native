@@ -8,13 +8,15 @@ import { StyleSheet } from 'react-native';
 
 import { loadPlaybackSettings } from '../../example/src/storage/playbackSettings';
 
+const mockPlayerRender = jest.fn<(props: { source: unknown }) => null>(() => null);
+
 jest.mock('@react-native-async-storage/async-storage', () => ({}), { virtual: true });
 jest.mock(
   '@bunny.net/stream-react-native',
   () => ({
     ...jest.requireActual<typeof PlayerHook>('../player/hooks/useBunnyStreamPlayer'),
     ...jest.requireActual<typeof SourceIdentity>('../player/sourceIdentity'),
-    BunnyStreamPlayer: () => null,
+    BunnyStreamPlayer: (props: { source: unknown }) => mockPlayerRender(props),
     BunnyStreamApi: {},
     getPlaybackSpeeds: async () => [],
     useResumePosition: () => ({}),
@@ -37,11 +39,12 @@ jest.mock('../../example/src/components/ResumeDialog', () => ({ ResumeDialog: ()
 const { PlayerScreen } = jest.requireActual<{
   PlayerScreen: ReactTypes.ComponentType<{
     navigation: { goBack: () => void; addListener: (event: string, cb: () => void) => () => void };
-    route: { params: { libraryId: number; videoId: string } };
+    route: { params: { libraryId: number; videoId: string; token?: string; expires?: number } };
   }>;
 }>('../../example/src/features/playback/PlayerScreen');
 
 beforeEach(() => {
+  mockPlayerRender.mockClear();
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.mocked(loadPlaybackSettings).mockResolvedValue({ autoPlay: true });
 });
@@ -51,6 +54,25 @@ afterEach(() => {
 });
 
 describe('example player navigation during loading', () => {
+  it('forwards playback authorization from navigation to the native player source', async () => {
+    await render(
+      <PlayerScreen
+        navigation={{ goBack: jest.fn(), addListener: () => () => {} }}
+        route={{
+          params: { libraryId: 123, videoId: 'video-id', token: 'signed-token', expires: 123456 },
+        }}
+      />,
+    );
+    expect(mockPlayerRender).toHaveBeenCalled();
+    expect(mockPlayerRender.mock.lastCall?.[0].source).toEqual({
+      type: 'vod',
+      libraryId: 123,
+      videoId: 'video-id',
+      token: 'signed-token',
+      expires: 123456,
+    });
+  });
+
   it.each(['settings', 'video'])('allows going back while %s are loading', async (pending) => {
     if (pending === 'settings') {
       jest.mocked(loadPlaybackSettings).mockImplementationOnce(() => new Promise(() => {}));

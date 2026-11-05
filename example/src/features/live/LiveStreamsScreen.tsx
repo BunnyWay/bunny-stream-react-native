@@ -28,7 +28,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
     uiState,
     setError,
     libraryId,
-    accessKey,
+    tokenAuthKey,
     reload: loadStreams,
   } = useLibraryList<LiveStream>(fetchStreams);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -53,7 +53,7 @@ export function LiveStreamsScreen({ navigation, route }: LiveStreamsScreenProps)
 
   const handleWatch = (stream: LiveStream) => {
     if (libraryId == null) return;
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, stream.id);
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, stream.id);
     navigation.navigate('LivePlayer', {
       streamId: stream.id,
       libraryId,

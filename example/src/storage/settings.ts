@@ -1,7 +1,8 @@
-import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID } from '@env';
+import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_TOKEN_AUTH_KEY } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ACCESS_KEY = '@bunny_demo/access_key';
+const TOKEN_AUTH_KEY = '@bunny_demo/token_auth_key';
 const LIBRARY_KEY = '@bunny_demo/library_id';
 const DIRECT_PLAY_VIDEO_ID_KEY = '@bunny_demo/direct_play_video_id';
 const DIRECT_PLAY_LIBRARY_ID_KEY = '@bunny_demo/direct_play_library_id';
@@ -10,6 +11,7 @@ const DIRECT_LIVE_LIBRARY_ID_KEY = '@bunny_demo/direct_live_library_id';
 
 export type Settings = {
   accessKey: string | null;
+  tokenAuthKey: string | null;
   libraryId: string;
 };
 
@@ -68,14 +70,15 @@ function parseIdList(raw: string | undefined): string[] {
 
 export async function loadSettings(): Promise<Settings | null> {
   try {
-    const [accessKey, libraryId] = await Promise.all([
+    const [accessKey, tokenAuthKey, libraryId] = await Promise.all([
       AsyncStorage.getItem(ACCESS_KEY),
+      AsyncStorage.getItem(TOKEN_AUTH_KEY),
       AsyncStorage.getItem(LIBRARY_KEY),
     ]);
-    if (accessKey === null && libraryId === null) {
+    if (accessKey === null && tokenAuthKey === null && libraryId === null) {
       return null;
     }
-    return { accessKey, libraryId: libraryId ?? '' };
+    return { accessKey, tokenAuthKey, libraryId: libraryId ?? '' };
   } catch {
     return null;
   }
@@ -85,6 +88,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
   try {
     await Promise.all([
       AsyncStorage.setItem(ACCESS_KEY, settings.accessKey ?? ''),
+      AsyncStorage.setItem(TOKEN_AUTH_KEY, settings.tokenAuthKey ?? ''),
       AsyncStorage.setItem(LIBRARY_KEY, settings.libraryId),
     ]);
   } catch {
@@ -94,19 +98,24 @@ export async function saveSettings(settings: Settings): Promise<void> {
 
 export type LibraryConfig = {
   accessKey: string;
+  tokenAuthKey: string;
   libraryId: number | null;
 };
 
 /**
  * Resolves the effective library config: stored settings win, falling back to
  * `.env` defaults. `libraryId` is null when no positive integer ID is configured.
+ * `tokenAuthKey` follows the same stored → `.env` chain; it stays empty when
+ * unset — the dashboard's token authentication key is a different value from
+ * the library API key and cannot be derived from it.
  */
 export async function loadLibraryConfig(): Promise<LibraryConfig> {
   const stored = await loadSettings();
   const accessKey = (stored?.accessKey ?? BUNNY_ACCESS_KEY ?? '').trim();
   const libIdStr = stored?.libraryId ?? BUNNY_LIBRARY_ID ?? '';
   const libId = Number(libIdStr);
-  return { accessKey, libraryId: Number.isInteger(libId) && libId > 0 ? libId : null };
+  const tokenAuthKey = (stored?.tokenAuthKey ?? BUNNY_TOKEN_AUTH_KEY ?? '').trim();
+  return { accessKey, tokenAuthKey, libraryId: Number.isInteger(libId) && libId > 0 ? libId : null };
 }
 
 // --- Direct play last-used values ---

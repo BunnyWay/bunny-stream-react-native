@@ -37,7 +37,12 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     (libId: number) => BunnyStreamApi.listVideos(libId, { orderBy: 'date' }),
     [],
   );
-  const { uiState, libraryId, accessKey, reload: loadLibrary } = useLibraryList<Video>(fetchVideos);
+  const {
+    uiState,
+    libraryId,
+    tokenAuthKey,
+    reload: loadLibrary,
+  } = useLibraryList<Video>(fetchVideos);
 
   // Load on focus — fires on mount and again when returning from Settings,
   // so configuring the app doesn't require a manual pull-to-refresh.
@@ -60,7 +65,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
         // Sign a playback token when the library has token auth on — the
         // thumbnail URL returned by fetchPlayerSettings then carries the
         // token query params needed to load without 403.
-        const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, video.id);
+        const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, video.id);
         // Try fetchPlayerSettings first (like the Android demo), then fall
         // back to fetchVideoPlayData which also carries a thumbnailUrl.
         let url: string | undefined;
@@ -98,7 +103,7 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [uiState, libraryId, accessKey, thumbnails]);
+  }, [uiState, libraryId, tokenAuthKey, thumbnails]);
 
   // Poll status while any video is transitional (processing/transcoding),
   // gated on the screen being mounted. Mirrors LibraryViewModel.onStatusPollTick.
@@ -117,7 +122,13 @@ export function VideoListScreen({ navigation }: VideoListScreenProps) {
 
   const handlePlayVideo = (videoId: string) => {
     if (libraryId == null) return;
-    navigation.navigate('Player', { videoId, libraryId });
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, videoId);
+    navigation.navigate('Player', {
+      videoId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
   };
 
   const handleManageVideo = (videoId: string) => {

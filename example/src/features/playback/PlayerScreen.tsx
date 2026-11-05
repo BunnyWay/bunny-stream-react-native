@@ -57,8 +57,8 @@ const STATUS_POLL_INTERVAL_MS = 5_000;
 type PlayerScreenProps = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
-  const { videoId, libraryId } = route.params;
-  const source: BunnyStreamSource = { type: 'vod', videoId, libraryId };
+  const { videoId, libraryId, token, expires } = route.params;
+  const source: BunnyStreamSource = { type: 'vod', videoId, libraryId, token, expires };
   const sourceKey = sourceIdentityKey(source);
   const player = useBunnyStreamPlayer(
     { onPlaybackRateChange: (e) => setCurrentSpeed(e.rate) },
@@ -166,11 +166,11 @@ export function PlayerScreen({ navigation, route }: PlayerScreenProps) {
   // title, duration, status, size, views — shown in a properties card below
   // the player, identical to the Android demo's VideoPropertiesCard.
   const loadMetadata = React.useCallback(async () => {
-    // The configured (stored or env) key doubles as the token-auth signing
-    // key in this demo; a blank key signs nothing and public libraries still
-    // resolve playback data via the public /play endpoint.
-    const { accessKey } = await loadLibraryConfig();
-    const { token, expires } = BunnyStreamApi.signPlaybackToken(accessKey, videoId);
+    // The token-auth key (env override or the configured key) signs playback
+    // tokens; a blank key signs nothing and public libraries still resolve
+    // playback data via the public /play endpoint.
+    const { tokenAuthKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, videoId);
     const result = await BunnyStreamApi.fetchVideoPlayData(libraryId, videoId, token, expires);
     fold(
       result,

@@ -328,9 +328,16 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     );
   };
 
-  const handlePlay = (row: UploadRow) => {
+  const handlePlay = async (row: UploadRow) => {
     if (libraryId == null || !row.videoId) return;
-    navigation.navigate('Player', { videoId: row.videoId, libraryId });
+    const { tokenAuthKey } = await loadLibraryConfig();
+    const { token, expires } = BunnyStreamApi.signPlaybackToken(tokenAuthKey, row.videoId);
+    navigation.navigate('Player', {
+      videoId: row.videoId,
+      libraryId,
+      token: token ?? undefined,
+      expires: expires ?? undefined,
+    });
   };
 
   const isEmpty = rows.length === 0;

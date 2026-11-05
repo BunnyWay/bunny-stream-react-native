@@ -76,6 +76,22 @@ from your backend.
 `BunnyStreamApi.generateEmbedToken` and `signPlaybackToken` are **demo/debug helpers only**.
 They require the secret on the device. Do not use them as a production authorization flow.
 
+### Testing with the example app
+
+In the bare React Native example, open **BunnyStream Configuration** and enter
+the **Token Authentication Key** from **Stream > Your library > Security >
+General > Token authentication key**. This is different from the library API key
+used for management calls.
+
+You can also set `BUNNY_TOKEN_AUTH_KEY` in `example/.env`. Saved settings take
+precedence over environment defaults. The two keys are not interchangeable —
+the library API key cannot sign playback tokens, so set the actual token
+authentication key for protected playback.
+
+These settings are for local testing only. The example stores keys in AsyncStorage
+and development builds may embed `.env` values. Never distribute those builds or
+use client-side signing in production; request short-lived tokens from your backend.
+
 ## Protected thumbnails and images
 
 The native player supplies the required headers for its own assets. For images rendered by

@@ -28,6 +28,7 @@ export function useLibraryList<T>(
   const [uiState, setUiState] = React.useState<ListUiState<T>>({ kind: 'loading' });
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
   const [accessKey, setAccessKey] = React.useState('');
+  const [tokenAuthKey, setTokenAuthKey] = React.useState('');
 
   const setError = React.useCallback(
     (message: string) => setUiState({ kind: 'error', message }),
@@ -35,14 +36,14 @@ export function useLibraryList<T>(
   );
 
   const reload = React.useCallback(async () => {
-    const { libraryId: libId, accessKey } = await loadLibraryConfig();
+    const { libraryId: libId, accessKey, tokenAuthKey } = await loadLibraryConfig();
     if (libId == null || !accessKey.trim()) {
       setUiState({ kind: 'unconfigured' });
       return;
     }
     setLibraryId(libId);
-    // The configured key doubles as the token-auth signing key in this demo.
     setAccessKey(accessKey);
+    setTokenAuthKey(tokenAuthKey);
 
     setUiState((prev) => (prev.kind === 'loaded' ? prev : { kind: 'loading' }));
     const result = await fetchList(libId);
@@ -56,5 +57,5 @@ export function useLibraryList<T>(
     );
   }, [fetchList]);
 
-  return { uiState, setError, libraryId, accessKey, reload };
+  return { uiState, setError, libraryId, accessKey, tokenAuthKey, reload };
 }
