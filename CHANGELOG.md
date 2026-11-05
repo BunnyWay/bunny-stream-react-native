@@ -14,6 +14,18 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Changed
+
+- Update the native Bunny Stream iOS SDK from 1.0.3 to 1.0.4. The exact versions
+  and revisions are recorded in `native-sdk-baselines.json`.
+
+### Fixed
+
+- iOS: opening the player's settings menu while in fullscreen no longer
+  dismisses fullscreen.
+- The README logo no longer renders twice on npm; the light/dark variants now
+  use a `<picture>` element instead of GitHub-only `#gh-*-mode-only` anchors.
+
 ## [1.1.0] - 2026-10-27
 
 ### Added
