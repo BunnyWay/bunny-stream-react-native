@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "826974990317",
+    "project_id": "bunny-rn-example",
+    "storage_bucket": "bunny-rn-example.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826974990317:android:8548deddfdb259edb041e4",
+        "android_client_info": {
+          "package_name": "net.bunny.stream.reactnative.example"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDE7wAKwUZDDLHORD5y1WaEDYY-zIkkwbU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

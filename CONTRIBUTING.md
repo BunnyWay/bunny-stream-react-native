@@ -81,6 +81,46 @@ yarn example:expo start      # dev server (requires a dev build)
 
 Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plugin:build` (also part of `prepare`) — rebuild before `prebuild` when iterating on the plugin.
 
+### Distributing the Android example with Firebase
+
+Register an Android app in your Firebase project using the example's package
+name (`net.bunny.stream.reactnative.example`, configured in `example/app.json`).
+If you choose another package name, set `android.package` in `example/app.json`
+to match it. Enable App Distribution in the Firebase console and add testers or
+groups there. Firebase SDK integration and `google-services.json` are not needed
+to distribute an APK.
+
+Set `appId` in `example/firebase-distribution.json` to the Firebase Android App ID
+(for example, `1:123456789:android:abcdef123456`). Optionally populate `groups`
+with group aliases or `testers` with email addresses. Keep private tester lists
+out of Git by using the `FIREBASE_GROUPS` and `FIREBASE_TESTERS` environment
+variables instead. `FIREBASE_APP_ID` also overrides the configured app ID.
+
+Authenticate once using the same pinned CLI version used by the upload script:
+
+```sh
+npx --yes --package=firebase-tools@15.37.0 firebase login
+yarn example build:android:firebase
+```
+
+The command validates the app ID, builds the release APK with embedded Bunny
+credentials disabled, then uploads and distributes it to the configured testers
+and groups. With no recipients configured, it only uploads the release; assign
+testers later in the Firebase console. To retry an upload without rebuilding:
+
+```sh
+yarn example distribute:android
+# Or upload a specific APK (use an absolute path):
+yarn example distribute:android --apk /absolute/path/to/example.apk
+```
+
+`FIREBASE_RELEASE_NOTES` overrides the default notes containing the example app
+version. For CI, authenticate with Application Default Credentials (for example,
+`GOOGLE_APPLICATION_CREDENTIALS` pointing to a service account file with the
+Firebase App Distribution Admin role); keep credentials outside the repository.
+The existing `build:android:apk` command and GitHub APK artifact workflow continue
+to build APKs without uploading to Firebase.
+
 ### Building the example IPA
 
 Run `yarn example build:ios:ipa` to archive and export the iOS example app.

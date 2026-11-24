@@ -58,6 +58,7 @@
     "test": "jest",
     "test:release": "node --test scripts/release-changelog.test.mjs scripts/sync-example-version.test.mjs scripts/bump-ios-build-number.test.mjs",
     "test:package": "node --test scripts/test-package.mjs",
+    "test:distribution": "node --test scripts/distribute-android.test.mjs",
     "test:ios-errors": "bash scripts/test-ios-playback-errors.sh",
     "release": "release-it --only-version",
     "release:notes": "node scripts/release-changelog.mjs unreleased",

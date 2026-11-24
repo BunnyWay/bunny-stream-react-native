@@ -29,6 +29,7 @@
     }
   },
   "android": {
+    "package": "net.bunny.stream.reactnative.example",
     "icons": "android/app/src/main/res",
     "permissions": [
       { "android:name": "android.permission.CAMERA" },

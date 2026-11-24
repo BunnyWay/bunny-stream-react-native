@@ -19,6 +19,9 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 - Example app: automatically synchronize its package and native app versions with
   the library during release preparation and builds.
 - Example app: automatically increment the iOS build number before each IPA build.
+- Example app: add Android APK builds with upload to Firebase App Distribution.
+- Example app: change the Android application ID from `com.microsoft.reacttestapp`
+  to `net.bunny.stream.reactnative.example`. Android installs it as a separate app.
 
 ### Fixed
 
