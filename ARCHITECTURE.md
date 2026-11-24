@@ -140,6 +140,7 @@ yarn typecheck              # tsc (library + plugin srcs via project refs)
 yarn lint                   # eslint 9 + prettier
 yarn test                   # jest, @react-native/jest-preset, src/__tests__
 yarn prepare                # bob build → lib/  +  plugin:build
+yarn test:package           # test ESM/CommonJS initialization from an npm tarball
 yarn native-baselines:check # podspec/gradle vs native-sdk-baselines.json
 yarn codegen                # regenerate codegen into example/build/generated/codegen
 ```
@@ -149,6 +150,13 @@ library from `src/` via Metro (Fast Refresh, no library rebuild needed for TS
 changes; native changes need a rebuild). `yarn example:typecheck` checks the
 example app. Workspaces + turbo (`build:ios`, `build:android`) orchestrate the
 examples; commits are conventional-commit linted via lefthook.
+
+`src/internal/sdkVersion.ts` is tracked and generated from `package.json` before
+builds and after release version bumps. Run `yarn sdk-version:generate` after a
+manual version change; `yarn lint` checks that the generated constant is current.
+Initialization uses this constant so compiled modules do not depend on relative
+paths to the root package manifest. CI and publishing test the packed ESM and
+CommonJS modules after building, replacing only the native player spec.
 
 ## When changing things, remember
 

@@ -1,4 +1,4 @@
-import packageJson from '../../package.json';
+import { SDK_VERSION } from '../internal/sdkVersion';
 import NativeBunnyStreamPlayer from '../specs/NativeBunnyStreamPlayer';
 import { normalizeAccessKey, validateLibraryId } from './validation';
 
@@ -22,6 +22,6 @@ export function getConfiguredLibraryId(): number | undefined {
 export function initialize(accessKey: string | null | undefined, libraryId: number): void {
   const key = normalizeAccessKey(accessKey);
   validateLibraryId(libraryId);
-  NativeBunnyStreamPlayer.initialize(key, libraryId, packageJson.version);
+  NativeBunnyStreamPlayer.initialize(key, libraryId, SDK_VERSION);
   configuredLibraryId = libraryId;
 }
