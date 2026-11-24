@@ -129,6 +129,85 @@ the native project is regenerated. The new number stays in the manifest even if
 the build fails, so retrying uses the next number. The app version is unchanged.
 Running `yarn example build:ios:archive` directly does not increment the number.
 
+### Building and distributing both examples with Fastlane
+
+Fastlane reuses the existing APK and IPA scripts. On macOS, use the Ruby version
+required by `example/Gemfile` (Ruby 3.2+ recommended), then install the locked gems:
+
+```sh
+yarn example:fastlane:setup
+cp example/fastlane/.env.example example/fastlane/.env
+```
+
+Choose an upload authentication method in `example/fastlane/.env`. The `.env`
+file is ignored by Git; Transporter's saved login is not reused.
+
+If you cannot create an App Store Connect API key, use **Apple ID authentication**:
+
+```dotenv
+TESTFLIGHT_AUTH=apple_id
+FASTLANE_USER=your-apple-account@example.com
+FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD=your-app-specific-password
+APP_STORE_CONNECT_APPLE_ID=1234567890
+```
+
+Generate the app-specific password in [Apple Account](https://account.apple.com)
+under **Sign-In and Security > App-Specific Passwords** (requires two-factor
+authentication). Use the same Apple Account that can upload this app in Transporter.
+`APP_STORE_CONNECT_APPLE_ID` is the app's numeric **Apple ID** in **App Store
+Connect > My Apps > App Information**, not its bundle ID or your email address.
+This mode uploads the binary without logging into the App Store Connect web API;
+it does not wait for processing or set beta metadata. On Xcode 26+, accounts
+associated with multiple providers may also need
+`APP_STORE_CONNECT_PROVIDER_PUBLIC_ID` (the provider public ID, not the signing
+team ID). It still requires permission to upload builds for the app.
+
+Alternatively, set `TESTFLIGHT_AUTH=api_key` and create a **team API key** in App Store Connect under **Users and Access >
+Integrations > App Store Connect API**, with a role allowing build uploads
+(for example, Developer). Save the `.p8` key outside the repository and fill in
+`APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, and
+`APP_STORE_CONNECT_API_KEY_FILE` in `example/fastlane/.env`. Use an absolute key
+file path. When `TESTFLIGHT_AUTH` is omitted, configured API key values select
+API key authentication; otherwise Apple ID authentication is used.
+
+Signing uses the same certificates, provisioning profiles, and
+`example/ios/ExportOptions.plist` as the manual IPA build. The app must already
+exist in App Store Connect with bundle ID `net.bunny.StreamSDKRNDemo`.
+Firebase uses the existing App Distribution configuration and CLI login, or
+`GOOGLE_APPLICATION_CREDENTIALS` for a service account. It still needs permission
+to upload to the configured Firebase project.
+
+Run these commands from the repository root:
+
+| Command | Behavior |
+| --- | --- |
+| `yarn example:distribution:check` | Check local Apple authentication configuration and Firebase App ID, without building or uploading. Does not validate remote permissions or signing. |
+| `yarn example:distribute` | Synchronize versions, build IPA and APK, then upload to TestFlight and Firebase. |
+| `yarn example:distribute:ios` | Build and upload only iOS. |
+| `yarn example:distribute:android` | Build and upload only Android. |
+| `yarn example:upload:ios` | Retry uploading the existing IPA without rebuilding. |
+| `yarn example:upload:android` | Retry uploading the existing APK without rebuilding. |
+
+The combined command builds both artifacts before uploading either. It stops on
+the first failure; use the upload-only commands to resume with existing artifacts.
+Each release APK build increments `android.versionCode` in `example/app.json`
+(starting above `react-native-test-app`'s default of 1 when absent). Each IPA build
+increments `ios.buildNumber`. These counters stay increased after failed builds;
+upload-only retries preserve them. Keep the counters in Git when sharing builds
+between machines, and ensure the iOS counter is at least the last build number
+already uploaded through Transporter before the first automated build.
+
+The default IPA is `example/ios/build/ipa/ReactTestApp.ipa`, matching the existing
+export. Set `TESTFLIGHT_IPA_PATH` in the Fastlane `.env` if the exported filename
+changes. No other IPA is selected automatically. Uploads finish without waiting
+for Apple's build processing; the build appears in TestFlight after processing.
+External beta review and external tester distribution are managed separately in
+App Store Connect. Firebase recipients come from the configured groups/testers;
+without recipients, only the release is uploaded.
+
+Check the automation without native builds or uploads using `yarn test:distribution`
+and `yarn test:fastlane`.
+
 ## Project Areas
 
 - `src`: TypeScript public API and React layer

@@ -16,6 +16,12 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ### Changed
 
+- Example app: add Yarn commands backed by Fastlane to build and upload iOS to
+  TestFlight and Android to Firebase App Distribution, with upload-only retries.
+  iOS uploads support either App Store Connect API keys or Apple ID with an
+  app-specific password.
+  Release APK builds now increment Android `versionCode` automatically.
+
 - Example app: automatically synchronize its package and native app versions with
   the library during release preparation and builds.
 - Example app: automatically increment the iOS build number before each IPA build.

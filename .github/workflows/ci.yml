@@ -60,6 +60,21 @@ jobs:
       - name: Test iOS playback error classification
         run: bash scripts/test-ios-playback-errors.sh
 
+  fastlane:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Test example distribution lanes without building or uploading
+        run: ruby scripts/fastlane-distribution.test.rb
+
   build-library:
     runs-on: ubuntu-latest
 

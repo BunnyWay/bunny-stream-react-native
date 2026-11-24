@@ -110,6 +110,13 @@ test('failed builds never upload an older APK', (t) => {
   assert.equal(calls()[0].command, 'npm');
 });
 
+test('configuration check needs no APK and never builds or uploads', (t) => {
+  const { run, calls } = fixture(t);
+  const result = run(['--check']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(calls(), []);
+});
+
 test('invalid app IDs stop before building and missing APKs stop before uploading', (t) => {
   const { run, calls, configure } = fixture(t);
   configure({ appId: '', groups: [], testers: [] });

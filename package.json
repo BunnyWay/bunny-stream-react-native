@@ -58,7 +58,8 @@
     "test": "jest",
     "test:release": "node --test scripts/release-changelog.test.mjs scripts/sync-example-version.test.mjs scripts/bump-ios-build-number.test.mjs",
     "test:package": "node --test scripts/test-package.mjs",
-    "test:distribution": "node --test scripts/distribute-android.test.mjs",
+    "test:distribution": "node --test scripts/distribute-android.test.mjs scripts/bump-android-version-code.test.mjs",
+    "test:fastlane": "ruby scripts/fastlane-distribution.test.rb",
     "test:ios-errors": "bash scripts/test-ios-playback-errors.sh",
     "release": "release-it --only-version",
     "release:notes": "node scripts/release-changelog.mjs unreleased",
@@ -71,6 +72,13 @@
     "example:typecheck": "yarn example typecheck",
     "example:version:sync": "node scripts/sync-example-version.mjs",
     "example:version:check": "node scripts/sync-example-version.mjs --check",
+    "example:fastlane:setup": "yarn example fastlane:setup",
+    "example:distribution:check": "yarn example distribution:check",
+    "example:distribute": "yarn example distribute",
+    "example:distribute:ios": "yarn example distribute:ios",
+    "example:distribute:android": "yarn example distribute:firebase",
+    "example:upload:ios": "yarn example upload:ios",
+    "example:upload:android": "yarn example upload:android",
     "example:expo": "yarn workspace bunny-stream-react-native-example-expo"
   },
   "keywords": [

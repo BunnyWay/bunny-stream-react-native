@@ -1,0 +1,75 @@
+require 'json'
+require_relative 'distribution'
+
+opt_out_usage
+
+def example_sh(*args)
+  Dir.chdir(ExampleDistribution::ROOT) { sh(*args) }
+end
+
+private_lane :check_ios do
+  ExampleDistribution.ios_auth_options
+end
+
+private_lane :check_android do
+  example_sh('node', '../scripts/distribute-android.mjs', '--check')
+end
+
+private_lane :sync_versions do
+  example_sh('node', '../scripts/generate-sdk-version.mjs')
+  example_sh('node', '../scripts/sync-example-version.mjs')
+end
+
+desc 'Validate local iOS and Android distribution configuration without building or uploading'
+lane :distribution_check do
+  check_ios
+  check_android
+end
+
+desc 'Build both example apps, upload IPA to TestFlight, and distribute APK with Firebase'
+lane :distribute do
+  distribution_check
+  sync_versions
+  example_sh('npm', 'run', 'build:ios:ipa')
+  example_sh('npm', 'run', 'build:android:apk')
+  upload_ios
+  upload_android
+end
+
+desc 'Build the iOS example and upload it to TestFlight'
+lane :distribute_ios do
+  check_ios
+  sync_versions
+  example_sh('npm', 'run', 'build:ios:ipa')
+  upload_ios
+end
+
+desc 'Build the Android example and distribute it with Firebase'
+lane :distribute_android do
+  check_android
+  sync_versions
+  example_sh('npm', 'run', 'build:android:apk')
+  upload_android
+end
+
+desc 'Upload the existing IPA to TestFlight without rebuilding or incrementing its build number'
+lane :upload_ios do
+  options = ExampleDistribution.ios_auth_options
+  ipa = ExampleDistribution.ipa_path
+  manifest = JSON.parse(File.read(File.join(ExampleDistribution::ROOT, 'app.json')))
+  key_options = options.delete(:api_key_options)
+  options[:api_key] = app_store_connect_api_key(**key_options) if key_options
+  upload_to_testflight(
+    **options,
+    ipa: ipa,
+    app_identifier: manifest.fetch('ios').fetch('bundleIdentifier'),
+    skip_waiting_for_build_processing: true,
+    skip_submission: true,
+    distribute_external: false
+  )
+end
+
+desc 'Upload the existing APK with Firebase without rebuilding or incrementing versionCode'
+lane :upload_android do
+  example_sh('node', '../scripts/distribute-android.mjs')
+end

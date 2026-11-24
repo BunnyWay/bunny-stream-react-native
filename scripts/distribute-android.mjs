@@ -7,7 +7,11 @@ import { parseArgs } from 'node:util';
 const example = new URL('../example/', import.meta.url);
 const config = JSON.parse(readFileSync(new URL('firebase-distribution.json', example), 'utf8'));
 const { values } = parseArgs({
-  options: { build: { type: 'boolean', default: false }, apk: { type: 'string' } },
+  options: {
+    build: { type: 'boolean', default: false },
+    check: { type: 'boolean', default: false },
+    apk: { type: 'string' },
+  },
 });
 const appId = process.env.FIREBASE_APP_ID || config.appId;
 const groups = process.env.FIREBASE_GROUPS ?? config.groups?.join(',');
@@ -16,6 +20,11 @@ const testers = process.env.FIREBASE_TESTERS ?? config.testers?.join(',');
 if (typeof appId !== 'string' || !/^1:\d+:android:[a-f\d]+$/i.test(appId)) {
   console.error('Set appId in example/firebase-distribution.json or set FIREBASE_APP_ID.');
   process.exit(1);
+}
+
+if (values.check) {
+  console.log('Firebase App Distribution app ID is configured.');
+  process.exit(0);
 }
 
 function run(command, args) {
