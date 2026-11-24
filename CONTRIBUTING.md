@@ -81,6 +81,14 @@ yarn example:expo start      # dev server (requires a dev build)
 
 Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plugin:build` (also part of `prepare`) — rebuild before `prebuild` when iterating on the plugin.
 
+### Building the example IPA
+
+Run `yarn example build:ios:ipa` to archive and export the iOS example app.
+Each invocation first increments `ios.buildNumber` in `example/app.json`, before
+the native project is regenerated. The new number stays in the manifest even if
+the build fails, so retrying uses the next number. The app version is unchanged.
+Running `yarn example build:ios:archive` directly does not increment the number.
+
 ## Project Areas
 
 - `src`: TypeScript public API and React layer
@@ -174,6 +182,14 @@ fresh empty Unreleased section, and bumps the package version. It commits those
 changes together, pushes the `v<version>` tag, and creates the GitHub Release using
 that version's changelog section verbatim. Empty notes, duplicate version sections,
 and missing Unreleased sections stop release preparation.
+
+The version bump also synchronizes `example/package.json` and `example/app.json`
+with the library version. For prereleases, the package keeps the full version
+(for example, `1.2.0-rc.1`), while the native app manifest uses `1.2.0` to satisfy
+iOS version requirements. Build numbers are managed separately and are preserved.
+After manually changing the library version, run `yarn sdk-version:generate` and
+`yarn example:version:sync`, or run `yarn prepare`, which performs both steps.
+`yarn lint` checks that these versions are in sync.
 
 The tag triggers `.github/workflows/publish.yml`, which publishes
 `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token).

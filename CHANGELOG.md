@@ -14,6 +14,12 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Changed
+
+- Example app: automatically synchronize its package and native app versions with
+  the library during release preparation and builds.
+- Example app: automatically increment the iOS build number before each IPA build.
+
 ### Fixed
 
 - Fix Metro bundling of the published package on Android and iOS by removing

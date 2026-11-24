@@ -2,7 +2,7 @@
   "$schema": "./node_modules/react-native-test-app/schema.json",
   "name": "BunnyStreamExample",
   "displayName": "BunnyStreamExample",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "singleApp": "BunnyStreamExample",
   "components": [
     {
@@ -19,6 +19,7 @@
     "windows": ["dist/assets", "dist/main.windows.bundle"]
   },
   "ios": {
+    "buildNumber": "1",
     "bundleIdentifier": "net.bunny.StreamSDKRNDemo",
     "icons": {
       "primaryIcon": {

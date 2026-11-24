@@ -154,6 +154,10 @@ examples; commits are conventional-commit linted via lefthook.
 `src/internal/sdkVersion.ts` is tracked and generated from `package.json` before
 builds and after release version bumps. Run `yarn sdk-version:generate` after a
 manual version change; `yarn lint` checks that the generated constant is current.
+The same release hook and `yarn prepare` synchronize `example/package.json` and
+`example/app.json` via `yarn example:version:sync`; lint checks their versions too.
+The native app manifest uses only `major.minor.patch` for iOS compatibility, while
+the example package keeps the full version. Build numbers remain independent.
 Initialization uses this constant so compiled modules do not depend on relative
 paths to the root package manifest. CI and publishing test the packed ESM and
 CommonJS modules after building, replacing only the native player spec.

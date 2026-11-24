@@ -49,14 +49,14 @@
   "scripts": {
     "example": "yarn workspace bunny-stream-react-native-example",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib plugin/build",
-    "prepare": "yarn sdk-version:generate && bob build && yarn plugin:build",
+    "prepare": "yarn sdk-version:generate && yarn example:version:sync && bob build && yarn plugin:build",
     "sdk-version:generate": "node scripts/generate-sdk-version.mjs",
     "sdk-version:check": "node scripts/generate-sdk-version.mjs --check",
     "plugin:build": "tsc -p plugin/tsconfig.json",
     "typecheck": "tsc",
-    "lint": "yarn sdk-version:check && eslint \"**/*.{js,ts,tsx}\"",
+    "lint": "yarn sdk-version:check && yarn example:version:check && eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
-    "test:release": "node --test scripts/release-changelog.test.mjs",
+    "test:release": "node --test scripts/release-changelog.test.mjs scripts/sync-example-version.test.mjs scripts/bump-ios-build-number.test.mjs",
     "test:package": "node --test scripts/test-package.mjs",
     "test:ios-errors": "bash scripts/test-ios-playback-errors.sh",
     "release": "release-it --only-version",
@@ -68,6 +68,8 @@
     "example:ios": "yarn example ios",
     "example:android": "yarn example android",
     "example:typecheck": "yarn example typecheck",
+    "example:version:sync": "node scripts/sync-example-version.mjs",
+    "example:version:check": "node scripts/sync-example-version.mjs --check",
     "example:expo": "yarn workspace bunny-stream-react-native-example-expo"
   },
   "keywords": [
@@ -233,7 +235,7 @@
   "release-it": {
     "hooks": {
       "before:bump": "node scripts/release-changelog.mjs release ${version}",
-      "after:bump": "node scripts/generate-sdk-version.mjs"
+      "after:bump": "yarn sdk-version:generate && yarn example:version:sync"
     },
     "git": {
       "commitMessage": "chore: release ${version}",
