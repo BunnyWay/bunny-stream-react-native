@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -15,13 +15,15 @@ let version;
 
 before(() => {
   directory = mkdtempSync(path.join(tmpdir(), 'bunny-package-'));
-  const output = execFileSync(
-    'npm',
-    ['pack', '--ignore-scripts', '--json', '--pack-destination', directory],
-    { cwd: root, encoding: 'utf8' },
-  );
-  const [{ filename }] = JSON.parse(output);
-  execFileSync('tar', ['-xzf', path.join(directory, filename), '-C', directory]);
+  execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', directory], {
+    cwd: root,
+    stdio: 'pipe',
+  });
+  // Some npm versions run prepare despite --ignore-scripts and mix build logs into stdout.
+  // Locate the artifact directly instead of parsing npm's output.
+  const archives = readdirSync(directory).filter((filename) => filename.endsWith('.tgz'));
+  assert.equal(archives.length, 1, 'npm pack must create exactly one package archive');
+  execFileSync('tar', ['-xzf', path.join(directory, archives[0]), '-C', directory]);
   packageDirectory = path.join(directory, 'package');
   ({ version } = JSON.parse(readFileSync(path.join(packageDirectory, 'package.json'), 'utf8')));
 });
