@@ -31,6 +31,10 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ### Fixed
 
+- Example app: resolve Node from the iOS build environment instead of a
+  developer-specific path.
+- Example app: reject combining `--build` with a custom `--apk` path so Android
+  build-and-upload commands cannot distribute an older binary from that path.
 - Fix Metro bundling of the published package on Android and iOS by removing
   an invalid relative `package.json` import from SDK initialization.
 

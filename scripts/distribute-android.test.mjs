@@ -110,6 +110,22 @@ test('failed builds never upload an older APK', (t) => {
   assert.equal(calls()[0].command, 'npm');
 });
 
+test('rejects custom APK paths with --build before building or uploading stale artifacts', (t) => {
+  const { run, calls, apk, directory } = fixture(t);
+  const customApk = path.join(directory, 'older build.apk');
+  writeFileSync(apk, 'previous default build');
+  writeFileSync(customApk, 'stale custom build');
+
+  for (const extra of [[], ['--check']]) {
+    const result = run(['--build', '--apk', customApk, ...extra]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /--build cannot be combined with --apk/);
+    assert.deepEqual(calls(), []);
+    assert.equal(readFileSync(apk, 'utf8'), 'previous default build');
+    assert.equal(readFileSync(customApk, 'utf8'), 'stale custom build');
+  }
+});
+
 test('configuration check needs no APK and never builds or uploads', (t) => {
   const { run, calls } = fixture(t);
   const result = run(['--check']);

@@ -13,6 +13,11 @@ const { values } = parseArgs({
     apk: { type: 'string' },
   },
 });
+if (values.build && values.apk !== undefined) {
+  console.error('--build cannot be combined with --apk. Use --apk only to upload an existing APK.');
+  process.exit(1);
+}
+
 const appId = process.env.FIREBASE_APP_ID || config.appId;
 const groups = process.env.FIREBASE_GROUPS ?? config.groups?.join(',');
 const testers = process.env.FIREBASE_TESTERS ?? config.testers?.join(',');

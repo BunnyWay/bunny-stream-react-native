@@ -63,6 +63,10 @@ yarn example:android
 yarn example:typecheck
 ```
 
+The iOS build resolves Node from `PATH`; activate the version in `.nvmrc` before
+building. For Xcode launched from Finder, a machine-specific Node path can be set
+in `example/ios/.xcode.env.local`, which is ignored by Git.
+
 The example app resolves the library from `src/` via Metro, so changes to TypeScript source are reflected through Fast Refresh without rebuilding the library.
 
 ### Running the Expo example app
@@ -113,6 +117,9 @@ yarn example distribute:android
 # Or upload a specific APK (use an absolute path):
 yarn example distribute:android --apk /absolute/path/to/example.apk
 ```
+
+`--apk` is for uploading an existing binary and cannot be combined with `--build`.
+Build-and-upload commands always use the APK produced at the default output path.
 
 `FIREBASE_RELEASE_NOTES` overrides the default notes containing the example app
 version. For CI, authenticate with Application Default Credentials (for example,
