@@ -57,6 +57,10 @@ jobs:
         if: steps.check.outputs.published != 'true'
         run: yarn prepare
 
+      - name: Test packed package
+        if: steps.check.outputs.published != 'true'
+        run: yarn test:package
+
       # Prerelease versions (e.g. 1.0.0-beta.1) go to the "next" dist-tag.
       - name: Publish
         if: steps.check.outputs.published != 'true'

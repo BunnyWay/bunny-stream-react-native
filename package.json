@@ -49,12 +49,15 @@
   "scripts": {
     "example": "yarn workspace bunny-stream-react-native-example",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib plugin/build",
-    "prepare": "bob build && yarn plugin:build",
+    "prepare": "yarn sdk-version:generate && bob build && yarn plugin:build",
+    "sdk-version:generate": "node scripts/generate-sdk-version.mjs",
+    "sdk-version:check": "node scripts/generate-sdk-version.mjs --check",
     "plugin:build": "tsc -p plugin/tsconfig.json",
     "typecheck": "tsc",
-    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "lint": "yarn sdk-version:check && eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
     "test:release": "node --test scripts/release-changelog.test.mjs",
+    "test:package": "node --test scripts/test-package.mjs",
     "test:ios-errors": "bash scripts/test-ios-playback-errors.sh",
     "release": "release-it --only-version",
     "release:notes": "node scripts/release-changelog.mjs unreleased",
@@ -229,7 +232,8 @@
   },
   "release-it": {
     "hooks": {
-      "before:bump": "node scripts/release-changelog.mjs release ${version}"
+      "before:bump": "node scripts/release-changelog.mjs release ${version}",
+      "after:bump": "node scripts/generate-sdk-version.mjs"
     },
     "git": {
       "commitMessage": "chore: release ${version}",

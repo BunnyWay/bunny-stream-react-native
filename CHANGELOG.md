@@ -14,6 +14,11 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix Metro bundling of the published package on Android and iOS by removing
+  an invalid relative `package.json` import from SDK initialization.
+
 ## [1.1.1] - 2026-11-05
 
 ### Added
