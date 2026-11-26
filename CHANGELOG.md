@@ -23,6 +23,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
   and notify the configured external TestFlight group when the build is available.
 - iOS example: include the configured encryption export compliance declaration
   in new TestFlight builds.
+- Example app: show the app version and platform build number at the bottom of
+  Settings on iOS and Android.
 
 ### Changed
 

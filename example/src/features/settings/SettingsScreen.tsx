@@ -3,10 +3,20 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { BUNNY_ACCESS_KEY, BUNNY_LIBRARY_ID, BUNNY_TOKEN_AUTH_KEY } from '@env';
 import * as React from 'react';
-import { Alert, Button, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Button,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { initialize } from '@bunny.net/stream-react-native';
 
+import { android, ios, version } from '../../../app.json';
 import { Header } from '../../components/Header';
 import { ToggleRow } from '../../components/ToggleRow';
 import {
@@ -19,6 +29,9 @@ import { colors } from '../../theme/colors';
 import { styles } from '../../theme/styles';
 
 type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+
+const androidBuildNumber = 'versionCode' in android ? android.versionCode : 1;
+const buildNumber = Platform.OS === 'ios' ? ios.buildNumber : androidBuildNumber;
 
 export function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [accessKey, setAccessKey] = React.useState('');
@@ -118,7 +131,20 @@ export function SettingsScreen({ navigation }: SettingsScreenProps) {
             void savePlaybackSettings({ autoPlay: value });
           }}
         />
+        <Text selectable style={localStyles.version}>
+          {`Version ${version} (build ${buildNumber})`}
+        </Text>
       </ScrollView>
     </>
   );
 }
+
+const localStyles = StyleSheet.create({
+  version: {
+    color: colors.onSurfaceVariant,
+    fontSize: 13,
+    marginTop: 24,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+});
