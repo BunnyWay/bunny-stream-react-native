@@ -14,6 +14,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-26
+
 ### Fixed
 
 - Fix Metro bundling of the published package on Android and iOS by removing
