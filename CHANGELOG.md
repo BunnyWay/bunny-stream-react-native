@@ -35,6 +35,11 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
   developer-specific path.
 - Example app: reject combining `--build` with a custom `--apk` path so Android
   build-and-upload commands cannot distribute an older binary from that path.
+
+## [1.1.2] - 2026-11-26
+
+### Fixed
+
 - Fix Metro bundling of the published package on Android and iOS by removing
   an invalid relative `package.json` import from SDK initialization.
 

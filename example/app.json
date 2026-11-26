@@ -2,7 +2,7 @@
   "$schema": "./node_modules/react-native-test-app/schema.json",
   "name": "BunnyStreamExample",
   "displayName": "BunnyStreamExample",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "singleApp": "BunnyStreamExample",
   "components": [
     {
