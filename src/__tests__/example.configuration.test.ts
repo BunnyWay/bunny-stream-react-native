@@ -50,6 +50,7 @@ const {
 
 const originalAccessKey = process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY;
 const originalLibraryId = process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID;
+const originalTokenAuthKey = process.env.EXPO_PUBLIC_BUNNY_TOKEN_AUTH_KEY;
 
 beforeEach(() => {
   mockGetItem.mockReset().mockResolvedValue(null);
@@ -61,18 +62,23 @@ afterEach(() => {
   else process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY = originalAccessKey;
   if (originalLibraryId === undefined) delete process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID;
   else process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID = originalLibraryId;
+  if (originalTokenAuthKey === undefined) delete process.env.EXPO_PUBLIC_BUNNY_TOKEN_AUTH_KEY;
+  else process.env.EXPO_PUBLIC_BUNNY_TOKEN_AUTH_KEY = originalTokenAuthKey;
 });
 
-function readExpoConfig(accessKey?: string, libraryId?: string) {
+function readExpoConfig(accessKey?: string, libraryId?: string, tokenAuthKey?: string) {
   if (accessKey === undefined) delete process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY;
   else process.env.EXPO_PUBLIC_BUNNY_ACCESS_KEY = accessKey;
   if (libraryId === undefined) delete process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID;
   else process.env.EXPO_PUBLIC_BUNNY_LIBRARY_ID = libraryId;
+  if (tokenAuthKey === undefined) delete process.env.EXPO_PUBLIC_BUNNY_TOKEN_AUTH_KEY;
+  else process.env.EXPO_PUBLIC_BUNNY_TOKEN_AUTH_KEY = tokenAuthKey;
 
   let configuration:
     | {
         BUNNY_ACCESS_KEY: string;
         BUNNY_LIBRARY_ID: number;
+        BUNNY_TOKEN_AUTH_KEY: string;
         isConfigured: boolean;
       }
     | undefined;
@@ -177,10 +183,14 @@ describe('Direct live play values', () => {
 });
 
 describe('Expo example configuration', () => {
-  it('accepts a positive integer and trims the key', () => {
-    expect(readExpoConfig(' access-key ', '123')).toEqual({
+  it.each([
+    [undefined, ''],
+    [' token-key ', 'token-key'],
+  ])('accepts a positive integer and trims keys with token input %s', (tokenInput, tokenKey) => {
+    expect(readExpoConfig(' access-key ', '123', tokenInput)).toEqual({
       BUNNY_ACCESS_KEY: 'access-key',
       BUNNY_LIBRARY_ID: 123,
+      BUNNY_TOKEN_AUTH_KEY: tokenKey,
       isConfigured: true,
     });
   });

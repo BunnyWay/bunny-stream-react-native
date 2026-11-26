@@ -196,24 +196,37 @@ Run these commands from the repository root:
 | `yarn example:upload:android` | Retry uploading the existing APK without rebuilding. |
 
 The combined command builds both artifacts before uploading either. It stops on
-the first failure; use the upload-only commands to resume with existing artifacts.
-Each release APK build increments `android.versionCode` in `example/app.json`
-(starting above `react-native-test-app`'s default of 1 when absent). Each IPA build
-increments `ios.buildNumber`. These counters stay increased after failed builds;
-upload-only retries preserve them. Keep the counters in Git when sharing builds
-between machines, and ensure the iOS counter is at least the last build number
-already uploaded through Transporter before the first automated build.
+the first failure. If an upload fails after the builds finish, use the upload-only
+commands to retry the failed upload with the same artifact.
+
+Fastlane keeps the last used iOS `buildNumber` and Android `versionCode` in the
+ignored `example/.distribution/build-numbers.json`. It temporarily uses these
+counters in `example/app.json` during the build, then restores the manifest and
+the CocoaPods lockfile. Failed builds also consume numbers. Before switching
+release machines or starting from a new checkout, copy this file across or seed
+it with the latest numbers uploaded to TestFlight and Firebase:
+
+```json
+{
+  "buildNumber": "42",
+  "versionCode": 42
+}
+```
+
+Fastlane starts from the higher of the stored and manifest values on each
+platform. Direct IPA and APK build commands continue to increment the numbers
+in `example/app.json`.
 
 The default IPA is `example/ios/build/ipa/ReactTestApp.ipa`, matching the existing
-export. Set `TESTFLIGHT_IPA_PATH` in the Fastlane `.env` if the exported filename
-changes. No other IPA is selected automatically. Uploads finish without waiting
+export. To retry an upload with a different file, set `TESTFLIGHT_IPA_PATH` in the
+Fastlane `.env` and run `yarn example:upload:ios`. Uploads finish without waiting
 for Apple's build processing; the build appears in TestFlight after processing.
 External beta review and external tester distribution are managed separately in
 App Store Connect. Firebase recipients come from the configured groups/testers;
 without recipients, only the release is uploaded.
 
-Check the automation without native builds or uploads using `yarn test:distribution`
-and `yarn test:fastlane`.
+Check the automation without native builds or uploads using `yarn test:release`,
+`yarn test:distribution`, and `yarn test:fastlane`.
 
 ## Project Areas
 
@@ -290,12 +303,13 @@ yarn release:notes
 
 ### Publishing
 
-Maintainers only. From an up-to-date `main`:
+Maintainers only. From a clean, up-to-date `main` on a Mac configured for Fastlane
+distribution:
 
 ```sh
 yarn typecheck && yarn lint && yarn test && yarn test:release
 yarn prepare
-yarn release
+yarn publish
 ```
 
 Choose the version according to the public React Native API: major for breaking
@@ -303,7 +317,8 @@ changes, minor for backward-compatible additions, patch for fixes and maintenanc
 The Conventional Commits plugin still suggests a version, but commit-derived text
 is not the published release notes.
 
-`release-it` moves the Unreleased entries into `## [X.Y.Z] - YYYY-MM-DD`, leaves a
+`yarn publish` first checks the local distribution configuration, then runs
+`yarn release`. `release-it` moves the Unreleased entries into `## [X.Y.Z] - YYYY-MM-DD`, leaves a
 fresh empty Unreleased section, and bumps the package version. It commits those
 changes together, pushes the `v<version>` tag, and creates the GitHub Release using
 that version's changelog section verbatim. Empty notes, duplicate version sections,
@@ -319,6 +334,14 @@ After manually changing the library version, run `yarn sdk-version:generate` and
 
 The tag triggers `.github/workflows/publish.yml`, which publishes
 `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token).
+`yarn publish` waits up to 30 minutes for that exact version to appear on npm,
+then builds and uploads the example apps from the release machine. If the command
+stops after the release tag has been pushed, check **Publish to npm** in GitHub
+Actions. Once the version is on npm, run `yarn example:distribute` from that
+version's checkout, or use an upload-only command if the build already exists.
+Use `yarn release` for a library-only release, `yarn example:distribute` for an
+example-only release, and `yarn publish --dry-run` to preview the library release.
+
 Prerelease versions go to the `next` dist-tag and get their own changelog section,
 just like stable releases. Add the next release's entries under Unreleased.
 When a prerelease is promoted to stable (for example `1.1.0-rc.1` → `1.1.0`), its

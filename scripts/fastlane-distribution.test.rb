@@ -35,6 +35,18 @@ class DistributionLaneHarness
 
   def sh(*args)
     @calls << args
+    manifest_path = File.join(ExampleDistribution::ROOT, 'app.json')
+    if args.last == 'build:ios:ipa'
+      manifest = JSON.parse(File.read(manifest_path))
+      manifest['ios']['buildNumber'] = (Integer(manifest['ios']['buildNumber']) + 1).to_s
+      File.write(manifest_path, JSON.generate(manifest))
+      File.write(File.join(ExampleDistribution::ROOT, 'ios/Podfile.lock'), 'updated by pod install')
+      File.write(File.join(ExampleDistribution::ROOT, ExampleDistribution::DEFAULT_IPA), 'new ipa fixture')
+    elsif args.last == 'build:android:apk'
+      manifest = JSON.parse(File.read(manifest_path))
+      manifest['android']['versionCode'] = manifest['android'].fetch('versionCode', 1) + 1
+      File.write(manifest_path, JSON.generate(manifest))
+    end
     raise 'Native build failed' if args.include?(@fail_build)
   end
 
@@ -66,7 +78,11 @@ class FastlaneDistributionTest < Minitest::Test
     FileUtils.mkdir_p(File.join(@directory, 'ios/build/ipa'))
     @ipa = File.join(@directory, 'ios/build/ipa/ReactTestApp.ipa')
     File.write(@ipa, 'ipa fixture')
-    File.write(File.join(@directory, 'app.json'), '{"ios":{"bundleIdentifier":"net.bunny.demo"}}')
+    @manifest = File.join(@directory, 'app.json')
+    @original_manifest = '{"ios":{"bundleIdentifier":"net.bunny.demo","buildNumber":"1"},"android":{}}'
+    File.write(@manifest, @original_manifest)
+    @podfile_lock = File.join(@directory, 'ios/Podfile.lock')
+    File.write(@podfile_lock, 'original lockfile')
     @runner = DistributionLaneHarness.new
   end
 
@@ -99,6 +115,28 @@ class FastlaneDistributionTest < Minitest::Test
     assert_raises(RuntimeError) { @runner.distribute }
     refute @runner.calls.any? { |call| call.first == :testflight }
     refute_includes @runner.calls, ['node', '../scripts/distribute-android.mjs']
+    assert_equal @original_manifest, File.read(@manifest)
+    assert_equal 'original lockfile', File.read(@podfile_lock)
+    assert_equal({ 'buildNumber' => '2', 'versionCode' => 2 }, build_numbers)
+  end
+
+  def test_local_build_numbers_advance_without_changing_tracked_files
+    @runner.distribute
+    @runner.distribute
+
+    assert_equal({ 'buildNumber' => '3', 'versionCode' => 3 }, build_numbers)
+    assert_equal @original_manifest, File.read(@manifest)
+    assert_equal 'original lockfile', File.read(@podfile_lock)
+  end
+
+  def test_build_and_upload_ignores_retry_ipa_override
+    ENV['TESTFLIGHT_IPA_PATH'] = 'previous.ipa'
+    File.write(File.join(@directory, 'previous.ipa'), 'old ipa fixture')
+    @runner.distribute_ios
+
+    options = @runner.calls.find { |call| call.first == :testflight }.last
+    assert_equal @ipa, options[:ipa]
+    assert_equal 'new ipa fixture', File.read(@ipa)
   end
 
   def test_missing_apple_configuration_fails_before_any_build
@@ -165,5 +203,11 @@ class FastlaneDistributionTest < Minitest::Test
     assert_raises(ArgumentError) { ExampleDistribution.ios_auth_options(env) }
     env['TESTFLIGHT_AUTH'] = 'invalid'
     assert_raises(ArgumentError) { ExampleDistribution.ios_auth_options(env) }
+  end
+
+  private
+
+  def build_numbers
+    JSON.parse(File.read(File.join(@directory, '.distribution/build-numbers.json')))
   end
 end

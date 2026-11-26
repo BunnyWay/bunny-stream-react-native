@@ -58,6 +58,7 @@ example/fastlane/test_output/
 *.p8
 example/vendor/
 example/.bundle/ruby/
+example/.distribution/
 
 # node.js
 #

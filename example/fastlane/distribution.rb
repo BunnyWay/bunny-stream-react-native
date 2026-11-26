@@ -1,5 +1,57 @@
+require 'fileutils'
+require 'json'
+
 module ExampleDistribution
   ROOT = File.expand_path('..', __dir__)
+  DEFAULT_IPA = 'ios/build/ipa/ReactTestApp.ipa'.freeze
+  BUILD_NUMBER_FIELDS = { 'ios' => 'buildNumber', 'android' => 'versionCode' }.freeze
+
+  def self.with_lock
+    state_dir = File.join(ROOT, '.distribution')
+    FileUtils.mkdir_p(state_dir)
+    File.open(File.join(state_dir, 'lock'), 'w') do |lock|
+      raise 'Another example distribution is running in this checkout.' unless lock.flock(File::LOCK_EX | File::LOCK_NB)
+
+      yield state_dir
+    end
+  end
+
+  def self.with_build_numbers
+    with_lock do |state_dir|
+      manifest_path = File.join(ROOT, 'app.json')
+      podfile_lock_path = File.join(ROOT, 'ios/Podfile.lock')
+      state_path = File.join(state_dir, 'build-numbers.json')
+      original_manifest = File.binread(manifest_path)
+      original_podfile_lock = File.binread(podfile_lock_path) if File.file?(podfile_lock_path)
+      manifest = JSON.parse(original_manifest)
+      numbers = File.file?(state_path) ? JSON.parse(File.read(state_path)) : {}
+      BUILD_NUMBER_FIELDS.each do |platform, field|
+        current = manifest.fetch(platform)[field]
+        last = numbers[field]
+        manifest[platform][field] = last if last && Integer(last) > Integer(current || 1)
+      end
+
+      begin
+        # React Native Test App reads build numbers from the manifest. Keep the
+        # next build's starting numbers locally so release-it sees a clean tree.
+        File.write(manifest_path, JSON.pretty_generate(manifest) + "\n")
+        yield
+      ensure
+        begin
+          manifest = JSON.parse(File.read(manifest_path))
+          BUILD_NUMBER_FIELDS.each do |platform, field|
+            number = manifest.fetch(platform)[field]
+            numbers[field] = number unless number.nil?
+          end
+          File.write("#{state_path}.tmp", JSON.pretty_generate(numbers) + "\n")
+          File.rename("#{state_path}.tmp", state_path)
+        ensure
+          File.binwrite(manifest_path, original_manifest)
+          File.binwrite(podfile_lock_path, original_podfile_lock) if original_podfile_lock
+        end
+      end
+    end
+  end
 
   def self.ios_auth_options(env = ENV)
     api_names = %w[APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID APP_STORE_CONNECT_API_KEY_FILE]
@@ -49,7 +101,7 @@ module ExampleDistribution
   end
 
   def self.ipa_path(env = ENV)
-    path = File.expand_path(env.fetch('TESTFLIGHT_IPA_PATH', 'ios/build/ipa/ReactTestApp.ipa'), ROOT)
+    path = File.expand_path(env.fetch('TESTFLIGHT_IPA_PATH', DEFAULT_IPA), ROOT)
     raise ArgumentError, "IPA not found: #{path}. Run yarn example:distribute:ios to build and upload." unless File.file?(path)
 
     path

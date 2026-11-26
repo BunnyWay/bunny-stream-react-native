@@ -162,6 +162,11 @@ Initialization uses this constant so compiled modules do not depend on relative
 paths to the root package manifest. CI and publishing test the packed ESM and
 CommonJS modules after building, replacing only the native player spec.
 
+`yarn publish` runs the tag-based `yarn release` flow and waits for the new npm
+version before calling `yarn example:distribute` on the same Mac. The Fastlane
+lanes can run independently and store their build numbers in the ignored
+`example/.distribution/` directory.
+
 ## When changing things, remember
 
 - Adding a prop/event/command to a `specs/*NativeComponent` → update the `.mm`

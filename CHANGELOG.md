@@ -14,6 +14,12 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Added
+
+- `yarn publish` now releases the library and then builds and uploads the example
+  apps to TestFlight and Firebase App Distribution. Use `yarn example:distribute`
+  to ship the example apps independently.
+
 ### Changed
 
 - Example app: add Yarn commands backed by Fastlane to build and upload iOS to
