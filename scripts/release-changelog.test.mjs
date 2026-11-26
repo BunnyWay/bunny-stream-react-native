@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { prepareRelease, releaseNotes } from './release-changelog.mjs';
+import { exampleReleaseNotes, prepareRelease, releaseNotes } from './release-changelog.mjs';
 
 const entries = '### Fixed\n\n- Fix Android playback.\n- Fix iOS quality selection.';
 const previous = '## [1.0.0] - 2026-10-16\n\n### Added\n\n- Initial stable release.\n';
@@ -14,6 +14,13 @@ const changelog = `# Changelog\n\n## [Unreleased]\n\n${entries}\n\n${previous}`;
 
 test('pending notes contain only Unreleased entries', () => {
   assert.equal(releaseNotes(changelog), entries);
+});
+
+test('example notes use pending changes, the exact released section, or the version fallback', () => {
+  assert.equal(exampleReleaseNotes(changelog, '1.0.0'), entries);
+  const published = prepareRelease(changelog, '1.0.1', '2026-10-23');
+  assert.equal(exampleReleaseNotes(published, '1.0.1'), entries);
+  assert.equal(exampleReleaseNotes(published, '1.0.2'), 'Bunny Stream React Native example 1.0.2');
 });
 
 test('release preparation dates the entries and preserves previous releases', () => {

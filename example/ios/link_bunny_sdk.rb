@@ -224,6 +224,25 @@ if File.exist?(generated_info_plist)
   # to start (see PictureInPictureManager in the iOS SDK).
   modes = plist_doc["UIBackgroundModes"] ||= []
   modes << "audio" unless modes.include?("audio")
+
+  case ENV["PILOT_USES_NON_EXEMPT_ENCRYPTION"]&.strip
+  when "true"
+    plist_doc["ITSAppUsesNonExemptEncryption"] = true
+  when "false"
+    plist_doc["ITSAppUsesNonExemptEncryption"] = false
+  when nil, ""
+    plist_doc.delete("ITSAppUsesNonExemptEncryption")
+  else
+    abort "PILOT_USES_NON_EXEMPT_ENCRYPTION must be true or false."
+  end
+
+  compliance_code = ENV["IOS_ENCRYPTION_EXPORT_COMPLIANCE_CODE"].to_s.strip
+  if compliance_code.empty?
+    plist_doc.delete("ITSEncryptionExportComplianceCode")
+  else
+    plist_doc["ITSEncryptionExportComplianceCode"] = compliance_code
+  end
+
   Xcodeproj::Plist.write_to_path(plist_doc, generated_info_plist)
   puts "[BunnyStream] Patched Info.plist with usage descriptions + audio background mode"
 else

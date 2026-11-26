@@ -26,6 +26,11 @@ function fixture(t) {
   mkdirSync(bin);
   writeFileSync(calls, '');
   copyFileSync(new URL('./distribute-android.mjs', import.meta.url), script);
+  copyFileSync(
+    new URL('./release-changelog.mjs', import.meta.url),
+    path.join(directory, 'scripts/release-changelog.mjs'),
+  );
+  writeFileSync(path.join(directory, 'CHANGELOG.md'), '## [Unreleased]\n');
   const configure = (config) =>
     writeFileSync(path.join(example, 'firebase-distribution.json'), JSON.stringify(config));
   configure({ appId: '1:123456789:android:abcdef', groups: ['qa'], testers: [] });
@@ -108,6 +113,20 @@ test('failed builds never upload an older APK', (t) => {
   assert.equal(result.status, 7);
   assert.equal(calls().length, 1);
   assert.equal(calls()[0].command, 'npm');
+});
+
+test('passes the example changelog to Firebase release notes', (t) => {
+  const { run, calls, apk, directory } = fixture(t);
+  const notes = '### Fixed\n\n- Fix Android playback.\n- Fix iOS startup.';
+  writeFileSync(
+    path.join(directory, 'CHANGELOG.md'),
+    `## [Unreleased]\n\n## [1.2.3]\n\n${notes}\n`,
+  );
+  writeFileSync(apk, 'apk');
+
+  assert.equal(run().status, 0);
+  const args = calls()[0].args;
+  assert.equal(args[args.indexOf('--release-notes') + 1], notes);
 });
 
 test('rejects custom APK paths with --build before building or uploading stale artifacts', (t) => {

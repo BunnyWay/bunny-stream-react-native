@@ -35,6 +35,8 @@ class DistributionLaneHarness
 
   def sh(*args)
     @calls << args
+    return "### Fixed\n\n- Fix playback.\n" if args.include?('../scripts/release-changelog.mjs')
+
     manifest_path = File.join(ExampleDistribution::ROOT, 'app.json')
     if args.last == 'build:ios:ipa'
       manifest = JSON.parse(File.read(manifest_path))
@@ -58,10 +60,22 @@ class DistributionLaneHarness
   def upload_to_testflight(**options)
     @calls << [:testflight, options]
   end
+
+  def testflight_group(**options)
+    @calls << [:testflight_group, options]
+    'test-external-group'
+  end
 end
 
 class FastlaneDistributionTest < Minitest::Test
-  ENV_NAMES = %w[APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID APP_STORE_CONNECT_API_KEY_FILE TESTFLIGHT_IPA_PATH TESTFLIGHT_AUTH FASTLANE_USER FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD APP_STORE_CONNECT_APPLE_ID APP_STORE_CONNECT_PROVIDER_PUBLIC_ID].freeze
+  ENV_NAMES = %w[APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID APP_STORE_CONNECT_API_KEY_FILE TESTFLIGHT_IPA_PATH TESTFLIGHT_AUTH TESTFLIGHT_TESTER_EMAIL FASTLANE_USER FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD APP_STORE_CONNECT_APPLE_ID APP_STORE_CONNECT_PROVIDER_PUBLIC_ID].freeze
+
+  Group = Struct.new(:id, :name, :is_internal_group) do
+    def matches_identifiers?(identifiers)
+      identifiers.include?(id) || identifiers.include?(name)
+    end
+  end
+  Tester = Struct.new(:beta_groups)
 
   def setup
     @directory = Dir.mktmpdir('bunny-fastlane-')
@@ -81,6 +95,7 @@ class FastlaneDistributionTest < Minitest::Test
     @manifest = File.join(@directory, 'app.json')
     @original_manifest = '{"ios":{"bundleIdentifier":"net.bunny.demo","buildNumber":"1"},"android":{}}'
     File.write(@manifest, @original_manifest)
+    File.write(File.join(@directory, 'package.json'), '{"version":"1.2.3"}')
     @podfile_lock = File.join(@directory, 'ios/Podfile.lock')
     File.write(@podfile_lock, 'original lockfile')
     @runner = DistributionLaneHarness.new
@@ -99,15 +114,46 @@ class FastlaneDistributionTest < Minitest::Test
     ios = calls.index(['npm', 'run', 'build:ios:ipa'])
     android = calls.index(['npm', 'run', 'build:android:apk'])
     upload = calls.index { |call| call.first == :testflight }
+    firebase_upload = calls.index(['node', '../scripts/distribute-android.mjs'])
     assert_operator ios, :<, android
-    assert_operator android, :<, upload
-    assert_equal ['node', '../scripts/distribute-android.mjs'], calls.last
+    assert_operator android, :<, firebase_upload
+    assert_operator firebase_upload, :<, upload
     options = calls[upload].last
     assert_equal @ipa, options[:ipa]
     assert_equal 'net.bunny.demo', options[:app_identifier]
     assert options[:skip_waiting_for_build_processing]
     assert options[:skip_submission]
     refute options[:distribute_external]
+    assert_equal "### Fixed\n\n- Fix playback.", options[:changelog]
+  end
+
+  def test_external_distribution_targets_the_testers_group_with_changelog_and_notifications
+    ENV['TESTFLIGHT_TESTER_EMAIL'] = 'tester@example.com'
+    @runner.distribute_ios
+    lookup = @runner.calls.find { |call| call.first == :testflight_group }.last
+    assert_equal 'tester@example.com', lookup[:tester_email]
+    assert_equal 'net.bunny.demo', lookup[:app_identifier]
+    options = @runner.calls.find { |call| call.first == :testflight }.last
+    assert_equal ['test-external-group'], options[:groups]
+    assert options[:distribute_external]
+    assert options[:notify_external_testers]
+    assert options[:submit_beta_review]
+    refute options[:skip_waiting_for_build_processing]
+    refute options[:skip_submission]
+    assert_equal "### Fixed\n\n- Fix playback.", options[:changelog]
+  end
+
+  def test_external_group_matches_only_the_testers_membership_in_this_app
+    internal = Group.new('1', 'Internal', true)
+    target = Group.new('2', 'External', false)
+    other = Group.new('3', 'Other', false)
+    separate_app = Group.new('4', 'Separate app', false)
+    tester = Tester.new([internal, target, separate_app])
+    assert_equal '2', ExampleDistribution.external_group([internal, target, other], tester, '')
+    assert_raises(ArgumentError) { ExampleDistribution.external_group([internal, other], tester, '') }
+    tester.beta_groups << other
+    assert_raises(ArgumentError) { ExampleDistribution.external_group([target, other], tester, '') }
+    assert_equal '3', ExampleDistribution.external_group([target, other], tester, 'Other')
   end
 
   def test_failed_build_never_uploads_previous_artifacts
@@ -148,7 +194,7 @@ class FastlaneDistributionTest < Minitest::Test
 
   def test_upload_retry_does_not_build_or_bump_numbers
     @runner.upload_ios
-    assert_equal [:api_key, :testflight], @runner.calls.map(&:first)
+    assert_equal [:api_key, 'node', :testflight], @runner.calls.map(&:first)
     @runner.upload_android
     assert_equal ['node', '../scripts/distribute-android.mjs'], @runner.calls.last
   end

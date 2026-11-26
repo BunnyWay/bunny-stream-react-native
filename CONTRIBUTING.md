@@ -121,8 +121,8 @@ yarn example distribute:android --apk /absolute/path/to/example.apk
 `--apk` is for uploading an existing binary and cannot be combined with `--build`.
 Build-and-upload commands always use the APK produced at the default output path.
 
-`FIREBASE_RELEASE_NOTES` overrides the default notes containing the example app
-version. For CI, authenticate with Application Default Credentials (for example,
+`FIREBASE_RELEASE_NOTES` overrides the default notes from `CHANGELOG.md`.
+For CI, authenticate with Application Default Credentials (for example,
 `GOOGLE_APPLICATION_CREDENTIALS` pointing to a service account file with the
 Firebase App Distribution Admin role); keep credentials outside the repository.
 The existing `build:android:apk` command and GitHub APK artifact workflow continue
@@ -163,19 +163,37 @@ under **Sign-In and Security > App-Specific Passwords** (requires two-factor
 authentication). Use the same Apple Account that can upload this app in Transporter.
 `APP_STORE_CONNECT_APPLE_ID` is the app's numeric **Apple ID** in **App Store
 Connect > My Apps > App Information**, not its bundle ID or your email address.
-This mode uploads the binary without logging into the App Store Connect web API;
-it does not wait for processing or set beta metadata. On Xcode 26+, accounts
+Without an external tester configured, this mode uploads the binary and returns.
+On Xcode 26+, accounts
 associated with multiple providers may also need
 `APP_STORE_CONNECT_PROVIDER_PUBLIC_ID` (the provider public ID, not the signing
 team ID). It still requires permission to upload builds for the app.
 
 Alternatively, set `TESTFLIGHT_AUTH=api_key` and create a **team API key** in App Store Connect under **Users and Access >
-Integrations > App Store Connect API**, with a role allowing build uploads
-(for example, Developer). Save the `.p8` key outside the repository and fill in
+Integrations > App Store Connect API**, with the App Manager or Admin role to
+manage TestFlight build metadata and external distribution. Save the `.p8` key
+outside the repository and fill in
 `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, and
 `APP_STORE_CONNECT_API_KEY_FILE` in `example/fastlane/.env`. Use an absolute key
 file path. When `TESTFLIGHT_AUTH` is omitted, configured API key values select
 API key authentication; otherwise Apple ID authentication is used.
+
+Set `TESTFLIGHT_TESTER_EMAIL` in the local Fastlane `.env` to the email of an
+existing external tester. Fastlane looks up that tester's external group for this
+app and enables notifications for members of that group. If the tester belongs
+to multiple external groups for the app, set `TESTFLIGHT_GROUP` to one group's
+exact name or ID. With Apple ID authentication, Fastlane also needs a regular
+App Store Connect login for group lookup and build metadata. It can prompt for
+the account password and two-factor code or reuse `FASTLANE_SESSION` from
+`bundle exec fastlane spaceauth` run in `example/`.
+
+For a confirmed encryption export compliance declaration, set
+`PILOT_USES_NON_EXEMPT_ENCRYPTION` to `true` or `false` in the Fastlane `.env`.
+The iOS example build writes that Boolean to `ITSAppUsesNonExemptEncryption` in
+the app's `Info.plist`. If Apple provided an encryption export compliance code,
+set `IOS_ENCRYPTION_EXPORT_COMPLIANCE_CODE` to include it as well. For direct IPA
+builds, export the variables in your shell before building. See
+[Apple's export compliance overview](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/).
 
 Signing uses the same certificates, provisioning profiles, and
 `example/ios/ExportOptions.plist` as the manual IPA build. The app must already
@@ -195,9 +213,12 @@ Run these commands from the repository root:
 | `yarn example:upload:ios` | Retry uploading the existing IPA without rebuilding. |
 | `yarn example:upload:android` | Retry uploading the existing APK without rebuilding. |
 
-The combined command builds both artifacts before uploading either. It stops on
-the first failure. If an upload fails after the builds finish, use the upload-only
-commands to retry the failed upload with the same artifact.
+The combined command builds both artifacts, then uploads to Firebase before
+waiting for TestFlight processing. It stops on the first failure. If an upload
+fails after the builds finish, use the upload-only commands to retry with the same
+artifact. If Apple already accepted the IPA, use
+`yarn example:upload:ios distribute_only:true` from the same checkout to retry
+external distribution for that IPA's version and build number.
 
 Fastlane keeps the last used iOS `buildNumber` and Android `versionCode` in the
 ignored `example/.distribution/build-numbers.json`. It temporarily uses these
@@ -219,11 +240,16 @@ in `example/app.json`.
 
 The default IPA is `example/ios/build/ipa/ReactTestApp.ipa`, matching the existing
 export. To retry an upload with a different file, set `TESTFLIGHT_IPA_PATH` in the
-Fastlane `.env` and run `yarn example:upload:ios`. Uploads finish without waiting
-for Apple's build processing; the build appears in TestFlight after processing.
-External beta review and external tester distribution are managed separately in
-App Store Connect. Firebase recipients come from the configured groups/testers;
-without recipients, only the release is uploaded.
+Fastlane `.env` and run `yarn example:upload:ios`. With external distribution
+enabled, Fastlane waits for processing, sets TestFlight's **What to Test** notes,
+and submits the build for Beta App Review when Apple requires it. Testers are
+notified once Apple makes the build available to their group.
+
+TestFlight and Firebase use the same notes from `CHANGELOG.md`. Independent test
+builds use pending `[Unreleased]` entries when available. After `yarn publish`, the
+notes come from the published version's section. Firebase recipients come from
+the configured groups or testers. Unassigned Firebase releases remain available
+in the Firebase console.
 
 Check the automation without native builds or uploads using `yarn test:release`,
 `yarn test:distribution`, and `yarn test:fastlane`.

@@ -106,4 +106,20 @@ module ExampleDistribution
 
     path
   end
+
+  def self.external_group(groups, tester, preferred_group)
+    tester_group_ids = Array(tester&.beta_groups).map(&:id)
+    matches = groups.select do |group|
+      group.is_internal_group == false && tester_group_ids.include?(group.id) &&
+        (preferred_group.empty? || group.matches_identifiers?([preferred_group]))
+    end
+    if matches.empty?
+      raise ArgumentError, 'The configured TestFlight tester is not in a matching external group for this app.'
+    end
+    if matches.length > 1
+      raise ArgumentError, 'The tester belongs to multiple external groups. Set TESTFLIGHT_GROUP to the intended group name or ID.'
+    end
+
+    matches.first.id
+  end
 end

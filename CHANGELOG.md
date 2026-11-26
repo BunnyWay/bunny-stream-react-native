@@ -19,6 +19,10 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 - `yarn publish` now releases the library and then builds and uploads the example
   apps to TestFlight and Firebase App Distribution. Use `yarn example:distribute`
   to ship the example apps independently.
+- Example app: share changelog notes in TestFlight and Firebase App Distribution,
+  and notify the configured external TestFlight group when the build is available.
+- iOS example: include the configured encryption export compliance declaration
+  in new TestFlight builds.
 
 ### Changed
 

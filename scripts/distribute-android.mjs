@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { exampleReleaseNotes } from './release-changelog.mjs';
+
 const example = new URL('../example/', import.meta.url);
 const config = JSON.parse(readFileSync(new URL('firebase-distribution.json', example), 'utf8'));
 const { values } = parseArgs({
@@ -53,6 +55,9 @@ if (!existsSync(apk)) {
 }
 
 const { version } = JSON.parse(readFileSync(new URL('package.json', example), 'utf8'));
+const notes =
+  process.env.FIREBASE_RELEASE_NOTES ||
+  exampleReleaseNotes(readFileSync(new URL('../CHANGELOG.md', example), 'utf8'), version);
 const args = [
   '--yes',
   '--package=firebase-tools@15.37.0',
@@ -62,7 +67,7 @@ const args = [
   '--app',
   appId,
   '--release-notes',
-  process.env.FIREBASE_RELEASE_NOTES || `Bunny Stream React Native example ${version}`,
+  notes,
 ];
 if (groups) args.push('--groups', groups);
 if (testers) args.push('--testers', testers);
