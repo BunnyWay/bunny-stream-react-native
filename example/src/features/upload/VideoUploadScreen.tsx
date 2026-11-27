@@ -65,6 +65,14 @@ const retryContexts = new Map<string, RetryContext>();
 // Rows removed locally — a late native event (e.g. 'cancelled' fired when a
 // failed upload is evicted) must not resurrect the row.
 const removedUploadIds = new Set<string>();
+let uploadSession = 0;
+
+export function resetUploadScreenState(): void {
+  uploadSession += 1;
+  uploadRows.clear();
+  retryContexts.clear();
+  removedUploadIds.clear();
+}
 
 export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
   const [libraryId, setLibraryId] = React.useState<number | null>(null);
@@ -181,9 +189,10 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     }
     setError(null);
     setBusy(true);
+    const session = uploadSession;
     try {
       const picked = await pickVideo(5);
-      if (!picked || picked.length === 0) return;
+      if (session !== uploadSession || !picked || picked.length === 0) return;
       const mode: UploadMode = useTus ? 'tus' : 'basic';
       for (const file of picked) {
         const result = await BunnyStreamUpload.startUpload({
@@ -192,6 +201,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
           title: file.fileName ?? undefined,
           mode,
         });
+        if (session !== uploadSession) return;
         fold(
           result,
           (handle) => {
@@ -253,6 +263,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
     retryContexts.delete(row.uploadId);
     syncRows();
 
+    const session = uploadSession;
     const result =
       ctx.videoId != null
         ? await BunnyStreamUpload.continueUpload({
@@ -266,6 +277,7 @@ export function VideoUploadScreen({ navigation }: VideoUploadScreenProps) {
             uri: ctx.uri,
             mode: ctx.mode,
           });
+    if (session !== uploadSession) return;
     fold(
       result,
       (handle) => {

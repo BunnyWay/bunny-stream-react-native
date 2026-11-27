@@ -12,6 +12,12 @@ import { styles } from './theme/styles';
 
 export default function App() {
   const [loading, setLoading] = React.useState(true);
+  const [session, setSession] = React.useState(0);
+
+  const restart = React.useCallback(() => {
+    setLoading(true);
+    setSession((current) => current + 1);
+  }, []);
 
   React.useEffect(() => {
     (async () => {
@@ -32,7 +38,7 @@ export default function App() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [session]);
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
@@ -42,7 +48,7 @@ export default function App() {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
-          <RootNavigator />
+          <RootNavigator onAppReset={restart} />
         )}
       </ScreenWrapper>
     </SafeAreaProvider>

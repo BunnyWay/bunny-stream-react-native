@@ -8,6 +8,12 @@ export function getConfiguredLibraryId(): number | undefined {
   return configuredLibraryId;
 }
 
+/** Resets native and JS SDK state for the example app. */
+export async function resetLocalSdkState(): Promise<void> {
+  await NativeBunnyStreamPlayer.resetLocalState();
+  configuredLibraryId = undefined;
+}
+
 /**
  * Initialises the Bunny Stream SDK with a library ID and optional API access key.
  *

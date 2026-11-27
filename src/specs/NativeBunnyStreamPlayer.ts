@@ -9,6 +9,7 @@ export interface Spec extends TurboModule {
   // null/undefined to '' (playback-only mode), so the bridge never receives
   // null — but may receive an empty string.
   initialize(accessKey: string, libraryId: Double, integratorVersion?: string): void;
+  resetLocalState(): Promise<void>;
   // Android TV detection (leanback system feature). Always returns
   // false on iOS — the iOS SDK does not support tvOS.
   isRunningOnTV(): boolean;

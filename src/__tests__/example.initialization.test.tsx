@@ -23,6 +23,7 @@ const mockSaveSettings =
 jest.mock('@env', () => ({ BUNNY_ACCESS_KEY: 'access-key', BUNNY_LIBRARY_ID: '123' }), {
   virtual: true,
 });
+jest.mock('@react-navigation/native', () => ({ usePreventRemove: jest.fn() }), { virtual: true });
 jest.mock('@bunny.net/stream-react-native', () => ({ initialize: mockInitialize }), {
   virtual: true,
 });
@@ -57,6 +58,7 @@ jest.mock('../../example/src/components/ScreenWrapper', () => ({
   ScreenWrapper: ({ children }: ReactTypes.PropsWithChildren) => children,
 }));
 jest.mock('../../example/src/components/Header', () => ({ Header: () => null }));
+jest.mock('../../example/src/storage/resetAppData', () => ({ resetAppData: jest.fn() }));
 jest.mock('../../example/src/storage/settings', () => ({
   loadLibraryConfig: mockLoadLibraryConfig,
   loadSettings: mockLoadSettings,

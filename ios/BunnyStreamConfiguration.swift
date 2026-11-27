@@ -35,6 +35,12 @@ import Foundation
     SDKInfo.configureIntegrator(name: "bunny-stream-react-native", version: version)
   }
 
+  @objc public func reset() {
+    lock.lock()
+    _config = nil
+    lock.unlock()
+  }
+
   /// Returns the stored access key, or `nil` if `initialize` was never called or
   /// was called with a blank key (playback-only mode). A `nil` key reaches the
   /// SDK as absent, so public playback sends no `AccessKey` header.

@@ -50,6 +50,7 @@ import React
   /// uploader they do not need.
   private var _basicUploader: URLSessionVideoUploader?
   private var _tusUploader: TUSVideoUploader?
+  private let uploadRequests = DispatchGroup()
 
   private var basicUploader: URLSessionVideoUploader {
     if let existing = _basicUploader { return existing }
@@ -223,17 +224,49 @@ import React
     // (synchronous IPC with `nsurlsessiond`, which can block for a long
     // time) and scans the on-disk TUS cache, so the lazy initialization
     // must happen off the JS thread or the app will freeze.
-    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-      guard let self else { return }
+    uploadRequests.enter()
+    DispatchQueue.global(qos: .userInitiated).async { [self] in
       let uploader = self.tusUploader
-      DispatchQueue.main.async { [weak self, uploader] in
-        guard let self else { return }
+      DispatchQueue.main.async { [self, uploader] in
+        defer { uploadRequests.leave() }
         for (info, status) in uploader.uploadTracker.uploads {
           let uploadId = info.uuid.uuidString
           let videoId = canonicalVideoId(info.videoUUID)
           self.videoIdToUploadId[videoId] = uploadId
           self.lastStates[uploadId] = status
           self.emitEvent(uploadId: uploadId, videoId: videoId, status: status)
+        }
+      }
+    }
+  }
+
+  @objc(resetLocalUploadsWithResolve:reject:)
+  public func resetLocalUploads(resolve: @escaping () -> Void, reject: @escaping RCTPromiseRejectBlock) {
+    uploadRequests.notify(queue: .global(qos: .userInitiated)) { [self] in
+      // Restore persisted TUS entries even if the upload screen hasn't opened.
+      _ = tusUploader
+      DispatchQueue.main.async { [self] in
+        do {
+          for uploader in createdUploaders {
+            for (info, status) in uploader.uploadTracker.uploads {
+              switch status {
+              case .uploaded, .removed:
+                continue
+              default:
+                try uploader.removeUpload(for: info)
+              }
+            }
+          }
+          combineCancellables.removeAll()
+          trackerObservables.removeAll()
+          _basicUploader = nil
+          _tusUploader = nil
+          lastStates.removeAll()
+          videoIdToUploadId.removeAll()
+          ownedVideoLibraryIds.removeAll()
+          resolve()
+        } catch {
+          reject("E_RESET", "Could not clear local uploads.", error)
         }
       }
     }
@@ -346,7 +379,9 @@ import React
     let library = Int(libraryId)
     let uploader = uploaderForMode(mode)
 
+    uploadRequests.enter()
     Task {
+      defer { uploadRequests.leave() }
       var createdVideoId: String?
       do {
         // The iOS uploader requires a pre-provisioned videoId. Create the
@@ -405,7 +440,9 @@ import React
     let library = Int(libraryId)
     let uploader = uploaderForMode(mode)
 
+    uploadRequests.enter()
     Task {
+      defer { uploadRequests.leave() }
       do {
         // For continueUpload, the videoId already exists on the server.
         // Build a VideoInfo with the existing videoId — TUS will resume from

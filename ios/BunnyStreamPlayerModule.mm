@@ -32,6 +32,15 @@ RCT_EXPORT_MODULE("BunnyStreamPlayer")
   });
 }
 
+- (void)resetLocalState:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+  [[BunnyStreamUploadModuleImpl shared] resetLocalUploadsWithResolve:^{
+    [[BunnyStreamConfiguration shared] reset];
+    resolve(nil);
+  } reject:reject];
+}
+
 // iOS does not support tvOS; always NO.
 - (NSNumber *)isRunningOnTV
 {

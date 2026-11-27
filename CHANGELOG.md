@@ -25,6 +25,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
   in new TestFlight builds.
 - Example app: show the app version and platform build number at the bottom of
   Settings on iOS and Android.
+- Example app: reset settings, credentials, resume positions, and local upload
+  data from Settings after confirmation.
 
 ### Changed
 
