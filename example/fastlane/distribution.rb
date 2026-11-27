@@ -4,6 +4,7 @@ require 'json'
 module ExampleDistribution
   ROOT = File.expand_path('..', __dir__)
   DEFAULT_IPA = 'ios/build/ipa/ReactTestApp.ipa'.freeze
+  APP_STORE_CONNECT_TEAM_ID = '123788500'.freeze
   BUILD_NUMBER_FIELDS = { 'ios' => 'buildNumber', 'android' => 'versionCode' }.freeze
 
   def self.with_lock
@@ -71,9 +72,11 @@ module ExampleDistribution
       raise ArgumentError, 'APP_STORE_CONNECT_APPLE_ID must be the numeric Apple ID from App Store Connect > App Information, not the bundle ID.'
     end
 
+    team_id = env['FASTLANE_ITC_TEAM_ID'].to_s.strip
     options = {
       username: env.fetch('FASTLANE_USER'),
-      apple_id: env.fetch('APP_STORE_CONNECT_APPLE_ID')
+      apple_id: env.fetch('APP_STORE_CONNECT_APPLE_ID'),
+      team_id: team_id.empty? ? APP_STORE_CONNECT_TEAM_ID : team_id
     }
     provider = env['APP_STORE_CONNECT_PROVIDER_PUBLIC_ID'].to_s.strip
     options[:provider_public_id] = provider unless provider.empty?
@@ -107,11 +110,11 @@ module ExampleDistribution
     path
   end
 
-  def self.external_group(groups, tester, preferred_group)
-    tester_group_ids = Array(tester&.beta_groups).map(&:id)
+  def self.external_group(groups, tester_email, preferred_group)
     matches = groups.select do |group|
-      group.is_internal_group == false && tester_group_ids.include?(group.id) &&
-        (preferred_group.empty? || group.matches_identifiers?([preferred_group]))
+      group.is_internal_group == false &&
+        (preferred_group.empty? || group.matches_identifiers?([preferred_group])) &&
+        Array(group.beta_testers).any? { |tester| tester.email.to_s.casecmp?(tester_email) }
     end
     if matches.empty?
       raise ArgumentError, 'The configured TestFlight tester is not in a matching external group for this app.'

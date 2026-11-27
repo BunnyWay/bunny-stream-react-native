@@ -87,8 +87,8 @@ Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plug
 
 ### Distributing the Android example with Firebase
 
-Register an Android app in your Firebase project using the example's package
-name (`net.bunny.stream.reactnative.example`, configured in `example/app.json`).
+Register an Android app in your Firebase project using the package name in
+`example/app.json`.
 If you choose another package name, set `android.package` in `example/app.json`
 to match it. Enable App Distribution in the Firebase console and add testers or
 groups there. Firebase SDK integration and `google-services.json` are not needed
@@ -163,6 +163,8 @@ under **Sign-In and Security > App-Specific Passwords** (requires two-factor
 authentication). Use the same Apple Account that can upload this app in Transporter.
 `APP_STORE_CONNECT_APPLE_ID` is the app's numeric **Apple ID** in **App Store
 Connect > My Apps > App Information**, not its bundle ID or your email address.
+Set `FASTLANE_ITC_TEAM_ID` in your local `.env` if you use a different App Store
+Connect team.
 Without an external tester configured, this mode uploads the binary and returns.
 On Xcode 26+, accounts
 associated with multiple providers may also need
@@ -196,8 +198,8 @@ builds, export the variables in your shell before building. See
 [Apple's export compliance overview](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/).
 
 Signing uses the same certificates, provisioning profiles, and
-`example/ios/ExportOptions.plist` as the manual IPA build. The app must already
-exist in App Store Connect with bundle ID `net.bunny.StreamSDKRNDemo`.
+`example/ios/ExportOptions.plist` as the manual IPA build. The App Store Connect
+app must use the iOS bundle identifier in `example/app.json`.
 Firebase uses the existing App Distribution configuration and CLI login, or
 `GOOGLE_APPLICATION_CREDENTIALS` for a service account. It still needs permission
 to upload to the configured Firebase project.

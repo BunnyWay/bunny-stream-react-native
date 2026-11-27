@@ -43,6 +43,8 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ### Fixed
 
+- iOS example: select the Bunny App Store Connect team automatically and find
+  external TestFlight testers through the app's beta groups.
 - Example app: resolve Node from the iOS build environment instead of a
   developer-specific path.
 - Example app: reject combining `--build` with a custom `--apk` path so Android

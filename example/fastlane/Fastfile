@@ -28,13 +28,18 @@ end
 private_lane :testflight_group do |config|
   require 'spaceship'
   unless config[:api_key]
-    Spaceship::ConnectAPI.login(config.fetch(:username), use_portal: false, use_tunes: true)
+    Spaceship::ConnectAPI.login(
+      config.fetch(:username),
+      use_portal: false,
+      use_tunes: true,
+      tunes_team_id: config.fetch(:team_id)
+    )
   end
   app = Spaceship::ConnectAPI::App.find(config.fetch(:app_identifier))
   raise ArgumentError, 'Could not find the example app in App Store Connect.' unless app
 
-  tester = Spaceship::ConnectAPI::BetaTester.find(email: config.fetch(:tester_email), includes: 'betaGroups')
-  ExampleDistribution.external_group(app.get_beta_groups, tester, ENV['TESTFLIGHT_GROUP'].to_s.strip)
+  groups = app.get_beta_groups(includes: 'betaTesters')
+  ExampleDistribution.external_group(groups, config.fetch(:tester_email), ENV['TESTFLIGHT_GROUP'].to_s.strip)
 end
 
 desc 'Validate local iOS and Android distribution configuration without building or uploading'

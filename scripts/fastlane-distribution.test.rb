@@ -68,14 +68,14 @@ class DistributionLaneHarness
 end
 
 class FastlaneDistributionTest < Minitest::Test
-  ENV_NAMES = %w[APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID APP_STORE_CONNECT_API_KEY_FILE TESTFLIGHT_IPA_PATH TESTFLIGHT_AUTH TESTFLIGHT_TESTER_EMAIL FASTLANE_USER FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD APP_STORE_CONNECT_APPLE_ID APP_STORE_CONNECT_PROVIDER_PUBLIC_ID].freeze
+  ENV_NAMES = %w[APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID APP_STORE_CONNECT_API_KEY_FILE TESTFLIGHT_IPA_PATH TESTFLIGHT_AUTH TESTFLIGHT_TESTER_EMAIL FASTLANE_USER FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD APP_STORE_CONNECT_APPLE_ID APP_STORE_CONNECT_PROVIDER_PUBLIC_ID FASTLANE_ITC_TEAM_ID].freeze
 
-  Group = Struct.new(:id, :name, :is_internal_group) do
+  Group = Struct.new(:id, :name, :is_internal_group, :beta_testers) do
     def matches_identifiers?(identifiers)
       identifiers.include?(id) || identifiers.include?(name)
     end
   end
-  Tester = Struct.new(:beta_groups)
+  Tester = Struct.new(:email)
 
   def setup
     @directory = Dir.mktmpdir('bunny-fastlane-')
@@ -144,16 +144,16 @@ class FastlaneDistributionTest < Minitest::Test
   end
 
   def test_external_group_matches_only_the_testers_membership_in_this_app
-    internal = Group.new('1', 'Internal', true)
-    target = Group.new('2', 'External', false)
-    other = Group.new('3', 'Other', false)
-    separate_app = Group.new('4', 'Separate app', false)
-    tester = Tester.new([internal, target, separate_app])
-    assert_equal '2', ExampleDistribution.external_group([internal, target, other], tester, '')
-    assert_raises(ArgumentError) { ExampleDistribution.external_group([internal, other], tester, '') }
-    tester.beta_groups << other
-    assert_raises(ArgumentError) { ExampleDistribution.external_group([target, other], tester, '') }
-    assert_equal '3', ExampleDistribution.external_group([target, other], tester, 'Other')
+    email = 'tester@example.com'
+    tester = Tester.new('Tester@example.com')
+    internal = Group.new('1', 'Internal', true, [tester])
+    target = Group.new('2', 'External', false, [tester])
+    other = Group.new('3', 'Other', false, [Tester.new('someone@example.com')])
+    assert_equal '2', ExampleDistribution.external_group([internal, target, other], email, '')
+    assert_raises(ArgumentError) { ExampleDistribution.external_group([internal, other], email, '') }
+    other.beta_testers << tester
+    assert_raises(ArgumentError) { ExampleDistribution.external_group([target, other], email, '') }
+    assert_equal '3', ExampleDistribution.external_group([target, other], email, 'Other')
   end
 
   def test_failed_build_never_uploads_previous_artifacts
@@ -225,6 +225,7 @@ class FastlaneDistributionTest < Minitest::Test
     options = @runner.calls.find { |call| call.first == :testflight }.last
     assert_equal 'developer@example.com', options[:username]
     assert_equal '1234567890', options[:apple_id]
+    assert_equal '123788500', options[:team_id]
     assert_equal 'test-provider', options[:provider_public_id]
     assert options[:skip_waiting_for_build_processing]
     refute options.key?(:changelog)
@@ -244,7 +245,8 @@ class FastlaneDistributionTest < Minitest::Test
       'FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD' => 'test-password',
       'APP_STORE_CONNECT_APPLE_ID' => '1234567890'
     }
-    assert_equal({ username: 'developer@example.com', apple_id: '1234567890' }, ExampleDistribution.ios_auth_options(env))
+    assert_equal({ username: 'developer@example.com', apple_id: '1234567890', team_id: '123788500' }, ExampleDistribution.ios_auth_options(env))
+    assert_equal '123', ExampleDistribution.ios_auth_options(env.merge('FASTLANE_ITC_TEAM_ID' => '123'))[:team_id]
     env['APP_STORE_CONNECT_APPLE_ID'] = 'net.bunny.demo'
     assert_raises(ArgumentError) { ExampleDistribution.ios_auth_options(env) }
     env['TESTFLIGHT_AUTH'] = 'invalid'

@@ -55,7 +55,6 @@ example/fastlane/report.xml
 example/fastlane/README.md
 example/fastlane/screenshots/
 example/fastlane/test_output/
-*.p8
 example/vendor/
 example/.bundle/ruby/
 example/.distribution/
@@ -98,6 +97,22 @@ example/build/generated/codegen
 # React Native Nitro Modules
 nitrogen/
 
-# Env files (keep .env.example tracked)
+# Local credentials and signing material
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pem
+*.key
+*.mobileprovision
+*firebase-adminsdk*.json
+*service-account*.json
+*service_account*.json
+application_default_credentials.json
+
+# Local environment files and committed templates
 .env
+.env.*
 !.env.example
+!/example/.env.release
