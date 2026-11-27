@@ -28,6 +28,8 @@ export default defineConfig([
       'example/android/**',
       'example/ios/**',
       'example/dist/**',
+      'example/.bundle/**',
+      'example/vendor/**',
       'example-expo/android/**',
       'example-expo/ios/**',
       'example-expo/.expo/**',

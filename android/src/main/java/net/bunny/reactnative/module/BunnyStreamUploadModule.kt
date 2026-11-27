@@ -17,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import net.bunny.api.BunnyStreamApi
 import net.bunny.api.StreamApi
@@ -75,6 +76,15 @@ class BunnyStreamUploadModule(reactContext: ReactApplicationContext) :
    * uploads are never recorded — their `videoId` belongs to the caller.
    */
   private val ownedUploadLibraryIds = ConcurrentHashMap<String, Long>()
+
+  internal suspend fun resetLocalState() {
+    val jobs = scope.coroutineContext[Job]?.children?.toList().orEmpty()
+    jobs.forEach { it.cancel() }
+    jobs.joinAll()
+    activeJobs.clear()
+    lastEvents.clear()
+    ownedUploadLibraryIds.clear()
+  }
 
   // region — Upload lifecycle —
 

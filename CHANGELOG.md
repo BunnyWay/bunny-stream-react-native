@@ -14,6 +14,44 @@ For earlier releases, see [GitHub Releases](https://github.com/BunnyWay/bunny-st
 
 ## [Unreleased]
 
+### Added
+
+- `yarn publish` now releases the library and then builds and uploads the example
+  apps to TestFlight and Firebase App Distribution. Use `yarn example:distribute`
+  to ship the example apps independently.
+- Example app: share changelog notes in TestFlight and Firebase App Distribution,
+  and notify the configured external TestFlight group when the build is available.
+- iOS example: include the configured encryption export compliance declaration
+  in new TestFlight builds.
+- Example app: show the app version and platform build number at the bottom of
+  Settings on iOS and Android.
+- Example app: reset settings, credentials, resume positions, and local upload
+  data from Settings after confirmation.
+
+### Changed
+
+- Example app: add Yarn commands backed by Fastlane to build and upload iOS to
+  TestFlight and Android to Firebase App Distribution, with upload-only retries.
+  iOS uploads support either App Store Connect API keys or Apple ID with an
+  app-specific password.
+  Release APK builds now increment Android `versionCode` automatically.
+
+- Example app: automatically synchronize its package and native app versions with
+  the library during release preparation and builds.
+- Example app: automatically increment the iOS build number before each IPA build.
+- Example app: add Android APK builds with upload to Firebase App Distribution.
+- Example app: change the Android application ID from `com.microsoft.reacttestapp`
+  to `net.bunny.stream.reactnative.example`. Android installs it as a separate app.
+
+### Fixed
+
+- iOS example: select the Bunny App Store Connect team automatically and find
+  external TestFlight testers through the app's beta groups.
+- Example app: resolve Node from the iOS build environment instead of a
+  developer-specific path.
+- Example app: reject combining `--build` with a custom `--apk` path so Android
+  build-and-upload commands cannot distribute an older binary from that path.
+
 ## [1.1.2] - 2026-11-26
 
 ### Fixed

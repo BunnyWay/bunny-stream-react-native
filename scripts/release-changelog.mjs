@@ -58,6 +58,17 @@ export function releaseNotes(text, version = 'Unreleased') {
   return body;
 }
 
+export function exampleReleaseNotes(text, version) {
+  const available = sections(text);
+  for (const name of ['Unreleased', version]) {
+    if (!available.some((entry) => entry.name === name)) continue;
+    const { bodyStart, end } = section(text, name);
+    const body = text.slice(bodyStart, end).trim();
+    if (hasEntries(body)) return body;
+  }
+  return `Bunny Stream React Native example ${version}`;
+}
+
 export function prepareRelease(text, version, date = new Date().toISOString().slice(0, 10)) {
   if (
     !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(
@@ -130,17 +141,19 @@ function main() {
   const [command, version, date] = positionals;
   if (
     (command === 'unreleased' && positionals.length !== 1) ||
-    (command === 'notes' && positionals.length !== 2) ||
+    (['notes', 'example'].includes(command) && positionals.length !== 2) ||
     (command === 'release' && (positionals.length < 2 || positionals.length > 3)) ||
-    !['unreleased', 'notes', 'release'].includes(command)
+    !['unreleased', 'notes', 'release', 'example'].includes(command)
   ) {
     throw new Error(
-      'Usage: node scripts/release-changelog.mjs [--changelog FILE] unreleased | notes VERSION | release VERSION [YYYY-MM-DD]',
+      'Usage: node scripts/release-changelog.mjs [--changelog FILE] unreleased | notes VERSION | example VERSION | release VERSION [YYYY-MM-DD]',
     );
   }
   const text = readFileSync(values.changelog, 'utf8');
   if (command === 'release') {
     writeFileSync(values.changelog, prepareRelease(text, version, date));
+  } else if (command === 'example') {
+    console.log(exampleReleaseNotes(text, version));
   } else {
     console.log(releaseNotes(text, command === 'unreleased' ? 'Unreleased' : version));
   }

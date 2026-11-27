@@ -24,7 +24,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * folders under `src/features/`. `RootStackParamList` in `types.ts`
  * describes the params each route accepts.
  */
-export function RootNavigator() {
+export function RootNavigator({ onAppReset }: { onAppReset: () => void }) {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
@@ -33,7 +33,9 @@ export function RootNavigator() {
         <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
         <Stack.Screen name="LiveStreams" component={LiveStreamsScreen} />
         <Stack.Screen name="ThumbnailPicker" component={ThumbnailPickerScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Settings">
+          {(props) => <SettingsScreen {...props} onAppReset={onAppReset} />}
+        </Stack.Screen>
         <Stack.Screen name="Player" component={PlayerScreen} />
         <Stack.Screen name="LivePlayer" component={LivePlayerScreen} />
         <Stack.Screen name="Camera" component={CameraScreen} />

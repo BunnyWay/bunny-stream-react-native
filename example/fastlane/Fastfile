@@ -1,0 +1,130 @@
+require 'json'
+require_relative 'distribution'
+
+opt_out_usage
+
+def example_sh(*args)
+  Dir.chdir(ExampleDistribution::ROOT) { sh(*args) }
+end
+
+private_lane :check_ios do
+  ExampleDistribution.ios_auth_options
+end
+
+private_lane :check_android do
+  example_sh('node', '../scripts/distribute-android.mjs', '--check')
+end
+
+private_lane :sync_versions do
+  example_sh('node', '../scripts/generate-sdk-version.mjs')
+  example_sh('node', '../scripts/sync-example-version.mjs')
+end
+
+private_lane :build_ios do
+  FileUtils.rm_f(File.join(ExampleDistribution::ROOT, ExampleDistribution::DEFAULT_IPA))
+  example_sh('npm', 'run', 'build:ios:ipa')
+end
+
+private_lane :testflight_group do |config|
+  require 'spaceship'
+  unless config[:api_key]
+    Spaceship::ConnectAPI.login(
+      config.fetch(:username),
+      use_portal: false,
+      use_tunes: true,
+      tunes_team_id: config.fetch(:team_id)
+    )
+  end
+  app = Spaceship::ConnectAPI::App.find(config.fetch(:app_identifier))
+  raise ArgumentError, 'Could not find the example app in App Store Connect.' unless app
+
+  groups = app.get_beta_groups(includes: 'betaTesters')
+  ExampleDistribution.external_group(groups, config.fetch(:tester_email), ENV['TESTFLIGHT_GROUP'].to_s.strip)
+end
+
+desc 'Validate local iOS and Android distribution configuration without building or uploading'
+lane :distribution_check do
+  check_ios
+  check_android
+end
+
+desc 'Build both example apps, upload IPA to TestFlight, and distribute APK with Firebase'
+lane :distribute do
+  distribution_check
+  sync_versions
+  ExampleDistribution.with_build_numbers do
+    build_ios
+    example_sh('npm', 'run', 'build:android:apk')
+    upload_apk
+    upload_testflight(ipa: ExampleDistribution.ipa_path({}))
+  end
+end
+
+desc 'Build the iOS example and upload it to TestFlight'
+lane :distribute_ios do
+  check_ios
+  sync_versions
+  ExampleDistribution.with_build_numbers do
+    build_ios
+    upload_testflight(ipa: ExampleDistribution.ipa_path({}))
+  end
+end
+
+desc 'Build the Android example and distribute it with Firebase'
+lane :distribute_android do
+  check_android
+  sync_versions
+  ExampleDistribution.with_build_numbers do
+    example_sh('npm', 'run', 'build:android:apk')
+    upload_apk
+  end
+end
+
+desc 'Upload the existing IPA to TestFlight without rebuilding or incrementing its build number'
+lane :upload_ios do |options = {}|
+  ExampleDistribution.with_lock do
+    upload_testflight(ipa: ExampleDistribution.ipa_path, distribute_only: options[:distribute_only])
+  end
+end
+
+private_lane :upload_testflight do |build|
+  ipa = build.fetch(:ipa)
+  options = ExampleDistribution.ios_auth_options
+  manifest = JSON.parse(File.read(File.join(ExampleDistribution::ROOT, 'app.json')))
+  options[:app_identifier] = manifest.fetch('ios').fetch('bundleIdentifier')
+  key_options = options.delete(:api_key_options)
+  options[:api_key] = app_store_connect_api_key(**key_options) if key_options
+  tester_email = ENV['TESTFLIGHT_TESTER_EMAIL'].to_s.strip
+  external = !tester_email.empty?
+  options[:skip_waiting_for_build_processing] = !external
+  options[:skip_submission] = !external
+  options[:distribute_external] = external
+  if external
+    options[:groups] = [testflight_group(**options, tester_email: tester_email)]
+    options[:notify_external_testers] = true
+    options[:submit_beta_review] = true
+  end
+  if build[:distribute_only].to_s == 'true'
+    raise ArgumentError, 'Set TESTFLIGHT_TESTER_EMAIL before retrying external distribution.' unless external
+
+    options[:distribute_only] = true
+    options[:app_version] = FastlaneCore::IpaFileAnalyser.fetch_app_version(ipa)
+    options[:build_number] = FastlaneCore::IpaFileAnalyser.fetch_app_build(ipa)
+  else
+    options[:ipa] = ipa
+  end
+  if external || key_options
+    package = JSON.parse(File.read(File.join(ExampleDistribution::ROOT, 'package.json')))
+    options[:changelog] = example_sh('node', '../scripts/release-changelog.mjs', '--changelog', '../CHANGELOG.md', 'example', package.fetch('version')).strip
+  end
+  upload_to_testflight(**options)
+end
+
+desc 'Upload the existing APK with Firebase without rebuilding or incrementing versionCode'
+lane :upload_android do
+  ExampleDistribution.with_lock { upload_apk }
+end
+
+private_lane :upload_apk do
+  example_sh('node', '../scripts/distribute-android.mjs')
+end

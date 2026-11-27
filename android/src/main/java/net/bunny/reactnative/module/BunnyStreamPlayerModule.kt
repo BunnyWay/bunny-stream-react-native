@@ -5,10 +5,12 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.annotations.ReactModule
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.bunny.api.BunnyStreamApi
 import net.bunny.api.BunnyStreamConfig
 import net.bunny.api.BunnyStreamIntegrator
@@ -71,6 +73,27 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
         integrator = integrator,
       ),
     )
+  }
+
+  override fun resetLocalState(promise: Promise) {
+    moduleScope.launch {
+      try {
+        reactApplicationContext.getNativeModule(BunnyStreamUploadModule::class.java)?.resetLocalState()
+        BunnyStreamApi.release()
+        positionManager().clearAllPositions()
+        withContext(Dispatchers.IO) {
+          // The SDK stores TUS resume URLs in one SharedPreferences file per library.
+          val preferences = File(reactApplicationContext.applicationInfo.dataDir, "shared_prefs")
+          val uploadFiles = preferences.list { _, name -> TUS_PREFERENCES_FILE.matches(name) }
+          for (file in uploadFiles.orEmpty()) {
+            check(reactApplicationContext.deleteSharedPreferences(file.removeSuffix(".xml")))
+          }
+        }
+        promise.resolve(null)
+      } catch (e: Exception) {
+        promise.reject("E_RESET", "Could not clear local SDK data.", e)
+      }
+    }
   }
 
   /**
@@ -173,6 +196,8 @@ class BunnyStreamPlayerModule(reactContext: ReactApplicationContext) :
 
     /** Integrator name sent to the Android SDK for the User-Agent suffix. */
     private const val INTEGRATOR_NAME = "bunny-stream-react-native"
+
+    private val TUS_PREFERENCES_FILE = Regex("tusPrefs(?:-\\d+)?\\.xml")
 
     /** Mirrors the iOS SDK's hardcoded speed list; used when the engine is down. */
     private val DEFAULT_SPEEDS = doubleArrayOf(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)

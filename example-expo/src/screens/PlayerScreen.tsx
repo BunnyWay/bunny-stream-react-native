@@ -1,13 +1,28 @@
 import type { Video } from '@bunny.net/stream-react-native';
 
-import { BunnyStreamPlayer } from '@bunny.net/stream-react-native';
+import { BunnyStreamApi, BunnyStreamPlayer } from '@bunny.net/stream-react-native';
+import { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { BUNNY_TOKEN_AUTH_KEY } from '../config';
+
 export function PlayerScreen({ video, onBack }: { video: Video; onBack: () => void }) {
+  // Sign a playback token when a key is configured — token-authenticated
+  // libraries reject unsigned /play requests, public ones ignore it.
+  const { token, expires } = useMemo(
+    () => BunnyStreamApi.signPlaybackToken(BUNNY_TOKEN_AUTH_KEY, video.id),
+    [video.id],
+  );
+
   return (
     <View style={styles.screen}>
       <BunnyStreamPlayer
-        source={{ type: 'vod', videoId: video.id }}
+        source={{
+          type: 'vod',
+          videoId: video.id,
+          token: token ?? undefined,
+          expires: expires ?? undefined,
+        }}
         style={styles.player}
         autoPlay
         onReady={() => console.log('[player] ready:', video.id)}

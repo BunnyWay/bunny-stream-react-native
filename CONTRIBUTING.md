@@ -63,6 +63,10 @@ yarn example:android
 yarn example:typecheck
 ```
 
+The iOS build resolves Node from `PATH`; activate the version in `.nvmrc` before
+building. For Xcode launched from Finder, a machine-specific Node path can be set
+in `example/ios/.xcode.env.local`, which is ignored by Git.
+
 The example app resolves the library from `src/` via Metro, so changes to TypeScript source are reflected through Fast Refresh without rebuilding the library.
 
 ### Running the Expo example app
@@ -80,6 +84,177 @@ yarn example:expo start      # dev server (requires a dev build)
 ```
 
 Plugin changes live in `plugin/src` and compile to `plugin/build` via `yarn plugin:build` (also part of `prepare`) — rebuild before `prebuild` when iterating on the plugin.
+
+### Distributing the Android example with Firebase
+
+Register an Android app in your Firebase project using the package name in
+`example/app.json`.
+If you choose another package name, set `android.package` in `example/app.json`
+to match it. Enable App Distribution in the Firebase console and add testers or
+groups there. Firebase SDK integration and `google-services.json` are not needed
+to distribute an APK.
+
+Set `appId` in `example/firebase-distribution.json` to the Firebase Android App ID
+(for example, `1:123456789:android:abcdef123456`). Optionally populate `groups`
+with group aliases or `testers` with email addresses. Keep private tester lists
+out of Git by using the `FIREBASE_GROUPS` and `FIREBASE_TESTERS` environment
+variables instead. `FIREBASE_APP_ID` also overrides the configured app ID.
+
+Authenticate once using the same pinned CLI version used by the upload script:
+
+```sh
+npx --yes --package=firebase-tools@15.37.0 firebase login
+yarn example build:android:firebase
+```
+
+The command validates the app ID, builds the release APK with embedded Bunny
+credentials disabled, then uploads and distributes it to the configured testers
+and groups. With no recipients configured, it only uploads the release; assign
+testers later in the Firebase console. To retry an upload without rebuilding:
+
+```sh
+yarn example distribute:android
+# Or upload a specific APK (use an absolute path):
+yarn example distribute:android --apk /absolute/path/to/example.apk
+```
+
+`--apk` is for uploading an existing binary and cannot be combined with `--build`.
+Build-and-upload commands always use the APK produced at the default output path.
+
+`FIREBASE_RELEASE_NOTES` overrides the default notes from `CHANGELOG.md`.
+For CI, authenticate with Application Default Credentials (for example,
+`GOOGLE_APPLICATION_CREDENTIALS` pointing to a service account file with the
+Firebase App Distribution Admin role); keep credentials outside the repository.
+The existing `build:android:apk` command and GitHub APK artifact workflow continue
+to build APKs without uploading to Firebase.
+
+### Building the example IPA
+
+Run `yarn example build:ios:ipa` to archive and export the iOS example app.
+Each invocation first increments `ios.buildNumber` in `example/app.json`, before
+the native project is regenerated. The new number stays in the manifest even if
+the build fails, so retrying uses the next number. The app version is unchanged.
+Running `yarn example build:ios:archive` directly does not increment the number.
+
+### Building and distributing both examples with Fastlane
+
+Fastlane reuses the existing APK and IPA scripts. On macOS, use the Ruby version
+required by `example/Gemfile` (Ruby 3.2+ recommended), then install the locked gems:
+
+```sh
+yarn example:fastlane:setup
+cp example/fastlane/.env.example example/fastlane/.env
+```
+
+Choose an upload authentication method in `example/fastlane/.env`. The `.env`
+file is ignored by Git; Transporter's saved login is not reused.
+
+If you cannot create an App Store Connect API key, use **Apple ID authentication**:
+
+```dotenv
+TESTFLIGHT_AUTH=apple_id
+FASTLANE_USER=your-apple-account@example.com
+FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD=your-app-specific-password
+APP_STORE_CONNECT_APPLE_ID=1234567890
+```
+
+Generate the app-specific password in [Apple Account](https://account.apple.com)
+under **Sign-In and Security > App-Specific Passwords** (requires two-factor
+authentication). Use the same Apple Account that can upload this app in Transporter.
+`APP_STORE_CONNECT_APPLE_ID` is the app's numeric **Apple ID** in **App Store
+Connect > My Apps > App Information**, not its bundle ID or your email address.
+Set `FASTLANE_ITC_TEAM_ID` in your local `.env` if you use a different App Store
+Connect team.
+Without an external tester configured, this mode uploads the binary and returns.
+On Xcode 26+, accounts
+associated with multiple providers may also need
+`APP_STORE_CONNECT_PROVIDER_PUBLIC_ID` (the provider public ID, not the signing
+team ID). It still requires permission to upload builds for the app.
+
+Alternatively, set `TESTFLIGHT_AUTH=api_key` and create a **team API key** in App Store Connect under **Users and Access >
+Integrations > App Store Connect API**, with the App Manager or Admin role to
+manage TestFlight build metadata and external distribution. Save the `.p8` key
+outside the repository and fill in
+`APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, and
+`APP_STORE_CONNECT_API_KEY_FILE` in `example/fastlane/.env`. Use an absolute key
+file path. When `TESTFLIGHT_AUTH` is omitted, configured API key values select
+API key authentication; otherwise Apple ID authentication is used.
+
+Set `TESTFLIGHT_TESTER_EMAIL` in the local Fastlane `.env` to the email of an
+existing external tester. Fastlane looks up that tester's external group for this
+app and enables notifications for members of that group. If the tester belongs
+to multiple external groups for the app, set `TESTFLIGHT_GROUP` to one group's
+exact name or ID. With Apple ID authentication, Fastlane also needs a regular
+App Store Connect login for group lookup and build metadata. It can prompt for
+the account password and two-factor code or reuse `FASTLANE_SESSION` from
+`bundle exec fastlane spaceauth` run in `example/`.
+
+For a confirmed encryption export compliance declaration, set
+`PILOT_USES_NON_EXEMPT_ENCRYPTION` to `true` or `false` in the Fastlane `.env`.
+The iOS example build writes that Boolean to `ITSAppUsesNonExemptEncryption` in
+the app's `Info.plist`. If Apple provided an encryption export compliance code,
+set `IOS_ENCRYPTION_EXPORT_COMPLIANCE_CODE` to include it as well. For direct IPA
+builds, export the variables in your shell before building. See
+[Apple's export compliance overview](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/).
+
+Signing uses the same certificates, provisioning profiles, and
+`example/ios/ExportOptions.plist` as the manual IPA build. The App Store Connect
+app must use the iOS bundle identifier in `example/app.json`.
+Firebase uses the existing App Distribution configuration and CLI login, or
+`GOOGLE_APPLICATION_CREDENTIALS` for a service account. It still needs permission
+to upload to the configured Firebase project.
+
+Run these commands from the repository root:
+
+| Command | Behavior |
+| --- | --- |
+| `yarn example:distribution:check` | Check local Apple authentication configuration and Firebase App ID, without building or uploading. Does not validate remote permissions or signing. |
+| `yarn example:distribute` | Synchronize versions, build IPA and APK, then upload to TestFlight and Firebase. |
+| `yarn example:distribute:ios` | Build and upload only iOS. |
+| `yarn example:distribute:android` | Build and upload only Android. |
+| `yarn example:upload:ios` | Retry uploading the existing IPA without rebuilding. |
+| `yarn example:upload:android` | Retry uploading the existing APK without rebuilding. |
+
+The combined command builds both artifacts, then uploads to Firebase before
+waiting for TestFlight processing. It stops on the first failure. If an upload
+fails after the builds finish, use the upload-only commands to retry with the same
+artifact. If Apple already accepted the IPA, use
+`yarn example:upload:ios distribute_only:true` from the same checkout to retry
+external distribution for that IPA's version and build number.
+
+Fastlane keeps the last used iOS `buildNumber` and Android `versionCode` in the
+ignored `example/.distribution/build-numbers.json`. It temporarily uses these
+counters in `example/app.json` during the build, then restores the manifest and
+the CocoaPods lockfile. Failed builds also consume numbers. Before switching
+release machines or starting from a new checkout, copy this file across or seed
+it with the latest numbers uploaded to TestFlight and Firebase:
+
+```json
+{
+  "buildNumber": "42",
+  "versionCode": 42
+}
+```
+
+Fastlane starts from the higher of the stored and manifest values on each
+platform. Direct IPA and APK build commands continue to increment the numbers
+in `example/app.json`.
+
+The default IPA is `example/ios/build/ipa/ReactTestApp.ipa`, matching the existing
+export. To retry an upload with a different file, set `TESTFLIGHT_IPA_PATH` in the
+Fastlane `.env` and run `yarn example:upload:ios`. With external distribution
+enabled, Fastlane waits for processing, sets TestFlight's **What to Test** notes,
+and submits the build for Beta App Review when Apple requires it. Testers are
+notified once Apple makes the build available to their group.
+
+TestFlight and Firebase use the same notes from `CHANGELOG.md`. Independent test
+builds use pending `[Unreleased]` entries when available. After `yarn publish`, the
+notes come from the published version's section. Firebase recipients come from
+the configured groups or testers. Unassigned Firebase releases remain available
+in the Firebase console.
+
+Check the automation without native builds or uploads using `yarn test:release`,
+`yarn test:distribution`, and `yarn test:fastlane`.
 
 ## Project Areas
 
@@ -156,12 +331,13 @@ yarn release:notes
 
 ### Publishing
 
-Maintainers only. From an up-to-date `main`:
+Maintainers only. From a clean, up-to-date `main` on a Mac configured for Fastlane
+distribution:
 
 ```sh
 yarn typecheck && yarn lint && yarn test && yarn test:release
 yarn prepare
-yarn release
+yarn publish
 ```
 
 Choose the version according to the public React Native API: major for breaking
@@ -169,14 +345,31 @@ changes, minor for backward-compatible additions, patch for fixes and maintenanc
 The Conventional Commits plugin still suggests a version, but commit-derived text
 is not the published release notes.
 
-`release-it` moves the Unreleased entries into `## [X.Y.Z] - YYYY-MM-DD`, leaves a
+`yarn publish` first checks the local distribution configuration, then runs
+`yarn release`. `release-it` moves the Unreleased entries into `## [X.Y.Z] - YYYY-MM-DD`, leaves a
 fresh empty Unreleased section, and bumps the package version. It commits those
 changes together, pushes the `v<version>` tag, and creates the GitHub Release using
 that version's changelog section verbatim. Empty notes, duplicate version sections,
 and missing Unreleased sections stop release preparation.
 
+The version bump also synchronizes `example/package.json` and `example/app.json`
+with the library version. For prereleases, the package keeps the full version
+(for example, `1.2.0-rc.1`), while the native app manifest uses `1.2.0` to satisfy
+iOS version requirements. Build numbers are managed separately and are preserved.
+After manually changing the library version, run `yarn sdk-version:generate` and
+`yarn example:version:sync`, or run `yarn prepare`, which performs both steps.
+`yarn lint` checks that these versions are in sync.
+
 The tag triggers `.github/workflows/publish.yml`, which publishes
 `@bunny.net/stream-react-native` to npm through trusted publishing (no npm token).
+`yarn publish` waits up to 30 minutes for that exact version to appear on npm,
+then builds and uploads the example apps from the release machine. If the command
+stops after the release tag has been pushed, check **Publish to npm** in GitHub
+Actions. Once the version is on npm, run `yarn example:distribute` from that
+version's checkout, or use an upload-only command if the build already exists.
+Use `yarn release` for a library-only release, `yarn example:distribute` for an
+example-only release, and `yarn publish --dry-run` to preview the library release.
+
 Prerelease versions go to the `next` dist-tag and get their own changelog section,
 just like stable releases. Add the next release's entries under Unreleased.
 When a prerelease is promoted to stable (for example `1.1.0-rc.1` → `1.1.0`), its
@@ -215,6 +408,9 @@ Please use the bug report template and include:
 - Logs, screenshots, or sample code when useful
 
 Never include Bunny access keys or other secrets in issues.
+
+GitHub Actions scans incoming commits with Gitleaks. Install `gitleaks` locally
+to enable the staged-file check in the pre-commit hook.
 
 ## Security Issues
 
