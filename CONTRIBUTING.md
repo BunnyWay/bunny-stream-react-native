@@ -409,6 +409,9 @@ Please use the bug report template and include:
 
 Never include Bunny access keys or other secrets in issues.
 
+GitHub Actions scans incoming commits with Gitleaks. Install `gitleaks` locally
+to enable the staged-file check in the pre-commit hook.
+
 ## Security Issues
 
 Please do not report security vulnerabilities in public issues. See `SECURITY.md` for the private reporting process.
